@@ -70,7 +70,7 @@
             <div class="auth-brand">
                 <img
                     class="login-logo"
-                    src="{{ asset('build/assets/images/sidebar_logo.png') }}"
+                    src="{{ asset('images/sidebar_logo.png') }}"
                     alt="W68 Autoparts Logo"
                 >
 
@@ -268,7 +268,7 @@
         <section class="otp-card" role="dialog" aria-modal="true" aria-labelledby="otp-title">
             <img
                 class="otp-logo"
-                src="{{ asset('build/assets/images/sidebar_logo.png') }}"
+                src="{{ asset('images/sidebar_logo.png') }}"
                 alt="W68 Autoparts"
             >
 

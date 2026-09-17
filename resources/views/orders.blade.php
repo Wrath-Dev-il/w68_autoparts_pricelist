@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>W68 Autoparts | Orders</title>
-    <link rel="icon" href="{{ asset('build/assets/images/sidebar_logo.png') }}">
+    <link rel="icon" href="{{ asset('images/sidebar_logo.png') }}">
     <link rel="stylesheet" href="{{ asset('css/w68-orders.css') }}?v=20260916-v102">
     <link rel="stylesheet" href="{{ asset('css/w68-notifications.css') }}?v=20260916-v102">
     <script src="{{ asset('js/w68-orders.js') }}?v=20260916-v102" defer></script>
@@ -21,7 +21,7 @@
     data-notifications-read-all-url="{{ rtrim(request()->getSchemeAndHttpHost(), '/') }}{{ preg_replace('#/index\.php$#i', '', rtrim(str_replace('\\', '/', (string) request()->getBaseUrl()), '/')) }}/home/notifications/read-all"
 >
 @php
-    $logo = asset('build/assets/images/sidebar_logo.png');
+    $logo = asset('images/sidebar_logo.png');
     $allOrders = $toShip->concat($received)->concat($cancelled ?? collect())->values();
     $jsonFlags = JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP | JSON_HEX_QUOT;
 @endphp
@@ -130,9 +130,9 @@
                         <span>STATUS</span>
                         <strong class="status-badge ordered">INVOICED</strong>
                         @if($order['waybill_no'])
-                            <small>Waybill {{ $order['waybill_no'] }}@if($order['waybill_date']) · {{ $order['waybill_date'] }}@endif</small>
+                            <small>Waybill {{ $order['waybill_no'] }}@if($order['waybill_date']) Â· {{ $order['waybill_date'] }}@endif</small>
                         @elseif(!empty($order['waybill_id']))
-                            <small>Waybill #{{ $order['waybill_id'] }}@if($order['waybill_date']) · {{ $order['waybill_date'] }}@endif</small>
+                            <small>Waybill #{{ $order['waybill_id'] }}@if($order['waybill_date']) Â· {{ $order['waybill_date'] }}@endif</small>
                         @endif
                     </div>
                 </div>
@@ -154,17 +154,17 @@
                 <div class="order-summary-main">
                     <div>
                         <span>ORDER ID</span>
-                        <strong>{{ $return['order_code'] ?: '—' }}</strong>
-                        <small>{{ $return['sales_number'] ?: '—' }}</small>
+                        <strong>{{ $return['order_code'] ?: 'â€”' }}</strong>
+                        <small>{{ $return['sales_number'] ?: 'â€”' }}</small>
                     </div>
                     <div>
                         <span>RETURN NO.</span>
                         <strong>{{ $return['return_number'] ?: 'RETURN' }}</strong>
-                        <small>Invoice {{ $return['invoice_no'] ?: '—' }}</small>
+                        <small>Invoice {{ $return['invoice_no'] ?: 'â€”' }}</small>
                     </div>
                     <div>
                         <span>DATE</span>
-                        <strong>{{ $return['date'] ?: '—' }}</strong>
+                        <strong>{{ $return['date'] ?: 'â€”' }}</strong>
                         <small>{{ number_format($return['total_items']) }} returned item(s)</small>
                     </div>
                     <div>
@@ -239,7 +239,7 @@
             <div>
                 <span>VIEW ORDER</span>
                 <h2 id="order-modal-title" data-order-modal-code>Order</h2>
-                <p><b>Sales Note:</b> <span data-order-modal-sales-note>—</span> &nbsp; <b>Date:</b> <span data-order-modal-date>—</span></p>
+                <p><b>Sales Note:</b> <span data-order-modal-sales-note>â€”</span> &nbsp; <b>Date:</b> <span data-order-modal-date>â€”</span></p>
             </div>
             <button type="button" data-order-modal-close aria-label="Close">&times;</button>
         </header>

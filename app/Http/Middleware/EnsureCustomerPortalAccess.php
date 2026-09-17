@@ -61,18 +61,7 @@ class EnsureCustomerPortalAccess
 
                 return $next($request);
             }
-
-            /*
-             * Linked customers must be able to reach Login and complete login
-             * OTP even after the original QR expires. LoginController will
-             * resolve an existing customer_portal_accounts link by login_ID.
-             * Registration still requires a fresh authorization.
-             */
-            if ($this->allowsLinkedAccountLoginWithoutFreshQr($request)) {
-                return $next($request);
-            }
-
-            $authorizationId = (int) $request->session()->get('w68_customer_authorization_id', 0);
+$authorizationId = (int) $request->session()->get('w68_customer_authorization_id', 0);
             $customerId = (int) $request->session()->get('w68_customer_id', 0);
 
             if ($authorizationId < 1 || $customerId < 1) {
@@ -112,21 +101,6 @@ class EnsureCustomerPortalAccess
 
         return $next($request);
     }
-
-    private function allowsLinkedAccountLoginWithoutFreshQr(Request $request): bool
-    {
-        $route = $request->route();
-        $routeName = $route ? (string) $route->getName() : '';
-
-        return in_array($routeName, [
-            'login',
-            'login.attempt',
-            'otp.verify',
-            'otp.resend',
-            'logout',
-        ], true);
-    }
-
     private function deny(Request $request, string $message): Response
     {
         if (Auth::check()) {

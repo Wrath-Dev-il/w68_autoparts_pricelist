@@ -6,7 +6,7 @@
     <meta name="description" content="W68 Autoparts & Service Center customer online pricelist.">
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>W68 Autoparts & Service Center | Home</title>
-    <link rel="icon" href="{{ asset('build/assets/images/sidebar_logo.png') }}">
+    <link rel="icon" href="{{ asset('images/sidebar_logo.png') }}">
     <link rel="stylesheet" href="{{ asset('css/w68-home.css') }}?v=20260916-v104">
     <link rel="stylesheet" href="{{ asset('css/w68-notifications.css') }}?v=20260915-v95">
     <script src="{{ asset('js/w68-home.js') }}?v=20260916-v104" defer></script>
@@ -14,7 +14,7 @@
 </head>
 <body
     data-search-suggestion-url="{{ rtrim(request()->getSchemeAndHttpHost(), '/') }}{{ preg_replace('#/index\.php$#i', '', rtrim(str_replace('\\', '/', (string) request()->getBaseUrl()), '/')) }}/home/search-suggestions"
-    data-fallback-image="{{ asset('build/assets/images/sidebar_logo.png') }}"
+    data-fallback-image="{{ asset('images/sidebar_logo.png') }}"
     data-brand-discounts="{{ e(json_encode($brandDiscounts ?? [], JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP | JSON_HEX_QUOT)) }}"
     data-cart-account-key="{{ $cartAccountKey ?? 'unknown' }}"
     data-cart-storage-ready="{{ !empty($cartStorageReady) ? '1' : '0' }}"
@@ -32,7 +32,7 @@
     data-notifications-read-all-url="{{ rtrim(request()->getSchemeAndHttpHost(), '/') }}{{ preg_replace('#/index\.php$#i', '', rtrim(str_replace('\\', '/', (string) request()->getBaseUrl()), '/')) }}/home/notifications/read-all"
 >
     @php
-        $logo = asset('build/assets/images/sidebar_logo.png');
+        $logo = asset('images/sidebar_logo.png');
 
         /*
          * W68 runs from /w68_Pricelist/public under XAMPP.

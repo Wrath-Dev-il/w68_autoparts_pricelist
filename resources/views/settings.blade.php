@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
     <meta name="description" content="W68 Autoparts & Service Center customer settings.">
     <title>W68 Autoparts & Service Center | Settings</title>
-    <link rel="icon" href="{{ asset('build/assets/images/sidebar_logo.png') }}">
+    <link rel="icon" href="{{ asset('images/sidebar_logo.png') }}">
     <link rel="stylesheet" href="{{ asset('css/w68-settings.css') }}?v=20260915-v71">
     <script src="{{ asset('js/w68-settings.js') }}?v=20260915-v71" defer></script>
 </head>
@@ -15,7 +15,7 @@
     data-open-password-modal="{{ $openPasswordModal ? '1' : '0' }}"
 >
     @php
-        $logo = asset('build/assets/images/sidebar_logo.png');
+        $logo = asset('images/sidebar_logo.png');
         $pictureUrl = route('home.profile-picture') . '?v=' . (optional($account->updated_at)->timestamp ?? time());
     @endphp
 
@@ -25,11 +25,11 @@
                 <img src="{{ $logo }}" alt="W68 Autoparts & Service Center">
                 <span>
                     <strong>W68 AUTOPARTS</strong>
-                    <small>Service Center • Account Settings</small>
+                    <small>Service Center â€¢ Account Settings</small>
                 </span>
             </a>
 
-            <a class="settings-home-link" href="{{ route('home') }}">← BACK TO HOME</a>
+            <a class="settings-home-link" href="{{ route('home') }}">â† BACK TO HOME</a>
         </div>
     </header>
 
@@ -75,17 +75,17 @@
             <div class="settings-account-info">
                 <div class="settings-info-row">
                     <span>User Name</span>
-                    <strong>{{ $account->User_ID ?: '—' }}</strong>
+                    <strong>{{ $account->User_ID ?: 'â€”' }}</strong>
                 </div>
 
                 <div class="settings-info-row">
                     <span>Email</span>
-                    <strong>{{ $account->Email ?: '—' }}</strong>
+                    <strong>{{ $account->Email ?: 'â€”' }}</strong>
                 </div>
 
                 <div class="settings-info-row settings-password-row">
                     <span>Password</span>
-                    <strong>••••••••••••</strong>
+                    <strong>â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢</strong>
                     <button type="button" data-password-modal-open>CHANGE PASS</button>
                 </div>
             </div>
@@ -114,7 +114,7 @@
                                 <td>
                                     <a href="{{ route('home', ['brand' => $brand['brand']]) }}#products">
                                         <strong>{{ $brand['brand'] }}</strong>
-                                        <small>VIEW PRODUCTS →</small>
+                                        <small>VIEW PRODUCTS â†’</small>
                                     </a>
                                 </td>
                                 <td>
@@ -144,7 +144,7 @@
         <button type="button" class="settings-modal-backdrop" data-profile-modal-close aria-label="Close"></button>
 
         <section class="settings-modal-card profile-picture-modal-card" role="dialog" aria-modal="true" aria-labelledby="profile-picture-modal-title">
-            <button type="button" class="settings-modal-x" data-profile-modal-close aria-label="Close profile picture modal">×</button>
+            <button type="button" class="settings-modal-x" data-profile-modal-close aria-label="Close profile picture modal">Ã—</button>
             <header>
                 <span>PROFILE PICTURE</span>
                 <h2 id="profile-picture-modal-title">Update Picture</h2>
@@ -204,7 +204,7 @@
         <button type="button" class="settings-modal-backdrop" data-password-modal-close aria-label="Close"></button>
 
         <section class="settings-modal-card" role="dialog" aria-modal="true" aria-labelledby="password-modal-title">
-            <button type="button" class="settings-modal-x" data-password-modal-close aria-label="Close change password modal">×</button>
+            <button type="button" class="settings-modal-x" data-password-modal-close aria-label="Close change password modal">Ã—</button>
             <header>
                 <span>SECURITY</span>
                 <h2 id="password-modal-title">Change Password</h2>

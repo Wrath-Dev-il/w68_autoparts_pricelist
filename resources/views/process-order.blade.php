@@ -12,7 +12,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>W68 Autoparts | {{ $returnViewMode ? 'View Return' : ($viewMode ? 'View Order' : 'Process Order') }}</title>
-    <link rel="icon" href="{{ asset('build/assets/images/sidebar_logo.png') }}">
+    <link rel="icon" href="{{ asset('images/sidebar_logo.png') }}">
     <link rel="stylesheet" href="{{ asset('css/w68-process-order.css') }}?v=20260915-v98">
     <script src="{{ asset('js/w68-process-order.js') }}?v=20260915-v98" defer></script>
 </head>
@@ -24,7 +24,7 @@
     <main class="process-page-shell {{ $viewMode ? 'is-view-mode' : '' }}">
         <header class="process-page-header">
             <a class="process-brand" href="{{ $viewMode ? $backToOrdersUrl : route('home') }}" aria-label="{{ $viewMode ? 'Back to W68 Orders' : 'Back to W68 Home' }}">
-                <img src="{{ asset('build/assets/images/sidebar_logo.png') }}" alt="W68 Autoparts & Service Center">
+                <img src="{{ asset('images/sidebar_logo.png') }}" alt="W68 Autoparts & Service Center">
                 <div>
                     <span>W68 AUTOPARTS &amp; SERVICE CENTER</span>
                     <strong>{{ $returnViewMode ? 'VIEW RETURN' : ($viewMode ? 'VIEW ORDER' : 'PROCESS ORDER') }}</strong>
@@ -50,12 +50,12 @@
                     @if ($viewMode && $viewOrder)
                         <div class="process-view-meta">
                             @if ($returnViewMode)
-                                <span>Order: <strong>{{ $viewOrder['portal_order_code'] ?: '—' }}</strong></span>
-                                <span>Invoice: <strong>{{ $viewOrder['invoice_no'] ?: '—' }}</strong></span>
+                                <span>Order: <strong>{{ $viewOrder['portal_order_code'] ?: 'â€”' }}</strong></span>
+                                <span>Invoice: <strong>{{ $viewOrder['invoice_no'] ?: 'â€”' }}</strong></span>
                             @else
-                                <span>Sales Note: <strong>{{ $viewOrder['sales_number'] ?: '—' }}</strong></span>
+                                <span>Sales Note: <strong>{{ $viewOrder['sales_number'] ?: 'â€”' }}</strong></span>
                             @endif
-                            <span>Date: <strong>{{ $viewOrder['date'] ?: '—' }}</strong></span>
+                            <span>Date: <strong>{{ $viewOrder['date'] ?: 'â€”' }}</strong></span>
                             <span>Status: <strong>{{ $viewOrder['status_label'] ?: 'PROCESSED' }}</strong></span>
                         </div>
                     @endif
@@ -94,7 +94,7 @@
                                         src="{{ $item['image'] }}"
                                         alt="{{ $item['description'] ?: $item['productCode'] }}"
                                         loading="lazy"
-                                        onerror="this.onerror=null;this.src='{{ asset('build/assets/images/sidebar_logo.png') }}';"
+                                        onerror="this.onerror=null;this.src='{{ asset('images/sidebar_logo.png') }}';"
                                     >
                                 </div>
 
@@ -114,15 +114,15 @@
                                     @endunless
 
                                     <div class="process-meta-stack">
-                                        <div><span>PRODUCT CODE</span><strong>{{ $item['productCode'] ?: '—' }}</strong></div>
-                                        <div><span>PART NUMBER</span><strong>{{ $item['partNumber'] ?: '—' }}</strong></div>
-                                        <div><span>APPLICATION</span><strong>{{ $item['application'] ?: '—' }}</strong></div>
+                                        <div><span>PRODUCT CODE</span><strong>{{ $item['productCode'] ?: 'â€”' }}</strong></div>
+                                        <div><span>PART NUMBER</span><strong>{{ $item['partNumber'] ?: 'â€”' }}</strong></div>
+                                        <div><span>APPLICATION</span><strong>{{ $item['application'] ?: 'â€”' }}</strong></div>
                                     </div>
 
                                     <div class="process-item-bottom-row">
                                         <div class="process-brand-cell">
                                             <span>BRAND</span>
-                                            <strong>{{ $item['brand'] ?: '—' }}</strong>
+                                            <strong>{{ $item['brand'] ?: 'â€”' }}</strong>
                                         </div>
 
                                         <div class="process-order-math">
@@ -194,13 +194,13 @@
                     <span class="order-confirm-kicker">PRINT PREVIEW</span>
                     <h2 id="order-confirm-title">{{ $viewMode ? ($orderCode ?: ($returnViewMode ? 'Return' : 'Order')) : 'Order Confirmation' }}</h2>
                 </div>
-                <button type="button" class="order-confirm-x" data-order-confirm-close aria-label="Close">×</button>
+                <button type="button" class="order-confirm-x" data-order-confirm-close aria-label="Close">Ã—</button>
             </header>
 
             <div class="order-print-preview">
                 <div class="order-print-head">
                     <strong>W68 Autoparts &amp; Service Center</strong>
-                    <span>48 Timothy ST. Multinational Village Parañaque City</span>
+                    <span>48 Timothy ST. Multinational Village ParaÃ±aque City</span>
                     <span>Tel No. 8553-9092 / 8829-0480 &nbsp; MOBILE: 0917-3239-605 &nbsp; VIBER: 0949-8818-468</span>
                 </div>
 
@@ -221,8 +221,8 @@
                             @foreach ($items as $item)
                                 <tr>
                                     <td>{{ number_format((int) $item['qty']) }}</td>
-                                    <td>{{ $item['productCode'] ?: '—' }}</td>
-                                    <td>{{ $item['partNumber'] ?: '—' }}</td>
+                                    <td>{{ $item['productCode'] ?: 'â€”' }}</td>
+                                    <td>{{ $item['partNumber'] ?: 'â€”' }}</td>
                                     <td>
                                         <strong>{{ $item['description'] ?: 'W68 Product' }}</strong>
                                         @if (!empty($item['application']))

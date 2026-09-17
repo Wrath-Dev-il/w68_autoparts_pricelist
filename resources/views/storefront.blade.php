@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="description" content="W68 Autoparts online price list and parts catalog.">
     <title>W68 Autoparts | Online Pricelist</title>
-    <link rel="icon" href="{{ asset('build/assets/images/sidebar_logo.png') }}">
+    <link rel="icon" href="{{ asset('images/sidebar_logo.png') }}">
     <link rel="stylesheet" href="{{ asset('css/w68-storefront.css') }}?v=20260911-v14">
 </head>
 <body>
@@ -15,7 +15,7 @@
                 <div class="top-links">
                     <span>W68 Autoparts</span>
                     <span class="separator">|</span>
-                    <span>Auto Parts • Wholesale • Retail</span>
+                    <span>Auto Parts â€¢ Wholesale â€¢ Retail</span>
                 </div>
                 <div class="top-links top-links-right">
                     <a href="#brands">Brands</a>
@@ -30,7 +30,7 @@
 
         <div class="shell main-header">
             <a class="brand" href="{{ route('storefront') }}" aria-label="W68 Autoparts home">
-                <img src="{{ asset('build/assets/images/sidebar_logo.png') }}" alt="W68 Autoparts logo">
+                <img src="{{ asset('images/sidebar_logo.png') }}" alt="W68 Autoparts logo">
                 <span class="brand-copy">
                     <strong>W68 AUTOPARTS</strong>
                     <small>Online Pricelist</small>
@@ -94,7 +94,7 @@
                             </div>
                         </div>
                         <div class="hero-logo-slide-visual">
-                            <img src="{{ asset('build/assets/images/sidebar_logo.png') }}" alt="W68 Autoparts">
+                            <img src="{{ asset('images/sidebar_logo.png') }}" alt="W68 Autoparts">
                         </div>
                     </article>
 
@@ -111,7 +111,7 @@
                                 <div class="hero-minimal-meta">
                                     <div>
                                         <span>Part Number</span>
-                                        <strong>{{ $product->part_number ?: '—' }}</strong>
+                                        <strong>{{ $product->part_number ?: 'â€”' }}</strong>
                                     </div>
                                     <div>
                                         <span>Brand</span>
@@ -122,7 +122,7 @@
                                 <div class="hero-product-bottom hero-product-bottom-minimal">
                                     <div class="hero-price-block">
                                         <span>Price</span>
-                                        <strong class="hero-product-price">₱{{ number_format((float) $product->display_price, 2) }}</strong>
+                                        <strong class="hero-product-price">â‚±{{ number_format((float) $product->display_price, 2) }}</strong>
                                     </div>
                                 </div>
 
@@ -147,16 +147,16 @@
 
                             <div class="hero-product-visual">
                                 <div class="hero-logo-watermark" aria-hidden="true">
-                                    <img src="{{ asset('build/assets/images/sidebar_logo.png') }}" alt="">
+                                    <img src="{{ asset('images/sidebar_logo.png') }}" alt="">
                                 </div>
                                 <div class="hero-product-image-wrap white-bg-blend">
                                     <img
                                         class="hero-product-image"
                                         src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///ywAAAAAAQABAAACAUwAOw=="
-                                        data-hero-src="{{ $product->image_url ?: asset('build/assets/images/sidebar_logo.png') }}"
+                                        data-hero-src="{{ $product->image_url ?: asset('images/sidebar_logo.png') }}"
                                         alt="{{ $product->display_description ?: $product->name }}"
                                         loading="lazy"
-                                        onerror="this.onerror=null; this.src='{{ asset('build/assets/images/sidebar_logo.png') }}'"
+                                        onerror="this.onerror=null; this.src='{{ asset('images/sidebar_logo.png') }}'"
                                     >
                                 </div>
                             </div>
@@ -190,7 +190,7 @@
                                         ])) }}#products" title="View {{ $seller->product->name }}">
                                         <small class="top-seller-category">{{ $seller->category }}</small>
                                         <div class="top-seller-product">
-                                            <img src="{{ $seller->product->image_url ?: asset('build/assets/images/sidebar_logo.png') }}" alt="{{ $seller->product->name }}" onerror="this.src='{{ asset('build/assets/images/sidebar_logo.png') }}'">
+                                            <img src="{{ $seller->product->image_url ?: asset('images/sidebar_logo.png') }}" alt="{{ $seller->product->name }}" onerror="this.src='{{ asset('images/sidebar_logo.png') }}'">
                                             <div>
                                                 <strong>{{ $seller->product->name }}</strong>
                                                 @if (!empty($seller->product->display_product_code))
@@ -205,9 +205,9 @@
                         </div>
                         @if (count($topCategorySellers) > 1)
                             <div class="top-seller-nav">
-                                <button type="button" data-slide-prev aria-label="Previous top seller">‹</button>
+                                <button type="button" data-slide-prev aria-label="Previous top seller">â€¹</button>
                                 <span>Top 1 product in each brand</span>
-                                <button type="button" data-slide-next aria-label="Next top seller">›</button>
+                                <button type="button" data-slide-next aria-label="Next top seller">â€º</button>
                             </div>
                         @endif
                     @else
@@ -227,7 +227,7 @@
                             'part_number' => $fastLookup->part_number ?? '',
                             'position' => $fastLookup->position ?? '',
                         ])) }}#products" title="View {{ $fastLookup->name }}">
-                            <img src="{{ $fastLookup->image_url ?: asset('build/assets/images/sidebar_logo.png') }}" alt="{{ $fastLookup->name }}" onerror="this.src='{{ asset('build/assets/images/sidebar_logo.png') }}'">
+                            <img src="{{ $fastLookup->image_url ?: asset('images/sidebar_logo.png') }}" alt="{{ $fastLookup->name }}" onerror="this.src='{{ asset('images/sidebar_logo.png') }}'">
                             <div>
                                 <strong>{{ $fastLookup->name }}</strong>
                                 @if (!empty($fastLookup->display_product_code))
@@ -240,7 +240,7 @@
                         </a>
                     @else
                         <strong>Search by part no.</strong>
-                        <small>Product code • application • description</small>
+                        <small>Product code â€¢ application â€¢ description</small>
                     @endif
                 </article>
             </div>
@@ -266,7 +266,7 @@
             </div>
 
             <div class="brand-carousel" data-carousel data-interval="2000">
-                <button class="carousel-arrow previous" type="button" data-carousel-prev aria-label="Previous brand">‹</button>
+                <button class="carousel-arrow previous" type="button" data-carousel-prev aria-label="Previous brand">â€¹</button>
                 <div class="carousel-viewport" data-carousel-viewport>
                     <div class="brand-track" data-carousel-track>
                         <a class="brand-card {{ $brand === '' ? 'active' : '' }}" href="{{ route('storefront', array_filter(['q' => $search, 'description' => $description])) }}">
@@ -289,7 +289,7 @@
                         @endforeach
                     </div>
                 </div>
-                <button class="carousel-arrow next" type="button" data-carousel-next aria-label="Next brand">›</button>
+                <button class="carousel-arrow next" type="button" data-carousel-next aria-label="Next brand">â€º</button>
             </div>
         </section>
 
@@ -306,7 +306,7 @@
             </div>
 
             <div class="brand-carousel description-carousel" data-carousel data-interval="2000">
-                <button class="carousel-arrow previous" type="button" data-carousel-prev aria-label="Previous description">‹</button>
+                <button class="carousel-arrow previous" type="button" data-carousel-prev aria-label="Previous description">â€¹</button>
                 <div class="carousel-viewport" data-carousel-viewport>
                     <div class="brand-track" data-carousel-track>
                         <a class="brand-card description-card {{ $description === '' ? 'active' : '' }}" href="{{ route('storefront', array_filter(['q' => $search, 'brand' => $brand, 'application' => $applicationSearch, 'part_number' => $partNumberSearch, 'position' => $positionSearch])) }}#descriptions">
@@ -326,7 +326,7 @@
                         @endforeach
                     </div>
                 </div>
-                <button class="carousel-arrow next" type="button" data-carousel-next aria-label="Next description">›</button>
+                <button class="carousel-arrow next" type="button" data-carousel-next aria-label="Next description">â€º</button>
             </div>
         </section>
 
@@ -336,7 +336,7 @@
                     <div>
                         <span class="section-kicker">W68 CATALOG</span>
                         <h2>{{ $search !== '' || $brand !== '' || $description !== '' || $descriptionSearch !== '' || $brandSearch !== '' || $productCodeSearch !== '' || $applicationSearch !== '' || $partNumberSearch !== '' || $positionSearch !== '' ? 'Filtered Products' : 'Recommended for You' }}</h2>
-                        @if ($search !== '')<p>General search: “{{ $search }}”</p>@endif
+                        @if ($search !== '')<p>General search: â€œ{{ $search }}â€</p>@endif
                     </div>
                 </div>
 
@@ -409,19 +409,19 @@
                                 data-product-application="{{ $product->application }}"
                                 data-product-position="{{ $product->position }}"
                                 data-product-price="{{ number_format($price, 2, '.', '') }}"
-                                data-product-image="{{ $product->image_url ?: asset('build/assets/images/sidebar_logo.png') }}"
+                                data-product-image="{{ $product->image_url ?: asset('images/sidebar_logo.png') }}"
                                 data-product-code="{{ $product->display_product_code }}"
                                 data-product-specification="{{ $product->specification }}"
                             >
                                 <div class="product-image-wrap">
-                                    <img src="{{ $product->image_url ?: asset('build/assets/images/sidebar_logo.png') }}" alt="{{ $product->name }}" loading="lazy" onerror="this.src='{{ asset('build/assets/images/sidebar_logo.png') }}'">
+                                    <img src="{{ $product->image_url ?: asset('images/sidebar_logo.png') }}" alt="{{ $product->name }}" loading="lazy" onerror="this.src='{{ asset('images/sidebar_logo.png') }}'">
                                     <span class="w68-badge">W68</span>
                                 </div>
                                 <div class="product-info">
                                     <div class="product-card-identifiers">
                                         <div class="product-identifier-row">
                                             <span>Product Code</span>
-                                            <strong>{{ $product->display_product_code ?: '—' }}</strong>
+                                            <strong>{{ $product->display_product_code ?: 'â€”' }}</strong>
                                         </div>
                                     </div>
                                     <h3 title="{{ $product->name }}">{{ $product->name }}</h3>
@@ -436,7 +436,7 @@
                                     </div>
                                     <div class="product-card-bottom">
                                         <div class="price-wrap">
-                                            <span class="currency">₱</span><strong>{{ number_format($price, 2) }}</strong>
+                                            <span class="currency">â‚±</span><strong>{{ number_format($price, 2) }}</strong>
                                         </div>
                                         <button type="button" class="add-cart" data-add-cart data-id="{{ $product->id }}" data-name="{{ $product->name }}" data-price="{{ $price }}">
                                             <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>
@@ -451,21 +451,21 @@
                     @if (method_exists($products, 'links'))
                         <div class="pagination-wrap">
                             @if ($products->onFirstPage())
-                                <span class="page-button disabled">← Previous</span>
+                                <span class="page-button disabled">â† Previous</span>
                             @else
-                                <a class="page-button" href="{{ $products->previousPageUrl() }}">← Previous</a>
+                                <a class="page-button" href="{{ $products->previousPageUrl() }}">â† Previous</a>
                             @endif
                             <span class="page-status">Page {{ $products->currentPage() }} of {{ $products->lastPage() }}</span>
                             @if ($products->hasMorePages())
-                                <a class="page-button" href="{{ $products->nextPageUrl() }}">Next →</a>
+                                <a class="page-button" href="{{ $products->nextPageUrl() }}">Next â†’</a>
                             @else
-                                <span class="page-button disabled">Next →</span>
+                                <span class="page-button disabled">Next â†’</span>
                             @endif
                         </div>
                     @endif
                 @else
                     <div class="empty-state">
-                        <img src="{{ asset('build/assets/images/sidebar_logo.png') }}" alt="W68">
+                        <img src="{{ asset('images/sidebar_logo.png') }}" alt="W68">
                         <h3>No products found</h3>
                         <p>Try another product code, part number, description, application, or position.</p>
                         <a href="{{ route('storefront') }}">View all products</a>
@@ -478,9 +478,9 @@
     <footer id="footer">
         <div class="shell w68-contact-footer">
             <div class="footer-company">
-                <img src="{{ asset('build/assets/images/sidebar_logo.png') }}" alt="W68 Autoparts">
+                <img src="{{ asset('images/sidebar_logo.png') }}" alt="W68 Autoparts">
                 <div>
-                    <strong>© w68Autoparts &amp; Service Center</strong>
+                    <strong>Â© w68Autoparts &amp; Service Center</strong>
                     <span>Ownership: Warren Yu</span>
                 </div>
             </div>
@@ -498,8 +498,8 @@
                         <svg viewBox="0 0 24 24"><path d="M12 21s6-5.2 6-11a6 6 0 1 0-12 0c0 5.8 6 11 6 11Z"/><circle cx="12" cy="10" r="2.2"/></svg>
                     </span>
                     <span class="footer-action-copy">
-                        <b>48 Timothy St. Multinational Village Parañaque City</b>
-                        <small>Open in Google Maps ↗</small>
+                        <b>48 Timothy St. Multinational Village ParaÃ±aque City</b>
+                        <small>Open in Google Maps â†—</small>
                     </span>
                 </a>
             </div>
@@ -527,14 +527,14 @@
                     <span class="footer-action-icon" aria-hidden="true">
                         <svg viewBox="0 0 24 24"><rect x="7" y="2.5" width="10" height="19" rx="2"/><path d="M10 5h4M11 18.5h2"/></svg>
                     </span>
-                    <span class="footer-action-copy"><b>0917-3239-605</b><small>Mobile • Tap to call</small></span>
+                    <span class="footer-action-copy"><b>0917-3239-605</b><small>Mobile â€¢ Tap to call</small></span>
                 </a>
 
                 <a class="footer-action-link" href="viber://chat?number=%2B639498818468" aria-label="Open Viber chat with W68 0949-8818-468">
                     <span class="footer-action-icon" aria-hidden="true">
                         <svg viewBox="0 0 24 24"><path d="M5 4.5h14v11H9l-4 4v-15Z"/><path d="M9 8.5c1.1 2.3 2.2 3.4 4.6 4.5"/></svg>
                     </span>
-                    <span class="footer-action-copy"><b>0949-8818-468</b><small>Mobile/Viber • Open Viber</small></span>
+                    <span class="footer-action-copy"><b>0949-8818-468</b><small>Mobile/Viber â€¢ Open Viber</small></span>
                 </a>
             </div>
         </div>
@@ -545,13 +545,13 @@
         <aside class="cart-panel">
             <div class="cart-panel-head">
                 <div><span>YOUR CART</span><strong>W68 Autoparts</strong></div>
-                <button type="button" data-cart-close aria-label="Close">×</button>
+                <button type="button" data-cart-close aria-label="Close">Ã—</button>
             </div>
             <div class="cart-items" data-cart-items></div>
             <div class="cart-empty" data-cart-empty>Your cart is empty.</div>
             <div class="cart-summary">
                 <span>Estimated total</span>
-                <strong data-cart-total>₱0.00</strong>
+                <strong data-cart-total>â‚±0.00</strong>
                 <small>Cart is saved in this browser for price-list convenience.</small>
             </div>
         </aside>
@@ -561,7 +561,7 @@
         <button class="product-view-backdrop" type="button" data-product-modal-close aria-label="Close product details"></button>
         <section class="product-view-card" role="dialog" aria-modal="true" aria-labelledby="product-view-title">
             <div class="product-view-image-wrap">
-                <img data-product-modal-image src="{{ asset('build/assets/images/sidebar_logo.png') }}" alt="Product">
+                <img data-product-modal-image src="{{ asset('images/sidebar_logo.png') }}" alt="Product">
             </div>
 
             <div class="product-view-content">
@@ -571,33 +571,33 @@
                 <div class="product-view-details">
                     <div>
                         <span>Product Code</span>
-                        <strong data-product-modal-code>—</strong>
+                        <strong data-product-modal-code>â€”</strong>
                     </div>
                     <div>
                         <span>Part Number</span>
-                        <strong data-product-modal-part>—</strong>
+                        <strong data-product-modal-part>â€”</strong>
                     </div>
                     <div>
                         <span>Brand</span>
-                        <strong data-product-modal-brand>—</strong>
+                        <strong data-product-modal-brand>â€”</strong>
                     </div>
                     <div>
                         <span>Application</span>
-                        <strong data-product-modal-application>—</strong>
+                        <strong data-product-modal-application>â€”</strong>
                     </div>
                     <div>
                         <span>Position</span>
-                        <strong data-product-modal-position>—</strong>
+                        <strong data-product-modal-position>â€”</strong>
                     </div>
                     <div>
                         <span>Specification</span>
-                        <strong data-product-modal-specification>—</strong>
+                        <strong data-product-modal-specification>â€”</strong>
                     </div>
                 </div>
 
                 <div class="product-view-price">
                     <span>Price</span>
-                    <strong data-product-modal-price>₱0.00</strong>
+                    <strong data-product-modal-price>â‚±0.00</strong>
                 </div>
 
                 <div class="product-view-actions">

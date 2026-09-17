@@ -6,7 +6,7 @@
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <meta name="description" content="W68 customer discounts by brand.">
     <title>W68 Autoparts | Discounts</title>
-    <link rel="icon" href="{{ asset('build/assets/images/sidebar_logo.png') }}">
+    <link rel="icon" href="{{ asset('images/sidebar_logo.png') }}">
     <link rel="stylesheet" href="{{ asset('css/w68-orders.css') }}?v=20260915-v69">
     <link rel="stylesheet" href="{{ asset('css/w68-discounts.css') }}?v=20260915-v72">
     <link rel="stylesheet" href="{{ asset('css/w68-notifications.css') }}?v=20260915-v92">
@@ -21,7 +21,7 @@
     data-notifications-read-all-url="{{ rtrim(request()->getSchemeAndHttpHost(), '/') }}{{ preg_replace('#/index\.php$#i', '', rtrim(str_replace('\\', '/', (string) request()->getBaseUrl()), '/')) }}/home/notifications/read-all"
 >
 @php
-    $logo = asset('build/assets/images/sidebar_logo.png');
+    $logo = asset('images/sidebar_logo.png');
     $initialCartCount = is_array($serverCart ?? null) ? count($serverCart) : 0;
 @endphp
 
@@ -95,7 +95,7 @@
                     <div class="discount-brand-copy">
                         <span>BRAND</span>
                         <h3>{{ $brand['brand'] }}</h3>
-                        <small>VIEW PRODUCTS →</small>
+                        <small>VIEW PRODUCTS â†’</small>
                     </div>
                 </a>
             @empty

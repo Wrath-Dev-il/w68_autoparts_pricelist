@@ -61,7 +61,18 @@ class EnsureCustomerPortalAccess
 
                 return $next($request);
             }
-$authorizationId = (int) $request->session()->get('w68_customer_authorization_id', 0);
+
+            /*
+             * Linked customers must be able to reach Login and complete login
+             * OTP even after the original QR expires. LoginController will
+             * resolve an existing customer_portal_accounts link by login_ID.
+             * Registration still requires a fresh authorization.
+             */
+            if ($this->allowsLinkedAccountLoginWithoutFreshQr($request)) {
+                return $next($request);
+            }
+
+            $authorizationId = (int) $request->session()->get('w68_customer_authorization_id', 0);
             $customerId = (int) $request->session()->get('w68_customer_id', 0);
 
             if ($authorizationId < 1 || $customerId < 1) {
@@ -101,6 +112,21 @@ $authorizationId = (int) $request->session()->get('w68_customer_authorization_id
 
         return $next($request);
     }
+
+    private function allowsLinkedAccountLoginWithoutFreshQr(Request $request): bool
+    {
+        $route = $request->route();
+        $routeName = $route ? (string) $route->getName() : '';
+
+        return in_array($routeName, [
+            'login',
+            'login.attempt',
+            'otp.verify',
+            'otp.resend',
+            'logout',
+        ], true);
+    }
+
     private function deny(Request $request, string $message): Response
     {
         if (Auth::check()) {
@@ -117,8 +143,12 @@ $authorizationId = (int) $request->session()->get('w68_customer_authorization_id
             'w68_pending_login_id',
             'w68_pending_login_remember',
             'w68_pending_registration_id',
+            'w68_pending_password_reset_id',
             'w68_pending_customer_id',
             'w68_pending_authorization_id',
+            'w68_password_reset_login_id',
+            'w68_password_reset_customer_id',
+            'w68_password_reset_expires_at',
         ]);
 
         if ($request->expectsJson()) {

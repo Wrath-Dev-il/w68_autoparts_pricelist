@@ -22,6 +22,7 @@ class LoginController extends Controller
     private const OTP_EXPIRES_MINUTES = 10;
     private const OTP_MAX_ATTEMPTS = 5;
     private const OTP_RESEND_SECONDS = 60;
+    private const PASSWORD_RESET_EXPIRES_MINUTES = 15;
 
     public function show(Request $request): View|RedirectResponse
     {
@@ -37,11 +38,13 @@ class LoginController extends Controller
          * the reliable source of truth until verifyOtp()/clearPendingAuth().
          */
         $otpPurpose = (string) $request->session()->get('w68_otp_purpose', '');
-        $pendingAccountId = $otpPurpose === 'register'
-            ? (int) $request->session()->get('w68_pending_registration_id', 0)
-            : (int) $request->session()->get('w68_pending_login_id', 0);
+        $pendingAccountId = match ($otpPurpose) {
+            'register' => (int) $request->session()->get('w68_pending_registration_id', 0),
+            'forgot' => (int) $request->session()->get('w68_pending_password_reset_id', 0),
+            default => (int) $request->session()->get('w68_pending_login_id', 0),
+        };
 
-        $otpRequired = in_array($otpPurpose, ['login', 'register'], true)
+        $otpRequired = in_array($otpPurpose, ['login', 'register', 'forgot'], true)
             && $pendingAccountId > 0;
 
         $otpEmail = (string) session('otp_email', '');
@@ -142,6 +145,97 @@ class LoginController extends Controller
             ->with('otp_purpose', 'login')
             ->with('otp_email', $account->Email)
             ->with('status', 'A 6-digit login OTP was sent to your email.');
+    }
+
+    public function forgotPassword(Request $request): RedirectResponse
+    {
+        $validated = $request->validate([
+            'email' => ['required', 'email', 'max:255'],
+        ]);
+
+        if (!$this->existingAuthStructureIsReady()) {
+            return back()
+                ->withInput($request->only('email'))
+                ->withErrors([
+                    'email' => 'The existing core4_system_proposal.logins authentication structure is not available.',
+                ]);
+        }
+
+        $email = mb_strtolower(trim($validated['email']));
+
+        try {
+            $account = LoginAccount::query()
+                ->whereRaw('LOWER(Email) = ?', [$email])
+                ->where('account_type', 5)
+                ->first();
+        } catch (Throwable $exception) {
+            report($exception);
+
+            return back()
+                ->withInput($request->only('email'))
+                ->withErrors([
+                    'email' => 'The core4_system_proposal database is not available right now.',
+                ]);
+        }
+
+        if (!$account) {
+            return back()
+                ->withInput($request->only('email'))
+                ->withErrors([
+                    'email' => 'No W68 customer account was found for that email.',
+                ]);
+        }
+
+        try {
+            $portal = $this->portalContextForLogin($request, (int) $account->login_ID);
+            $currentCustomerId = (int) $request->session()->get('w68_customer_id', 0);
+
+            if (!(bool) ($portal['linked_account'] ?? false)) {
+                throw new RuntimeException('This account is not yet linked to a W68 customer. Please complete registration first.');
+            }
+
+            if ($currentCustomerId < 1 || $currentCustomerId !== (int) $portal['customer_id']) {
+                throw new RuntimeException('This email is not linked to the W68 customer opened by this authorization link.');
+            }
+
+            $this->assertAccountCanUseCustomer((int) $account->login_ID, (int) $portal['customer_id']);
+        } catch (RuntimeException $exception) {
+            return back()
+                ->withInput($request->only('email'))
+                ->withErrors([
+                    'email' => $exception->getMessage(),
+                ]);
+        }
+
+        try {
+            $this->issueOtp($request, $account, 'forgot');
+        } catch (Throwable $exception) {
+            report($exception);
+
+            $account->OTP_CODE = null;
+            $account->save();
+
+            return back()
+                ->withInput($request->only('email'))
+                ->withErrors([
+                    'email' => $exception instanceof RuntimeException
+                        ? $exception->getMessage()
+                        : $this->friendlyMailError($exception, 'password reset'),
+                ]);
+        }
+
+        $request->session()->put([
+            'w68_pending_password_reset_id' => $account->login_ID,
+            'w68_pending_customer_id' => (int) $portal['customer_id'],
+            'w68_pending_authorization_id' => (int) ($portal['authorization_id'] ?? 0),
+        ]);
+
+        return redirect()
+            ->route('login')
+            ->with('otp_required', true)
+            ->with('otp_purpose', 'forgot')
+            ->with('otp_email', $account->Email)
+            ->with('status', 'A 6-digit password reset OTP was sent to your email.');
     }
 
     public function register(Request $request): RedirectResponse
@@ -333,7 +427,7 @@ class LoginController extends Controller
 
         $purpose = (string) $request->session()->get('w68_otp_purpose', '');
 
-        if (!in_array($purpose, ['login', 'register'], true)) {
+        if (!in_array($purpose, ['login', 'register', 'forgot'], true)) {
             return redirect()
                 ->route('login')
                 ->withErrors([
@@ -341,9 +435,11 @@ class LoginController extends Controller
                 ]);
         }
 
-        $accountId = $purpose === 'register'
-            ? (int) $request->session()->get('w68_pending_registration_id', 0)
-            : (int) $request->session()->get('w68_pending_login_id', 0);
+        $accountId = match ($purpose) {
+            'register' => (int) $request->session()->get('w68_pending_registration_id', 0),
+            'forgot' => (int) $request->session()->get('w68_pending_password_reset_id', 0),
+            default => (int) $request->session()->get('w68_pending_login_id', 0),
+        };
 
         $account = LoginAccount::query()->find($accountId);
 
@@ -360,38 +456,55 @@ class LoginController extends Controller
         try {
             $this->assertOtpIsValid($request, $account, $validated['otp']);
 
-            $portal = $purpose === 'login'
+            $portal = in_array($purpose, ['login', 'forgot'], true)
                 ? $this->portalContextForLogin($request, (int) $account->login_ID)
                 : $this->portalContext($request);
 
             $pendingCustomerId = (int) $request->session()->get('w68_pending_customer_id', 0);
             $pendingAuthorizationId = (int) $request->session()->get('w68_pending_authorization_id', 0);
 
-            if ($pendingCustomerId !== $portal['customer_id']) {
+            if ($pendingCustomerId !== (int) $portal['customer_id']) {
                 throw new RuntimeException('The customer authorization changed during OTP verification. Please start again.');
             }
 
-            /*
-             * First-time/registration authorization must still be the same QR
-             * authorization that began the OTP flow. For an already-linked
-             * login, the permanent customer_portal_accounts row is the source
-             * of truth and its original authorization may already be expired.
-             */
-            if (!(bool) ($portal['linked_account'] ?? false)) {
-                if ($pendingAuthorizationId !== $portal['authorization_id']) {
-                    throw new RuntimeException('The customer authorization changed during OTP verification. Please start again from the authorization link.');
+            if ($purpose === 'forgot') {
+                $currentCustomerId = (int) $request->session()->get('w68_customer_id', 0);
+
+                if (!(bool) ($portal['linked_account'] ?? false)) {
+                    throw new RuntimeException('This account is not linked to a W68 customer.');
                 }
 
-                $this->linkPortalAccount(
-                    (int) $account->login_ID,
-                    $portal['customer_id'],
-                    $portal['authorization_id']
-                );
-            } else {
+                if ($currentCustomerId < 1 || $currentCustomerId !== (int) $portal['customer_id']) {
+                    throw new RuntimeException('The W68 customer authorization changed during password reset. Please start again.');
+                }
+
                 $this->assertAccountCanUseCustomer(
                     (int) $account->login_ID,
-                    $portal['customer_id']
+                    (int) $portal['customer_id']
                 );
+            } else {
+                /*
+                 * First-time/registration authorization must still be the same QR
+                 * authorization that began the OTP flow. For an already-linked
+                 * login, the permanent customer_portal_accounts row is the source
+                 * of truth and its original authorization may already be expired.
+                 */
+                if (!(bool) ($portal['linked_account'] ?? false)) {
+                    if ($pendingAuthorizationId !== (int) $portal['authorization_id']) {
+                        throw new RuntimeException('The customer authorization changed during OTP verification. Please start again from the authorization link.');
+                    }
+
+                    $this->linkPortalAccount(
+                        (int) $account->login_ID,
+                        (int) $portal['customer_id'],
+                        (int) $portal['authorization_id']
+                    );
+                } else {
+                    $this->assertAccountCanUseCustomer(
+                        (int) $account->login_ID,
+                        (int) $portal['customer_id']
+                    );
+                }
             }
         } catch (RuntimeException $exception) {
             return redirect()
@@ -410,6 +523,25 @@ class LoginController extends Controller
         // Registration and login accounts are W68 account_type = 5.
         $account->account_type = 5;
         $account->save();
+
+        if ($purpose === 'forgot') {
+            $resetLoginId = (int) $account->login_ID;
+            $resetCustomerId = (int) $pendingCustomerId;
+
+            $this->clearPendingAuth($request);
+            $request->session()->put([
+                'w68_password_reset_login_id' => $resetLoginId,
+                'w68_password_reset_customer_id' => $resetCustomerId,
+                'w68_password_reset_expires_at' => now()
+                    ->addMinutes(self::PASSWORD_RESET_EXPIRES_MINUTES)
+                    ->timestamp,
+            ]);
+            $request->session()->regenerateToken();
+
+            return redirect()
+                ->route('password.reset.form')
+                ->with('status', 'OTP verified. Set your new password below.');
+        }
 
         $this->clearPendingAuth($request);
 
@@ -432,7 +564,7 @@ class LoginController extends Controller
     {
         $purpose = (string) $request->session()->get('w68_otp_purpose', '');
 
-        if (!in_array($purpose, ['login', 'register'], true)) {
+        if (!in_array($purpose, ['login', 'register', 'forgot'], true)) {
             return redirect()
                 ->route('login')
                 ->withErrors([
@@ -456,9 +588,11 @@ class LoginController extends Controller
                 ]);
         }
 
-        $accountId = $purpose === 'register'
-            ? (int) $request->session()->get('w68_pending_registration_id', 0)
-            : (int) $request->session()->get('w68_pending_login_id', 0);
+        $accountId = match ($purpose) {
+            'register' => (int) $request->session()->get('w68_pending_registration_id', 0),
+            'forgot' => (int) $request->session()->get('w68_pending_password_reset_id', 0),
+            default => (int) $request->session()->get('w68_pending_login_id', 0),
+        };
 
         $account = LoginAccount::query()->find($accountId);
 
@@ -497,6 +631,69 @@ class LoginController extends Controller
             ->with('otp_purpose', $purpose)
             ->with('otp_email', $account->Email)
             ->with('status', 'A new OTP was sent to your email.');
+    }
+
+    public function showResetPassword(Request $request): View|RedirectResponse
+    {
+        if (Auth::check()) {
+            return redirect()->route('home');
+        }
+
+        try {
+            $account = $this->passwordResetAccount($request);
+        } catch (RuntimeException $exception) {
+            $this->clearPasswordReset($request);
+
+            return redirect()
+                ->route('login')
+                ->withErrors([
+                    'email' => $exception->getMessage(),
+                ]);
+        }
+
+        return view('auth.reset-password', [
+            'resetEmail' => (string) $account->Email,
+        ]);
+    }
+
+    public function resetPassword(Request $request): RedirectResponse
+    {
+        $validated = $request->validate([
+            'password' => [
+                'required',
+                'confirmed',
+                Password::min(8)->letters()->numbers(),
+            ],
+        ], [
+            'password.confirmed' => 'The new password and retype password do not match.',
+        ]);
+
+        try {
+            $account = $this->passwordResetAccount($request);
+        } catch (RuntimeException $exception) {
+            $this->clearPasswordReset($request);
+
+            return redirect()
+                ->route('login')
+                ->withErrors([
+                    'email' => $exception->getMessage(),
+                ]);
+        }
+
+        $account->Password = Hash::make($validated['password']);
+        $account->OTP_CODE = null;
+        $account->account_type = 5;
+        $account->save();
+
+        $this->clearPasswordReset($request);
+        $this->clearPendingAuth($request);
+
+        Auth::login($account, false);
+        $request->session()->regenerate();
+
+        return redirect()
+            ->route('home')
+            ->with('status', 'Password reset successfully. You are now logged in.');
     }
 
     public function logout(Request $request): RedirectResponse
@@ -547,7 +744,11 @@ class LoginController extends Controller
         }
 
         $code = random_int(100000, 999999);
-        $action = $purpose === 'register' ? 'registration' : 'login';
+        $action = match ($purpose) {
+            'register' => 'registration',
+            'forgot' => 'password reset',
+            default => 'login',
+        };
 
         $account->OTP_CODE = $code;
         $account->save();
@@ -927,6 +1128,57 @@ HTML;
         return hash_equals($stored, $plain);
     }
 
+    private function passwordResetAccount(Request $request): LoginAccount
+    {
+        $loginId = (int) $request->session()->get('w68_password_reset_login_id', 0);
+        $customerId = (int) $request->session()->get('w68_password_reset_customer_id', 0);
+        $expiresAt = (int) $request->session()->get('w68_password_reset_expires_at', 0);
+        $currentCustomerId = (int) $request->session()->get('w68_customer_id', 0);
+
+        if ($loginId < 1 || $customerId < 1 || $expiresAt < 1) {
+            throw new RuntimeException('Your password reset session expired. Please request a new OTP.');
+        }
+
+        if (time() > $expiresAt) {
+            throw new RuntimeException('Your password reset session expired. Please request a new OTP.');
+        }
+
+        if ($currentCustomerId < 1 || $currentCustomerId !== $customerId) {
+            throw new RuntimeException('The W68 customer authorization changed. Please start the password reset again.');
+        }
+
+        $account = LoginAccount::query()
+            ->where('account_type', 5)
+            ->find($loginId);
+
+        if (!$account) {
+            throw new RuntimeException('The W68 customer account could not be found.');
+        }
+
+        $this->assertPortalLinkTableReady();
+
+        $linked = DB::connection('system')
+            ->table('customer_portal_accounts')
+            ->where('login_id', $loginId)
+            ->where('customer_id', $customerId)
+            ->exists();
+
+        if (!$linked) {
+            throw new RuntimeException('This account is no longer linked to the authorized W68 customer.');
+        }
+
+        return $account;
+    }
+
+    private function clearPasswordReset(Request $request): void
+    {
+        $request->session()->forget([
+            'w68_password_reset_login_id',
+            'w68_password_reset_customer_id',
+            'w68_password_reset_expires_at',
+        ]);
+    }
+
     private function clearPendingAuth(Request $request): void
     {
         $request->session()->forget([
@@ -937,6 +1189,7 @@ HTML;
             'w68_pending_login_id',
             'w68_pending_login_remember',
             'w68_pending_registration_id',
+            'w68_pending_password_reset_id',
             'w68_pending_customer_id',
             'w68_pending_authorization_id',
         ]);

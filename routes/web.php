@@ -155,6 +155,9 @@ Route::get('/storefront/search-suggestions', [StorefrontController::class, 'sear
 Route::middleware('portal.access')->group(function () {
     Route::get('/login', [LoginController::class, 'show'])->name('login');
     Route::post('/login', [LoginController::class, 'login'])->name('login.attempt');
+    Route::post('/forgot-password', [LoginController::class, 'forgotPassword'])->name('password.forgot');
+    Route::get('/reset-password', [LoginController::class, 'showResetPassword'])->name('password.reset.form');
+    Route::post('/reset-password', [LoginController::class, 'resetPassword'])->name('password.reset.update');
     Route::post('/register', [LoginController::class, 'register'])->name('register.attempt');
     Route::post('/otp/verify', [LoginController::class, 'verifyOtp'])->name('otp.verify');
     Route::post('/otp/resend', [LoginController::class, 'resendOtp'])->name('otp.resend');

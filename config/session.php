@@ -146,7 +146,16 @@ return [
 
     // Scope the customer portal cookie to W68's public path. This keeps the
     // Hatdog/main-system session completely separate even on the same iPad.
-    'path' => env('SESSION_PATH', '/w68_Pricelist/public'),
+    // HostForge serves the customer portal at the domain root. In production,
+    // always keep the cookie available to /authorized-access, /login, /home,
+    // /process-order, and password-reset routes even if an old SESSION_PATH
+    // value is still injected by the hosting environment.
+    'path' => (
+        env('APP_ENV', 'production') === 'production'
+        || str_contains((string) env('APP_URL', ''), 'hostforgeplatforms.com')
+    )
+        ? '/'
+        : env('SESSION_PATH', '/w68_Pricelist/public'),
 
     /*
     |--------------------------------------------------------------------------
@@ -172,7 +181,11 @@ return [
     |
     */
 
-    'secure' => env('SESSION_SECURE_COOKIE'),
+    'secure' => env(
+        'SESSION_SECURE_COOKIE',
+        env('APP_ENV', 'production') === 'production'
+            || str_starts_with((string) env('APP_URL', ''), 'https://')
+    ),
 
     /*
     |--------------------------------------------------------------------------

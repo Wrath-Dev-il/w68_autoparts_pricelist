@@ -27,7 +27,7 @@
         $showOtpModal = (bool) ($otpRequired ?? false)
             || session('otp_required')
             || $errors->has('otp')
-            || in_array((string) session('w68_otp_purpose', ''), ['login', 'register'], true);
+            || in_array((string) session('w68_otp_purpose', ''), ['login', 'register', 'forgot'], true);
         $visibleOtpPurpose = (string) ($otpPurpose ?? session('otp_purpose', session('w68_otp_purpose', 'login')));
         $visibleOtpEmail = (string) ($otpEmail ?? session('otp_email', ''));
     @endphp
@@ -134,6 +134,16 @@
                         </div>
                     </div>
 
+                    <div style="display:flex;justify-content:flex-end;margin-top:-4px;margin-bottom:10px;">
+                        <button
+                            type="button"
+                            data-forgot-password
+                            style="border:0;background:transparent;padding:2px 0;color:#800020;font:inherit;font-size:12px;font-weight:800;cursor:pointer;text-decoration:underline;text-underline-offset:3px;"
+                        >
+                            FORGOT PASSWORD?
+                        </button>
+                    </div>
+
                     <label class="remember">
                         <input
                             type="checkbox"
@@ -153,6 +163,11 @@
                     >
                         REGISTER
                     </button>
+                </form>
+
+                <form method="POST" action="{{ route('password.forgot') }}" data-forgot-password-form hidden>
+                    @csrf
+                    <input type="hidden" name="email" data-forgot-password-email>
                 </form>
             </section>
 
@@ -273,7 +288,9 @@
             >
 
             <span class="otp-kicker">
-                {{ $visibleOtpPurpose === 'register' ? 'REGISTER VERIFICATION' : 'LOGIN VERIFICATION' }}
+                {{ $visibleOtpPurpose === 'register'
+                    ? 'REGISTER VERIFICATION'
+                    : ($visibleOtpPurpose === 'forgot' ? 'PASSWORD RESET VERIFICATION' : 'LOGIN VERIFICATION') }}
             </span>
 
             <h2 id="otp-title">Enter OTP</h2>
@@ -315,5 +332,29 @@
             <small>OTP expires in 10 minutes. Maximum 5 incorrect attempts.</small>
         </section>
     </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            var forgotButton = document.querySelector('[data-forgot-password]');
+            var forgotForm = document.querySelector('[data-forgot-password-form]');
+            var forgotEmail = document.querySelector('[data-forgot-password-email]');
+            var loginEmail = document.getElementById('email');
+
+            if (!forgotButton || !forgotForm || !forgotEmail || !loginEmail) {
+                return;
+            }
+
+            forgotButton.addEventListener('click', function () {
+                if (!loginEmail.checkValidity()) {
+                    loginEmail.reportValidity();
+                    loginEmail.focus();
+                    return;
+                }
+
+                forgotEmail.value = loginEmail.value.trim();
+                forgotForm.submit();
+            });
+        });
+    </script>
 </body>
 </html>

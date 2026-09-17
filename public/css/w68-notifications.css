@@ -1,0 +1,637 @@
+/* =========================================================
+   W68 v90 — customer order notifications
+   Shared by Home, Orders and Discounts.
+   ========================================================= */
+
+.w68-notification-bell {
+    position: relative;
+    width: 44px;
+    min-width: 44px;
+    height: 44px;
+    min-height: 44px;
+    padding: 0;
+    display: inline-grid;
+    place-items: center;
+    flex: 0 0 44px;
+    border: 1px solid rgba(255, 214, 51, .65);
+    border-radius: 50%;
+    background: rgba(255,255,255,.08);
+    color: #ffd633;
+    cursor: pointer;
+    box-sizing: border-box;
+    box-shadow: 0 3px 10px rgba(0,0,0,.15);
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
+    transition: transform .16s ease, background .16s ease, border-color .16s ease, box-shadow .16s ease;
+}
+
+.w68-notification-bell:hover,
+.w68-notification-bell:focus-visible {
+    transform: translateY(-1px);
+    border-color: #ffe45e;
+    background: rgba(255,214,51,.16);
+    outline: none;
+}
+
+.w68-notification-bell.has-unread {
+    background: #5a0015;
+    border-color: #ffd633;
+    box-shadow: 0 0 0 3px rgba(128,0,32,.22), 0 4px 14px rgba(0,0,0,.2);
+}
+
+.w68-notification-bell svg {
+    width: 22px;
+    height: 22px;
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 1.9;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+}
+
+.w68-notification-badge {
+    position: absolute;
+    top: -6px;
+    right: -6px;
+    min-width: 21px;
+    height: 21px;
+    padding: 0 5px;
+    display: inline-grid;
+    place-items: center;
+    border: 2px solid #064a35;
+    border-radius: 999px;
+    background: #ffd633;
+    color: #6f091b;
+    font-size: 9px;
+    font-weight: 1000;
+    line-height: 1;
+    box-sizing: border-box;
+}
+
+.w68-notification-badge[hidden] {
+    display: none !important;
+}
+
+/* Orders / Discounts headers use the same bell beside the profile. */
+.orders-header-actions .w68-notification-bell {
+    width: 42px;
+    min-width: 42px;
+    height: 42px;
+    min-height: 42px;
+    flex-basis: 42px;
+}
+
+/* The folded Home navbar itself becomes the unread signal. */
+.customer-nav.is-collapsed.has-unread-notifications .customer-nav-shell {
+    background: linear-gradient(135deg, #4a0011 0%, #650016 55%, #7a071d 100%) !important;
+    border-color: #ffd633 !important;
+    box-shadow: 0 8px 24px rgba(74,0,17,.28), 0 0 0 2px rgba(255,214,51,.3) !important;
+}
+
+.customer-nav.is-collapsed.has-unread-notifications .nav-collapsed-content {
+    background: transparent !important;
+}
+
+.customer-nav.is-collapsed.has-unread-notifications .collapsed-summary-copy small,
+.customer-nav.is-collapsed.has-unread-notifications .collapsed-summary-copy em,
+.customer-nav.is-collapsed.has-unread-notifications .collapsed-summary-values strong,
+.customer-nav.is-collapsed.has-unread-notifications .collapsed-click-hint,
+.customer-nav.is-collapsed.has-unread-notifications .collapsed-click-hint b,
+.customer-nav.is-collapsed.has-unread-notifications .collapsed-click-hint span {
+    color: #fff8df !important;
+}
+
+.customer-nav.is-collapsed.has-unread-notifications .collapsed-summary-values strong > span {
+    color: #ffd633 !important;
+}
+
+.w68-notification-modal[hidden] {
+    display: none !important;
+}
+
+.w68-notification-modal {
+    position: fixed;
+    inset: 0;
+    z-index: 70000;
+    display: grid;
+    place-items: center;
+    padding: max(14px, env(safe-area-inset-top)) max(14px, env(safe-area-inset-right)) max(14px, env(safe-area-inset-bottom)) max(14px, env(safe-area-inset-left));
+    box-sizing: border-box;
+}
+
+.w68-notification-backdrop {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    border: 0;
+    background: rgba(13, 20, 17, .62);
+    backdrop-filter: blur(3px);
+    -webkit-backdrop-filter: blur(3px);
+    cursor: pointer;
+}
+
+.w68-notification-card {
+    position: relative;
+    z-index: 1;
+    width: min(760px, 96vw);
+    max-height: min(82vh, 760px);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    border: 1px solid #d7dfda;
+    border-radius: 18px;
+    background: #fff;
+    box-shadow: 0 24px 70px rgba(0,0,0,.28);
+    color: #17231e;
+}
+
+.w68-notification-header {
+    padding: 18px 18px 15px;
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 14px;
+    border-bottom: 1px solid #e2e8e4;
+    background: linear-gradient(135deg, #064a35, #073c2e);
+    color: #fff;
+}
+
+.w68-notification-header > div:first-child {
+    min-width: 0;
+}
+
+.w68-notification-header span {
+    color: #ffd633;
+    font-size: 9px;
+    font-weight: 1000;
+    letter-spacing: 1.2px;
+}
+
+.w68-notification-header h2 {
+    margin: 3px 0 4px;
+    color: #fff;
+    font-size: 25px;
+    line-height: 1;
+}
+
+.w68-notification-header small {
+    display: block;
+    color: rgba(255,255,255,.82);
+    font-size: 10px;
+    line-height: 1.4;
+}
+
+.w68-notification-header-actions {
+    display: flex;
+    align-items: center;
+    gap: 9px;
+    flex: 0 0 auto;
+}
+
+.w68-notification-read-all {
+    min-height: 36px;
+    padding: 0 11px;
+    border: 1px solid rgba(255,214,51,.75);
+    border-radius: 9px;
+    background: rgba(255,214,51,.1);
+    color: #ffe45e;
+    font-size: 8px;
+    font-weight: 1000;
+    letter-spacing: .55px;
+    cursor: pointer;
+    touch-action: manipulation;
+}
+
+.w68-notification-read-all[hidden] {
+    display: none !important;
+}
+
+.w68-notification-close {
+    width: 38px;
+    min-width: 38px;
+    height: 38px;
+    min-height: 38px;
+    padding: 0;
+    display: inline-grid;
+    place-items: center;
+    border: 1px solid rgba(255,214,51,.82);
+    border-radius: 50%;
+    background: #5a0015;
+    color: #ffd633;
+    font-size: 25px;
+    font-weight: 900;
+    line-height: 1;
+    cursor: pointer;
+    box-sizing: border-box;
+    touch-action: manipulation;
+}
+
+.w68-notification-summary {
+    padding: 10px 17px;
+    border-bottom: 1px solid #e8edea;
+    background: #f8fbf9;
+}
+
+.w68-notification-summary strong {
+    color: #526159;
+    font-size: 10px;
+    font-weight: 900;
+}
+
+.w68-notification-list {
+    min-height: 180px;
+    max-height: 590px;
+    padding: 12px;
+    display: grid;
+    gap: 10px;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior: contain;
+    background: #f4f7f5;
+}
+
+.w68-notification-loading,
+.w68-notification-empty,
+.w68-notification-error {
+    min-height: 170px;
+    display: grid;
+    place-items: center;
+    padding: 24px;
+    border: 1px dashed #cfdad4;
+    border-radius: 14px;
+    background: #fff;
+    color: #64736b;
+    text-align: center;
+    font-size: 11px;
+    font-weight: 800;
+}
+
+.w68-notification-error {
+    color: #7a071d;
+    border-color: #e3b3bf;
+    background: #fff7f8;
+}
+
+.w68-notification-item {
+    position: relative;
+    padding: 13px 13px 12px 16px;
+    display: grid;
+    grid-template-columns: 44px minmax(0, 1fr);
+    gap: 11px;
+    border: 1px solid #d9e1dc;
+    border-left: 5px solid #9aa8a0;
+    border-radius: 13px;
+    background: #fff;
+    box-shadow: 0 5px 15px rgba(26,54,43,.05);
+}
+
+.w68-notification-item.is-unread {
+    border-left-color: #800020;
+    background: linear-gradient(90deg, #fff8fa 0%, #fff 42%);
+    box-shadow: 0 7px 20px rgba(128,0,32,.09);
+}
+
+.w68-notification-item-icon {
+    width: 42px;
+    height: 42px;
+    display: grid;
+    place-items: center;
+    border-radius: 12px;
+    background: #073f30;
+    color: #ffd633;
+    font-size: 19px;
+    font-weight: 1000;
+}
+
+.w68-notification-item.is-cancelled .w68-notification-item-icon {
+    background: #730019;
+    color: #fff0f3;
+}
+
+.w68-notification-item.is-waybill .w68-notification-item-icon {
+    background: #6b4f05;
+    color: #fff0a6;
+}
+
+.w68-notification-item-main {
+    min-width: 0;
+}
+
+.w68-notification-item-head {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 12px;
+}
+
+.w68-notification-item-head strong {
+    display: block;
+    color: #173b2e;
+    font-size: 13px;
+    font-weight: 1000;
+    line-height: 1.25;
+}
+
+.w68-notification-item-head time {
+    flex: 0 0 auto;
+    color: #7b8981;
+    font-size: 8px;
+    font-weight: 800;
+    text-align: right;
+}
+
+.w68-notification-meta {
+    margin-top: 4px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 5px 9px;
+    color: #6b7971;
+    font-size: 9px;
+    font-weight: 800;
+}
+
+.w68-notification-message {
+    margin: 8px 0 0;
+    color: #35443c;
+    font-size: 10px;
+    line-height: 1.5;
+}
+
+.w68-notification-movement {
+    margin-top: 9px;
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 5px;
+}
+
+.w68-notification-movement-step {
+    min-height: 24px;
+    padding: 0 8px;
+    display: inline-flex;
+    align-items: center;
+    border-radius: 999px;
+    background: #eaf3ee;
+    color: #14543f;
+    font-size: 7.5px;
+    font-weight: 1000;
+    letter-spacing: .35px;
+}
+
+.w68-notification-movement-arrow {
+    color: #b28a16;
+    font-size: 12px;
+    font-weight: 1000;
+}
+
+.w68-notification-actions {
+    margin-top: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 8px;
+}
+
+.w68-notification-view,
+.w68-notification-mark-read {
+    min-height: 34px;
+    padding: 0 11px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 8px;
+    font-size: 8px;
+    font-weight: 1000;
+    letter-spacing: .4px;
+    text-decoration: none;
+    cursor: pointer;
+    touch-action: manipulation;
+}
+
+.w68-notification-view {
+    border: 1px solid #0d5a43;
+    background: #fff;
+    color: #0d5a43;
+}
+
+.w68-notification-mark-read {
+    border: 1px solid #800020;
+    background: #800020;
+    color: #fff;
+}
+
+.w68-notification-read-label {
+    min-height: 30px;
+    padding: 0 9px;
+    display: inline-flex;
+    align-items: center;
+    border-radius: 8px;
+    background: #edf1ef;
+    color: #77857d;
+    font-size: 8px;
+    font-weight: 1000;
+}
+
+body.w68-notifications-open {
+    overflow: hidden !important;
+}
+
+/* iPad / Safari visual viewport: the JS writes these vars whenever the bell
+   opens or Safari changes the visible viewport. */
+.w68-notification-modal.is-visual-viewport {
+    inset: auto !important;
+    top: var(--w68-notification-vv-top, 0px) !important;
+    left: var(--w68-notification-vv-left, 0px) !important;
+    width: var(--w68-notification-vv-width, 100vw) !important;
+    height: var(--w68-notification-vv-height, 100vh) !important;
+    max-width: var(--w68-notification-vv-width, 100vw) !important;
+    max-height: var(--w68-notification-vv-height, 100vh) !important;
+}
+
+@media (max-width: 760px) {
+    .w68-notification-card {
+        width: 100%;
+        max-height: calc(100vh - 22px);
+        border-radius: 14px;
+    }
+
+    .w68-notification-header {
+        padding: 14px;
+    }
+
+    .w68-notification-header h2 {
+        font-size: 21px;
+    }
+
+    .w68-notification-read-all {
+        padding-inline: 8px;
+        font-size: 7px;
+    }
+
+    .w68-notification-item {
+        grid-template-columns: 38px minmax(0,1fr);
+        gap: 9px;
+        padding: 11px 10px 10px 12px;
+    }
+
+    .w68-notification-item-icon {
+        width: 36px;
+        height: 36px;
+        border-radius: 10px;
+        font-size: 16px;
+    }
+
+    .w68-notification-item-head {
+        display: block;
+    }
+
+    .w68-notification-item-head time {
+        display: block;
+        margin-top: 3px;
+        text-align: left;
+    }
+
+    .w68-notification-actions {
+        justify-content: stretch;
+    }
+
+    .w68-notification-view,
+    .w68-notification-mark-read,
+    .w68-notification-read-label {
+        flex: 1 1 0;
+    }
+}
+
+/* =========================================================
+   W68 v90 — iPad-safe bell geometry + profile replacement
+   ========================================================= */
+.w68-notification-bell {
+    width: 44px !important;
+    min-width: 44px !important;
+    max-width: 44px !important;
+    height: 44px !important;
+    min-height: 44px !important;
+    max-height: 44px !important;
+    flex: 0 0 44px !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    border-radius: 9999px !important;
+    box-sizing: border-box !important;
+    line-height: 0 !important;
+    -webkit-appearance: none !important;
+    appearance: none !important;
+    -webkit-transform: translateZ(0);
+    transform: translateZ(0);
+}
+
+.orders-header-actions .w68-notification-bell {
+    width: 44px !important;
+    min-width: 44px !important;
+    max-width: 44px !important;
+    height: 44px !important;
+    min-height: 44px !important;
+    max-height: 44px !important;
+    flex: 0 0 44px !important;
+}
+
+.orders-notification-slot {
+    width: 44px;
+    min-width: 44px;
+    max-width: 44px;
+    height: 44px;
+    min-height: 44px;
+    max-height: 44px;
+    flex: 0 0 44px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    box-sizing: border-box;
+}
+
+@supports (-webkit-touch-callout: none) {
+    .w68-notification-bell,
+    .orders-header-actions .w68-notification-bell,
+    .orders-notification-slot {
+        width: 44px !important;
+        min-width: 44px !important;
+        max-width: 44px !important;
+        height: 44px !important;
+        min-height: 44px !important;
+        max-height: 44px !important;
+        border-radius: 9999px !important;
+    }
+}
+
+
+/* =========================================================
+   W68 v92 — notification bell breathing room
+   Keep the circular bell visually separated from adjacent
+   profile/cart controls on desktop and iPad Safari.
+   ========================================================= */
+
+/* Home: bell sits immediately before the profile control. */
+.nav-account > .w68-notification-bell {
+    margin-right: 12px !important;
+}
+
+/* Orders + Discounts: bell sits immediately after CART. */
+.orders-header-actions > .orders-notification-slot {
+    margin-left: 12px !important;
+}
+
+@media (max-width: 900px) {
+    .nav-account > .w68-notification-bell {
+        margin-right: 10px !important;
+    }
+
+    .orders-header-actions > .orders-notification-slot {
+        margin-left: 10px !important;
+    }
+}
+
+@supports (-webkit-touch-callout: none) {
+    .nav-account > .w68-notification-bell {
+        margin-right: 12px !important;
+    }
+
+    .orders-header-actions > .orders-notification-slot {
+        margin-left: 12px !important;
+    }
+}
+
+/* =========================================================
+   W68 v95 — unread indicator = OUTER maroon layer only
+   Keep the folded navbar's normal green interior.  The unread
+   signal is a dark-maroon ring around the folded navbar shell.
+   ========================================================= */
+.customer-nav.is-collapsed.has-unread-notifications .customer-nav-shell {
+    background: transparent !important;
+    border-color: transparent !important;
+    box-shadow:
+        0 0 0 4px #5a0015,
+        0 8px 24px rgba(74, 0, 17, .24) !important;
+    border-radius: 16px !important;
+}
+
+.customer-nav.is-collapsed.has-unread-notifications .nav-collapsed-content {
+    background: rgba(1, 42, 31, .58) !important;
+    border-color: rgba(255, 214, 51, .48) !important;
+}
+
+/* Do not recolor the entire folded content when unread. */
+.customer-nav.is-collapsed.has-unread-notifications .collapsed-summary-copy small,
+.customer-nav.is-collapsed.has-unread-notifications .collapsed-summary-copy em,
+.customer-nav.is-collapsed.has-unread-notifications .collapsed-summary-values strong,
+.customer-nav.is-collapsed.has-unread-notifications .collapsed-click-hint,
+.customer-nav.is-collapsed.has-unread-notifications .collapsed-click-hint b,
+.customer-nav.is-collapsed.has-unread-notifications .collapsed-click-hint span {
+    color: inherit !important;
+}
+
+.customer-nav.is-collapsed.has-unread-notifications .collapsed-summary-values strong > span {
+    color: #ffd633 !important;
+}

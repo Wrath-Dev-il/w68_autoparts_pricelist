@@ -1,0 +1,269 @@
+<?php
+
+namespace App\Http\Controllers;
+
+use Illuminate\Database\Query\Builder;
+use Illuminate\Http\Request;
+use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\DB;
+use Throwable;
+
+class StorefrontController extends Controller
+{
+    public function index(Request $request)
+    {
+        $search = trim((string) $request->query('q', ''));
+        $brand = trim((string) $request->query('brand', $request->query('category', '')));
+        $description = trim((string) $request->query('description', ''));
+        $applicationSearch = trim((string) $request->query('application', ''));
+        $partNumberSearch = trim((string) $request->query('part_number', ''));
+        $positionSearch = trim((string) $request->query('position', ''));
+        $sort = (string) $request->query('sort', 'latest');
+
+        $products = collect();
+        $brands = collect();
+        $descriptions = collect();
+        $newItems = collect();
+        $fastLookup = null;
+        $stats = [
+            'products' => 0,
+            'brands' => 0,
+            'car_brands' => 0,
+        ];
+
+        try {
+            $connection = DB::connection('masterlist');
+
+            $catalogIndex = $connection->table('online_products as op')
+                ->leftJoin('products as p', 'p.id', '=', 'op.product_id')
+                ->where('op.is_converted', 1)
+                ->select([
+                    'op.id',
+                    'op.product_id',
+                    'op.product_code',
+                    'op.name',
+                    'op.image_url',
+                    'p.part_number',
+                    'p.category as master_category',
+                    'p.description as master_description',
+                    'p.application',
+                    'p.Position as position',
+                    'p.on_hand',
+                ])
+                ->selectRaw("COALESCE(NULLIF(p.category, ''), NULLIF(op.category, ''), 'Other') as display_category")
+                ->selectRaw("COALESCE(NULLIF(p.description, ''), NULLIF(op.description, ''), 'Other') as display_description")
+                ->get();
+
+            $catalogProductIds = $catalogIndex
+                ->pluck('product_id')
+                ->filter()
+                ->unique()
+                ->values();
+
+            $salesByProduct = $this->qualifyingSalesByProduct($catalogProductIds);
+
+            $brands = $catalogIndex
+                ->groupBy('display_category')
+                ->map(function (Collection $items, string $name) use ($salesByProduct) {
+                    $ranked = $items
+                        ->map(function ($item) use ($salesByProduct) {
+                            $item->sold_qty = (int) ($salesByProduct[$item->product_id] ?? 0);
+                            return $item;
+                        })
+                        ->sortByDesc('sold_qty')
+                        ->values();
+
+                    $topSeller = $ranked->first();
+                    if (!$topSeller || (int) $topSeller->sold_qty <= 0) {
+                        $topSeller = null;
+                    }
+
+                    return (object) [
+                        'name' => $name,
+                        'total' => $items->count(),
+                        'top_seller' => $topSeller,
+                    ];
+                })
+                ->sortByDesc('total')
+                ->values();
+
+            $descriptions = $catalogIndex
+                ->pluck('display_description')
+                ->filter(fn ($value) => trim((string) $value) !== '')
+                ->unique(fn ($value) => mb_strtolower(trim((string) $value)))
+                ->sort(SORT_NATURAL | SORT_FLAG_CASE)
+                ->values();
+
+            $stats['products'] = $catalogIndex->count();
+            $stats['brands'] = $brands->count();
+            $stats['car_brands'] = $descriptions->count();
+
+            $catalog = $this->catalogQuery();
+            $this->applyFilters(
+                $catalog,
+                $search,
+                $brand,
+                $description,
+                $applicationSearch,
+                $partNumberSearch,
+                $positionSearch
+            );
+            $this->applySort($catalog, $sort);
+
+            $products = $catalog->paginate(30)->withQueryString();
+
+            $yearStart = now()->startOfYear()->toDateTimeString();
+            $yearEnd = now()->endOfYear()->toDateTimeString();
+
+            $newItems = $this->catalogQuery()
+                ->where(function (Builder $query) use ($yearStart, $yearEnd) {
+                    $query->whereBetween('p.created_at', [$yearStart, $yearEnd])
+                        ->orWhereBetween('op.created_at', [$yearStart, $yearEnd]);
+                })
+                ->orderByRaw('COALESCE(p.created_at, op.created_at) DESC')
+                ->get();
+
+            $fastLookup = $this->catalogQuery()
+                ->orderByDesc('p.on_hand')
+                ->orderByDesc('op.updated_at')
+                ->first();
+        } catch (Throwable $exception) {
+            report($exception);
+        }
+
+        return view('storefront', compact(
+            'products',
+            'brands',
+            'descriptions',
+            'newItems',
+            'fastLookup',
+            'stats',
+            'search',
+            'brand',
+            'description',
+            'applicationSearch',
+            'partNumberSearch',
+            'positionSearch',
+            'sort'
+        ));
+    }
+
+    private function catalogQuery(): Builder
+    {
+        return DB::connection('masterlist')
+            ->table('online_products as op')
+            ->leftJoin('products as p', 'p.id', '=', 'op.product_id')
+            ->where('op.is_converted', 1)
+            ->select([
+                'op.id',
+                'op.product_id',
+                'op.product_code',
+                'op.name',
+                'op.description as online_description',
+                'op.sku',
+                'op.price',
+                'op.image_url',
+                'op.category as online_category',
+                'op.created_at as online_created_at',
+                'op.updated_at',
+                'p.part_number',
+                'p.category as master_category',
+                'p.description as master_description',
+                'p.application',
+                'p.Position as position',
+                'p.on_hand',
+                'p.status',
+                'p.selling_price',
+                'p.price_online',
+                'p.created_at as product_created_at',
+                'p.date_added',
+            ])
+            ->selectRaw("COALESCE(NULLIF(p.category, ''), NULLIF(op.category, ''), 'Other') as display_category")
+            ->selectRaw("COALESCE(NULLIF(p.description, ''), NULLIF(op.description, ''), 'Other') as display_description")
+            ->selectRaw('COALESCE(NULLIF(op.price, 0), NULLIF(p.price_online, 0), p.selling_price, 0) as display_price');
+    }
+
+    private function qualifyingSalesByProduct(Collection $productIds): Collection
+    {
+        if ($productIds->isEmpty()) {
+            return collect();
+        }
+
+        try {
+            return DB::connection('ledger')
+                ->table('product_ledgers')
+                ->whereIn('product_id', $productIds->all())
+                ->where('transaction_type', 'OUT')
+                ->where('quantity_out', '>', 0)
+                ->where(function (Builder $query) {
+                    $query->whereRaw("LOWER(COALESCE(remarks, '')) LIKE ?", ['%online report generation%'])
+                        ->orWhereRaw("LOWER(COALESCE(remarks, '')) LIKE ?", ['%chginv%'])
+                        ->orWhereRaw("LOWER(COALESCE(remarks, '')) LIKE ?", ['%sales order%']);
+                })
+                ->whereRaw("LOWER(COALESCE(remarks, '')) NOT LIKE ?", ['%sales return%'])
+                ->whereRaw("LOWER(COALESCE(remarks, '')) NOT LIKE ?", ['%adjust%'])
+                ->whereRaw("LOWER(COALESCE(remarks, '')) NOT LIKE ?", ['%purchase return%'])
+                ->groupBy('product_id')
+                ->selectRaw('product_id, SUM(quantity_out) as sold_qty')
+                ->pluck('sold_qty', 'product_id');
+        } catch (Throwable $exception) {
+            report($exception);
+            return collect();
+        }
+    }
+
+    private function applyFilters(
+        Builder $query,
+        string $search,
+        string $brand,
+        string $description,
+        string $applicationSearch,
+        string $partNumberSearch,
+        string $positionSearch
+    ): void {
+        if ($search !== '') {
+            $query->where(function (Builder $filter) use ($search) {
+                $like = '%' . $search . '%';
+
+                $filter->where('op.name', 'like', $like)
+                    ->orWhere('op.product_code', 'like', $like)
+                    ->orWhere('op.sku', 'like', $like)
+                    ->orWhere('op.description', 'like', $like)
+                    ->orWhere('p.part_number', 'like', $like)
+                    ->orWhere('p.application', 'like', $like)
+                    ->orWhere('p.Position', 'like', $like)
+                    ->orWhere('p.description', 'like', $like)
+                    ->orWhere('p.category', 'like', $like);
+            });
+        }
+
+        if ($brand !== '') {
+            $query->whereRaw("COALESCE(NULLIF(p.category, ''), NULLIF(op.category, ''), 'Other') = ?", [$brand]);
+        }
+
+        if ($description !== '') {
+            $query->whereRaw("COALESCE(NULLIF(p.description, ''), NULLIF(op.description, ''), 'Other') = ?", [$description]);
+        }
+
+        if ($applicationSearch !== '') {
+            $query->where('p.application', 'like', '%' . $applicationSearch . '%');
+        }
+
+        if ($partNumberSearch !== '') {
+            $query->where('p.part_number', 'like', '%' . $partNumberSearch . '%');
+        }
+
+        if ($positionSearch !== '') {
+            $query->where('p.Position', 'like', '%' . $positionSearch . '%');
+        }
+    }
+
+    private function applySort(Builder $query, string $sort): void
+    {
+        match ($sort) {
+            'price_low' => $query->orderByRaw('COALESCE(NULLIF(op.price, 0), NULLIF(p.price_online, 0), p.selling_price, 0) ASC'),
+            'price_high' => $query->orderByRaw('COALESCE(NULLIF(op.price, 0), NULLIF(p.price_online, 0), p.selling_price, 0) DESC'),
+            default => $query->orderByRaw('COALESCE(op.updated_at, p.updated_at, op.created_at, p.created_at) DESC'),
+        };
+    }
+}

@@ -1,0 +1,310 @@
+:root {
+    --discount-gold: #d8ad16;
+    --discount-gold-soft: #fff6c9;
+    --discount-green: #064e3b;
+    --discount-green-2: #0b6b50;
+    --discount-maroon: #76051d;
+    --discount-ink: #17221d;
+    --discount-muted: #6e7d75;
+    --discount-line: #dbe4df;
+}
+
+/* The Orders stylesheet supplies the common W68 header + cart drawer.
+   v72 adds the dedicated Discounts page and explicit Safari-safe spacing. */
+.discounts-header-actions {
+    gap: 0 !important;
+    column-gap: 0 !important;
+}
+
+.discounts-home-button + .discounts-orders-button {
+    margin-left: 12px !important;
+}
+
+.discounts-orders-button + .discounts-cart-button {
+    margin-left: 12px !important;
+}
+
+.discounts-orders-button {
+    background: rgba(255, 215, 0, .1) !important;
+}
+
+.discounts-shell {
+    width: min(1280px, calc(100% - 28px));
+    margin: 26px auto 60px;
+}
+
+.discounts-hero {
+    padding: 26px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 26px;
+    border: 1px solid #d5e2db;
+    border-radius: 18px;
+    background: linear-gradient(135deg, #ffffff, #f7fff9);
+    box-shadow: 0 14px 34px rgba(16, 58, 43, .08);
+}
+
+.discounts-kicker,
+.discounts-section-heading > div > span {
+    color: #a47b00;
+    font-size: 9px;
+    font-weight: 1000;
+    letter-spacing: 1.2px;
+}
+
+.discounts-hero h1 {
+    margin: 6px 0 8px;
+    color: var(--discount-green);
+    font-size: clamp(31px, 4vw, 48px);
+    line-height: 1;
+}
+
+.discounts-hero p {
+    max-width: 760px;
+    margin: 0;
+    color: var(--discount-muted);
+    font-size: 12px;
+    line-height: 1.6;
+}
+
+.discounts-count-card {
+    min-width: 160px;
+    padding: 20px 24px;
+    border: 2px solid var(--discount-gold);
+    border-radius: 16px;
+    background: var(--discount-green);
+    color: #fff;
+    text-align: center;
+    box-shadow: 0 10px 24px rgba(6, 78, 59, .18);
+}
+
+.discounts-count-card strong {
+    display: block;
+    color: #ffe45e;
+    font-size: 34px;
+    line-height: 1;
+}
+
+.discounts-count-card span {
+    display: block;
+    margin-top: 6px;
+    font-size: 8px;
+    font-weight: 1000;
+    letter-spacing: .8px;
+}
+
+.discounts-section {
+    margin-top: 20px;
+    padding: 22px;
+    border: 1px solid var(--discount-line);
+    border-radius: 16px;
+    background: #fff;
+    box-shadow: 0 10px 28px rgba(21, 56, 44, .06);
+}
+
+.discounts-section-heading {
+    display: flex;
+    align-items: end;
+    justify-content: space-between;
+    gap: 18px;
+    padding-bottom: 16px;
+    border-bottom: 1px solid #e4ebe7;
+}
+
+.discounts-section-heading h2 {
+    margin: 4px 0 0;
+    color: var(--discount-maroon);
+    font-size: 25px;
+}
+
+.discounts-section-heading p {
+    max-width: 520px;
+    margin: 0;
+    color: var(--discount-muted);
+    font-size: 10px;
+    line-height: 1.5;
+    text-align: right;
+}
+
+.discount-brand-grid {
+    margin-top: 18px;
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 14px;
+}
+
+.discount-brand-card {
+    min-width: 0;
+    min-height: 112px;
+    display: grid;
+    grid-template-columns: 104px minmax(0, 1fr);
+    overflow: hidden;
+    border: 1px solid #d8e2dc;
+    border-radius: 14px;
+    background: #fff;
+    color: inherit;
+    text-decoration: none;
+    box-shadow: 0 7px 20px rgba(20, 58, 44, .05);
+    transition: transform .16s ease, box-shadow .16s ease, border-color .16s ease;
+    touch-action: manipulation;
+}
+
+.discount-brand-card:hover,
+.discount-brand-card:focus-visible {
+    transform: translateY(-2px);
+    border-color: var(--discount-gold);
+    box-shadow: 0 12px 28px rgba(20, 58, 44, .11);
+    outline: none;
+}
+
+.discount-brand-percent {
+    padding: 15px 10px;
+    display: grid;
+    align-content: center;
+    justify-items: center;
+    background: linear-gradient(145deg, var(--discount-maroon), #4d0012);
+    color: #fff;
+    text-align: center;
+}
+
+.discount-brand-percent strong {
+    color: #ffe45e;
+    font-size: 27px;
+    line-height: 1;
+}
+
+.discount-brand-percent span {
+    margin-top: 6px;
+    font-size: 7px;
+    font-weight: 1000;
+    letter-spacing: .9px;
+}
+
+.discount-brand-copy {
+    min-width: 0;
+    padding: 16px;
+    display: grid;
+    align-content: center;
+}
+
+.discount-brand-copy > span {
+    color: #9e7900;
+    font-size: 7px;
+    font-weight: 1000;
+    letter-spacing: .9px;
+}
+
+.discount-brand-copy h3 {
+    margin: 4px 0 8px;
+    overflow: hidden;
+    color: var(--discount-green);
+    font-size: 18px;
+    line-height: 1.15;
+    text-overflow: ellipsis;
+}
+
+.discount-brand-copy small {
+    color: var(--discount-maroon);
+    font-size: 8px;
+    font-weight: 1000;
+}
+
+.discounts-empty {
+    grid-column: 1 / -1;
+    padding: 34px 20px;
+    display: grid;
+    gap: 6px;
+    place-items: center;
+    border: 1px dashed #cdd9d3;
+    border-radius: 13px;
+    color: var(--discount-muted);
+    text-align: center;
+}
+
+.discounts-empty strong {
+    color: var(--discount-green);
+}
+
+/* Keep the cart drawer above the Discounts header on iPad/Safari. */
+.orders-cart-drawer {
+    z-index: 8000 !important;
+}
+
+@media (max-width: 1000px) {
+    .discount-brand-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .discounts-hero {
+        align-items: stretch;
+    }
+
+    .discounts-count-card {
+        min-width: 145px;
+    }
+}
+
+@media (max-width: 760px) {
+    .discounts-home-button + .discounts-orders-button,
+    .discounts-orders-button + .discounts-cart-button {
+        margin-left: 8px !important;
+    }
+
+    .discounts-orders-button {
+        width: 42px !important;
+        min-width: 42px !important;
+        padding: 0 !important;
+        justify-content: center !important;
+    }
+
+    .discounts-orders-button span {
+        display: none !important;
+    }
+
+    .discounts-shell {
+        width: min(100% - 18px, 1280px);
+        margin-top: 16px;
+    }
+
+    .discounts-hero {
+        display: grid;
+        padding: 20px;
+    }
+
+    .discounts-count-card {
+        width: 100%;
+        min-width: 0;
+    }
+
+    .discounts-section {
+        padding: 16px;
+    }
+
+    .discounts-section-heading {
+        display: grid;
+        align-items: start;
+    }
+
+    .discounts-section-heading p {
+        text-align: left;
+    }
+
+    .discount-brand-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+@media (max-width: 460px) {
+    .discount-brand-card {
+        grid-template-columns: 88px minmax(0, 1fr);
+    }
+
+    .discount-brand-percent strong {
+        font-size: 23px;
+    }
+
+    .discount-brand-copy h3 {
+        font-size: 16px;
+    }
+}

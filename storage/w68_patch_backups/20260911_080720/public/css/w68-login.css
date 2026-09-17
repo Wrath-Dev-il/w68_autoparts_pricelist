@@ -1,0 +1,563 @@
+* {
+    box-sizing: border-box;
+}
+
+body {
+    margin: 0;
+    font-family: Arial, Helvetica, sans-serif;
+    background: #064e3b;
+}
+
+.login-page {
+    min-height: 100vh;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 20px;
+}
+
+.login-card {
+    width: 100%;
+    max-width: 380px;
+    background: #ffffff;
+    border-radius: 12px;
+    padding: 30px;
+    text-align: center;
+    border: 4px solid #ffd633;
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.22);
+}
+
+.login-logo {
+    width: 110px;
+    height: 110px;
+    object-fit: contain;
+    margin-bottom: 10px;
+}
+
+.login-card h1 {
+    margin: 5px 0;
+    color: #5f0b1c;
+    font-size: 24px;
+}
+
+.subtitle {
+    margin: 0 0 25px;
+    color: #0b6b50;
+    font-weight: bold;
+    font-size: 14px;
+}
+
+.form-group {
+    text-align: left;
+    margin-bottom: 15px;
+}
+
+.form-group label {
+    display: block;
+    margin-bottom: 6px;
+    color: #064e3b;
+    font-weight: bold;
+    font-size: 13px;
+}
+
+.form-group input {
+    width: 100%;
+    height: 43px;
+    border: 1px solid #bbbbbb;
+    border-radius: 6px;
+    padding: 0 12px;
+    font-size: 14px;
+    outline: none;
+}
+
+.form-group input:focus {
+    border-color: #064e3b;
+    box-shadow: 0 0 0 2px rgba(6, 78, 59, 0.12);
+}
+
+.remember {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    margin: 5px 0 18px;
+    color: #444444;
+    font-size: 12px;
+    text-align: left;
+}
+
+.login-button {
+    width: 100%;
+    height: 45px;
+    border: none;
+    border-radius: 6px;
+    background: #5f0b1c;
+    color: #ffd633;
+    font-size: 14px;
+    font-weight: bold;
+    cursor: pointer;
+}
+
+.login-button:hover {
+    background: #ffd633;
+    color: #5f0b1c;
+}
+
+.back-link {
+    display: inline-block;
+    margin-top: 20px;
+    color: #064e3b;
+    font-size: 12px;
+    font-weight: bold;
+    text-decoration: none;
+}
+
+.back-link:hover {
+    text-decoration: underline;
+}
+
+.error-message {
+    margin-bottom: 15px;
+    padding: 10px;
+    border-radius: 6px;
+    background: #5f0b1c;
+    color: #ffd633;
+    font-size: 12px;
+}
+
+/* Tablet */
+@media (max-width: 768px) {
+    .login-card {
+        max-width: 360px;
+        padding: 26px;
+    }
+}
+
+/* Mobile */
+@media (max-width: 480px) {
+    .login-page {
+        padding: 14px;
+    }
+
+    .login-card {
+        padding: 22px 18px;
+    }
+
+    .login-logo {
+        width: 90px;
+        height: 90px;
+    }
+
+    .login-card h1 {
+        font-size: 21px;
+    }
+}
+
+
+/* =========================================================
+   W68 v22 - Tablet / Mobile Login "Zoomed Card"
+   Keep the W68 green background.
+   Make the login card much larger on iPad/tablet/phone.
+   ========================================================= */
+
+/* iPad / tablets / smaller laptops */
+@media (max-width: 1180px) {
+    body {
+        background: #064e3b !important;
+    }
+
+    .login-page {
+        min-height: 100vh !important;
+        min-height: 100svh !important;
+        padding: 24px !important;
+        background: #064e3b !important;
+    }
+
+    .login-card {
+        width: min(78vw, 680px) !important;
+        max-width: 680px !important;
+        min-height: min(74vh, 650px) !important;
+        padding: clamp(34px, 5vw, 58px) clamp(34px, 6vw, 66px) !important;
+
+        display: flex !important;
+        flex-direction: column !important;
+        justify-content: center !important;
+
+        border-width: 5px !important;
+        border-radius: 16px !important;
+        box-shadow: 0 16px 38px rgba(0, 0, 0, .26) !important;
+    }
+
+    .login-logo {
+        width: clamp(125px, 17vw, 175px) !important;
+        height: clamp(125px, 17vw, 175px) !important;
+        margin: 0 auto 14px !important;
+    }
+
+    .login-card h1 {
+        font-size: clamp(29px, 4vw, 40px) !important;
+        margin: 6px 0 !important;
+    }
+
+    .subtitle {
+        font-size: clamp(16px, 2vw, 20px) !important;
+        margin-bottom: 30px !important;
+    }
+
+    .form-group {
+        margin-bottom: 18px !important;
+    }
+
+    .form-group label {
+        font-size: 15px !important;
+        margin-bottom: 8px !important;
+    }
+
+    .form-group input {
+        height: 56px !important;
+        padding: 0 15px !important;
+        font-size: 17px !important;
+        border-radius: 8px !important;
+    }
+
+    .remember {
+        margin: 8px 0 22px !important;
+        font-size: 14px !important;
+    }
+
+    .remember input {
+        width: 20px !important;
+        height: 20px !important;
+    }
+
+    .login-button {
+        height: 58px !important;
+        border-radius: 8px !important;
+        font-size: 17px !important;
+    }
+
+    .error-message {
+        font-size: 14px !important;
+        padding: 12px !important;
+    }
+}
+
+/* Touch tablets such as larger iPads, even when Safari uses a desktop-like viewport. */
+@media (hover: none) and (pointer: coarse) {
+    body,
+    .login-page {
+        background: #064e3b !important;
+    }
+
+    .login-page {
+        min-height: 100vh !important;
+        min-height: 100svh !important;
+        padding: 24px !important;
+    }
+
+    .login-card {
+        width: min(82vw, 700px) !important;
+        max-width: 700px !important;
+        min-height: min(76vh, 680px) !important;
+        padding: clamp(34px, 5vw, 60px) clamp(30px, 6vw, 68px) !important;
+    }
+}
+
+/* Phones */
+@media (max-width: 600px) {
+    .login-page {
+        padding: 12px !important;
+    }
+
+    .login-card {
+        width: calc(100vw - 24px) !important;
+        max-width: none !important;
+        min-height: auto !important;
+        padding: 28px 20px !important;
+
+        border-width: 4px !important;
+        border-radius: 14px !important;
+    }
+
+    .login-logo {
+        width: 105px !important;
+        height: 105px !important;
+        margin-bottom: 10px !important;
+    }
+
+    .login-card h1 {
+        font-size: 25px !important;
+    }
+
+    .subtitle {
+        font-size: 15px !important;
+        margin-bottom: 24px !important;
+    }
+
+    .form-group {
+        margin-bottom: 15px !important;
+    }
+
+    .form-group label {
+        font-size: 14px !important;
+    }
+
+    .form-group input {
+        height: 50px !important;
+        font-size: 16px !important;
+    }
+
+    .remember {
+        font-size: 13px !important;
+        margin-bottom: 19px !important;
+    }
+
+    .login-button {
+        height: 52px !important;
+        font-size: 16px !important;
+    }
+}
+
+/* Short landscape phones/tablets: stay large but fit vertically and allow scrolling. */
+@media (max-height: 620px) and (hover: none) and (pointer: coarse) {
+    .login-page {
+        align-items: flex-start !important;
+        padding-top: 14px !important;
+        padding-bottom: 14px !important;
+    }
+
+    .login-card {
+        min-height: 0 !important;
+        padding-top: 22px !important;
+        padding-bottom: 22px !important;
+    }
+
+    .login-logo {
+        width: 88px !important;
+        height: 88px !important;
+    }
+
+    .subtitle {
+        margin-bottom: 18px !important;
+    }
+}
+
+
+/* =========================================================
+   W68 v23 - FULL SCREEN LOGIN CARD for iPod/iPhone/iPad/tablet
+   Desktop remains unchanged.
+   On handheld devices, NO green background is visible.
+   ========================================================= */
+
+html.w68-handheld,
+html.w68-handheld body {
+    width: 100% !important;
+    min-width: 100% !important;
+    min-height: 100% !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    background: #ffffff !important;
+    background-color: #ffffff !important;
+    background-image: none !important;
+}
+
+html.w68-handheld body {
+    overflow-x: hidden !important;
+}
+
+html.w68-handheld .login-page {
+    width: 100vw !important;
+    min-width: 100vw !important;
+    height: 100vh !important;
+    min-height: 100vh !important;
+    height: 100svh !important;
+    min-height: 100svh !important;
+
+    margin: 0 !important;
+    padding: 0 !important;
+
+    display: flex !important;
+    align-items: stretch !important;
+    justify-content: stretch !important;
+
+    background: #ffffff !important;
+    background-color: #ffffff !important;
+    background-image: none !important;
+}
+
+html.w68-handheld .login-card {
+    width: 100vw !important;
+    max-width: none !important;
+    min-width: 100vw !important;
+
+    height: 100vh !important;
+    min-height: 100vh !important;
+    height: 100svh !important;
+    min-height: 100svh !important;
+
+    margin: 0 !important;
+    padding:
+        max(28px, env(safe-area-inset-top))
+        max(22px, env(safe-area-inset-right))
+        max(28px, env(safe-area-inset-bottom))
+        max(22px, env(safe-area-inset-left)) !important;
+
+    border: 0 !important;
+    border-radius: 0 !important;
+    box-shadow: none !important;
+
+    background: #ffffff !important;
+
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: center !important;
+    justify-content: center !important;
+
+    overflow-y: auto !important;
+    -webkit-overflow-scrolling: touch;
+}
+
+/* Keep the actual form readable instead of stretching inputs edge-to-edge. */
+html.w68-handheld .login-card > * {
+    width: min(100%, 460px);
+}
+
+html.w68-handheld .login-logo {
+    width: clamp(105px, 22vw, 155px) !important;
+    height: clamp(105px, 22vw, 155px) !important;
+    margin: 0 auto 12px !important;
+}
+
+html.w68-handheld .login-card h1 {
+    font-size: clamp(25px, 5vw, 36px) !important;
+    text-align: center !important;
+}
+
+html.w68-handheld .subtitle {
+    font-size: clamp(14px, 2.8vw, 18px) !important;
+    text-align: center !important;
+    margin-bottom: 28px !important;
+}
+
+html.w68-handheld .form-group {
+    margin-bottom: 16px !important;
+}
+
+html.w68-handheld .form-group label {
+    font-size: 14px !important;
+    margin-bottom: 7px !important;
+}
+
+html.w68-handheld .form-group input {
+    width: 100% !important;
+    height: 54px !important;
+    font-size: 16px !important;
+    padding: 0 14px !important;
+    border-radius: 8px !important;
+}
+
+html.w68-handheld .remember {
+    margin: 7px 0 20px !important;
+    font-size: 14px !important;
+}
+
+html.w68-handheld .remember input {
+    width: 20px !important;
+    height: 20px !important;
+}
+
+html.w68-handheld .login-button {
+    width: min(100%, 460px) !important;
+    height: 56px !important;
+    font-size: 16px !important;
+    border-radius: 8px !important;
+}
+
+/* Phones / iPod: use almost all available width. */
+@media (max-width: 600px) {
+    html.w68-handheld .login-card {
+        padding:
+            max(20px, env(safe-area-inset-top))
+            max(16px, env(safe-area-inset-right))
+            max(20px, env(safe-area-inset-bottom))
+            max(16px, env(safe-area-inset-left)) !important;
+    }
+
+    html.w68-handheld .login-card > * {
+        width: min(100%, 390px);
+    }
+
+    html.w68-handheld .login-logo {
+        width: 96px !important;
+        height: 96px !important;
+    }
+
+    html.w68-handheld .login-card h1 {
+        font-size: 23px !important;
+    }
+
+    html.w68-handheld .subtitle {
+        font-size: 14px !important;
+        margin-bottom: 22px !important;
+    }
+
+    html.w68-handheld .form-group input {
+        height: 50px !important;
+    }
+
+    html.w68-handheld .login-button {
+        width: min(100%, 390px) !important;
+        height: 52px !important;
+    }
+}
+
+/* Landscape handheld: full-screen still applies; allow vertical scroll if needed. */
+@media (max-height: 600px) {
+    html.w68-handheld .login-card {
+        justify-content: flex-start !important;
+        padding-top: max(14px, env(safe-area-inset-top)) !important;
+        padding-bottom: max(14px, env(safe-area-inset-bottom)) !important;
+    }
+
+    html.w68-handheld .login-logo {
+        width: 78px !important;
+        height: 78px !important;
+    }
+
+    html.w68-handheld .subtitle {
+        margin-bottom: 14px !important;
+    }
+
+    html.w68-handheld .form-group {
+        margin-bottom: 10px !important;
+    }
+
+    html.w68-handheld .form-group input {
+        height: 46px !important;
+    }
+
+    html.w68-handheld .login-button {
+        height: 48px !important;
+    }
+}
+
+/* Fallback for small phones if UA detection behaves unusually. */
+@media (max-width: 480px) {
+    body,
+    .login-page {
+        background: #ffffff !important;
+    }
+
+    .login-page {
+        padding: 0 !important;
+    }
+
+    .login-card {
+        width: 100vw !important;
+        max-width: none !important;
+        min-height: 100svh !important;
+        margin: 0 !important;
+        border-radius: 0 !important;
+        border: 0 !important;
+        box-shadow: none !important;
+    }
+}

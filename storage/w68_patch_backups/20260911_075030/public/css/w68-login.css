@@ -1,0 +1,261 @@
+* {
+    box-sizing: border-box;
+}
+
+body {
+    margin: 0;
+    font-family: Arial, Helvetica, sans-serif;
+    background: #064e3b;
+}
+
+.login-page {
+    min-height: 100vh;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 20px;
+}
+
+.login-card {
+    width: 100%;
+    max-width: 380px;
+    background: #ffffff;
+    border-radius: 12px;
+    padding: 30px;
+    text-align: center;
+    border: 4px solid #ffd633;
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.22);
+}
+
+.login-logo {
+    width: 110px;
+    height: 110px;
+    object-fit: contain;
+    margin-bottom: 10px;
+}
+
+.login-card h1 {
+    margin: 5px 0;
+    color: #5f0b1c;
+    font-size: 24px;
+}
+
+.subtitle {
+    margin: 0 0 25px;
+    color: #0b6b50;
+    font-weight: bold;
+    font-size: 14px;
+}
+
+.form-group {
+    text-align: left;
+    margin-bottom: 15px;
+}
+
+.form-group label {
+    display: block;
+    margin-bottom: 6px;
+    color: #064e3b;
+    font-weight: bold;
+    font-size: 13px;
+}
+
+.form-group input {
+    width: 100%;
+    height: 43px;
+    border: 1px solid #bbbbbb;
+    border-radius: 6px;
+    padding: 0 12px;
+    font-size: 14px;
+    outline: none;
+}
+
+.form-group input:focus {
+    border-color: #064e3b;
+    box-shadow: 0 0 0 2px rgba(6, 78, 59, 0.12);
+}
+
+.remember {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    margin: 5px 0 18px;
+    color: #444444;
+    font-size: 12px;
+    text-align: left;
+}
+
+.login-button {
+    width: 100%;
+    height: 45px;
+    border: none;
+    border-radius: 6px;
+    background: #5f0b1c;
+    color: #ffd633;
+    font-size: 14px;
+    font-weight: bold;
+    cursor: pointer;
+}
+
+.login-button:hover {
+    background: #ffd633;
+    color: #5f0b1c;
+}
+
+.back-link {
+    display: inline-block;
+    margin-top: 20px;
+    color: #064e3b;
+    font-size: 12px;
+    font-weight: bold;
+    text-decoration: none;
+}
+
+.back-link:hover {
+    text-decoration: underline;
+}
+
+.error-message {
+    margin-bottom: 15px;
+    padding: 10px;
+    border-radius: 6px;
+    background: #5f0b1c;
+    color: #ffd633;
+    font-size: 12px;
+}
+
+/* Tablet */
+@media (max-width: 768px) {
+    .login-card {
+        max-width: 360px;
+        padding: 26px;
+    }
+}
+
+/* Mobile */
+@media (max-width: 480px) {
+    .login-page {
+        padding: 14px;
+    }
+
+    .login-card {
+        padding: 22px 18px;
+    }
+
+    .login-logo {
+        width: 90px;
+        height: 90px;
+    }
+
+    .login-card h1 {
+        font-size: 21px;
+    }
+}
+
+
+/* =========================================================
+   W68 v21 - iPad / Tablet / Phone Login
+   Desktop keeps the original dark-green background.
+   Actual mobile/tablet devices show NO green outer background.
+   ========================================================= */
+
+html.w68-mobile-tablet,
+html.w68-mobile-tablet body {
+    min-width: 100%;
+    min-height: 100%;
+    background: #ffffff !important;
+    background-color: #ffffff !important;
+    background-image: none !important;
+}
+
+html.w68-mobile-tablet body {
+    margin: 0 !important;
+    overflow-x: hidden;
+}
+
+html.w68-mobile-tablet .login-page {
+    width: 100% !important;
+    min-height: 100vh !important;
+    min-height: 100svh !important;
+    padding: 24px !important;
+
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+
+    background: #ffffff !important;
+    background-color: #ffffff !important;
+    background-image: none !important;
+}
+
+html.w68-mobile-tablet .login-card {
+    width: min(100%, 420px) !important;
+    max-width: 420px !important;
+    margin: 0 auto !important;
+    padding: 30px !important;
+
+    background: #ffffff !important;
+    border: 4px solid #ffd633 !important;
+    border-radius: 12px !important;
+
+    /* Remove the dark floating shadow so no dark/green surround remains. */
+    box-shadow: 0 6px 20px rgba(0, 0, 0, .10) !important;
+}
+
+/* iPad / tablet */
+@media (min-width: 601px) {
+    html.w68-mobile-tablet .login-page {
+        padding: 32px !important;
+    }
+
+    html.w68-mobile-tablet .login-card {
+        width: min(100%, 430px) !important;
+        max-width: 430px !important;
+        padding: 34px !important;
+    }
+
+    html.w68-mobile-tablet .login-logo {
+        width: 112px !important;
+        height: 112px !important;
+    }
+}
+
+/* Phones */
+@media (max-width: 600px) {
+    html.w68-mobile-tablet .login-page {
+        padding: 16px !important;
+    }
+
+    html.w68-mobile-tablet .login-card {
+        width: 100% !important;
+        max-width: 400px !important;
+        padding: 24px 19px !important;
+    }
+
+    html.w68-mobile-tablet .login-logo {
+        width: 90px !important;
+        height: 90px !important;
+    }
+
+    html.w68-mobile-tablet .login-card h1 {
+        font-size: 21px !important;
+    }
+
+    html.w68-mobile-tablet .form-group input,
+    html.w68-mobile-tablet .login-button {
+        height: 46px !important;
+    }
+}
+
+/*
+ * Fallback for browsers that block/alter user-agent detection.
+ * This catches common phone widths but does NOT alter normal desktop widths.
+ */
+@media (max-width: 600px) {
+    body,
+    .login-page {
+        background: #ffffff !important;
+        background-color: #ffffff !important;
+        background-image: none !important;
+    }
+}

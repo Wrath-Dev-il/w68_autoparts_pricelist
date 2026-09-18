@@ -83,7 +83,8 @@ class CustomerNotificationController extends Controller
             ];
 
             return [
-                'id' => (int) $row->id,
+                'id' => 'order:' . (int) $row->id,
+                'source' => 'order',
                 'order_id' => $orderId,
                 'order_code' => (string) ($row->order_code ?? ''),
                 'sales_number' => (string) ($row->sales_number ?? ''),
@@ -102,12 +103,49 @@ class CustomerNotificationController extends Controller
             ];
         })->values();
 
-        $unreadCount = (int) DB::connection('sales_order')
-            ->table('w68_portal_order_notifications')
-            ->where('login_id', $loginId)
-            ->where('customer_id', $customerId)
-            ->where('is_read', 0)
-            ->count();
+        // W68_PRICELIST_SOA_NOTIFICATION_20260918
+        $soaNotifications = collect();
+        if (Schema::connection('system')->hasTable('customer_portal_notifications')) {
+            $soaNotifications = DB::connection('system')
+                ->table('customer_portal_notifications')
+                ->where('login_id', $loginId)
+                ->where('customer_id', $customerId)
+                ->orderByDesc('event_at')
+                ->orderByDesc('id')
+                ->limit(80)
+                ->get()
+                ->map(function ($row): array {
+                    return [
+                        'id' => 'soa:' . (int) $row->id,
+                        'source' => 'soa',
+                        'order_id' => null,
+                        'order_code' => '',
+                        'sales_number' => '',
+                        'event_type' => (string) ($row->event_type ?? 'SOA_AUTO_SENT'),
+                        'event_value' => '',
+                        'title' => (string) ($row->title ?? 'Statement of Account Sent'),
+                        'message' => (string) ($row->message ?? ''),
+                        'event_at' => $this->formatDateTime($row->event_at ?? $row->created_at ?? null),
+                        'is_read' => (bool) ($row->is_read ?? false),
+                        'read_at' => $this->formatDateTime($row->read_at ?? null),
+                        'movement' => ['PAYMENT REMINDER', 'SOA SENT TO EMAIL'],
+                        'waybill_no' => '',
+                        'portal_status' => '',
+                        'sales_note_status' => '',
+                        'order_url' => '',
+                    ];
+                });
+        }
+
+        $notifications = $notifications
+            ->concat($soaNotifications)
+            ->sortByDesc(function (array $item): int {
+                return strtotime((string) ($item['event_at'] ?? '')) ?: 0;
+            })
+            ->take(80)
+            ->values();
+
+        $unreadCount = $this->unreadCount($loginId, $customerId);
 
         return response()->json([
             'ok' => true,
@@ -116,14 +154,41 @@ class CustomerNotificationController extends Controller
         ]);
     }
 
-    public function markRead(Request $request, int $notification): JsonResponse
+    public function markRead(Request $request, string $notification): JsonResponse
     {
         [, $loginId, $customerId] = $this->identity($request);
         $this->ensureStorage();
 
+        [$source, $notificationId] = $this->parseNotificationId($notification);
+
+        if ($source === 'soa') {
+            $row = DB::connection('system')
+                ->table('customer_portal_notifications')
+                ->where('id', $notificationId)
+                ->where('login_id', $loginId)
+                ->where('customer_id', $customerId)
+                ->first(['id']);
+
+            abort_unless($row, 404, 'Notification not found.');
+
+            DB::connection('system')
+                ->table('customer_portal_notifications')
+                ->where('id', $notificationId)
+                ->update([
+                    'is_read' => 1,
+                    'read_at' => now(),
+                    'updated_at' => now(),
+                ]);
+
+            return response()->json([
+                'ok' => true,
+                'unread_count' => $this->unreadCount($loginId, $customerId),
+            ]);
+        }
+
         $row = DB::connection('sales_order')
             ->table('w68_portal_order_notifications')
-            ->where('id', $notification)
+            ->where('id', $notificationId)
             ->where('login_id', $loginId)
             ->where('customer_id', $customerId)
             ->first(['id', 'w68_portal_order_id']);
@@ -132,7 +197,7 @@ class CustomerNotificationController extends Controller
 
         DB::connection('sales_order')
             ->table('w68_portal_order_notifications')
-            ->where('id', $notification)
+            ->where('id', $notificationId)
             ->update([
                 'is_read' => 1,
                 'read_at' => now(),
@@ -165,6 +230,18 @@ class CustomerNotificationController extends Controller
                 'updated_at' => $now,
             ]);
 
+        if (Schema::connection('system')->hasTable('customer_portal_notifications')) {
+            DB::connection('system')
+                ->table('customer_portal_notifications')
+                ->where('login_id', $loginId)
+                ->where('customer_id', $customerId)
+                ->where('is_read', 0)
+                ->update([
+                    'is_read' => 1,
+                    'read_at' => $now,
+                    'updated_at' => $now,
+                ]);
+        }
         if (
             Schema::connection('sales_order')->hasColumn('w68_portal_orders', 'notification_is_read')
             && Schema::connection('sales_order')->hasColumn('w68_portal_orders', 'notification_read_at')
@@ -471,14 +548,40 @@ class CustomerNotificationController extends Controller
             ]);
     }
 
+    private function parseNotificationId(string $notification): array
+    {
+        $value = trim($notification);
+        if (preg_match('/^(order|soa):(\d+)$/', $value, $matches)) {
+            return [$matches[1], (int) $matches[2]];
+        }
+
+        if (ctype_digit($value)) {
+            return ['order', (int) $value];
+        }
+
+        abort(404, 'Notification not found.');
+    }
+
     private function unreadCount(int $loginId, int $customerId): int
     {
-        return (int) DB::connection('sales_order')
+        $orderCount = (int) DB::connection('sales_order')
             ->table('w68_portal_order_notifications')
             ->where('login_id', $loginId)
             ->where('customer_id', $customerId)
             ->where('is_read', 0)
             ->count();
+
+        $soaCount = 0;
+        if (Schema::connection('system')->hasTable('customer_portal_notifications')) {
+            $soaCount = (int) DB::connection('system')
+                ->table('customer_portal_notifications')
+                ->where('login_id', $loginId)
+                ->where('customer_id', $customerId)
+                ->where('is_read', 0)
+                ->count();
+        }
+
+        return $orderCount + $soaCount;
     }
 
     private function formatDateTime($value): string
@@ -496,6 +599,32 @@ class CustomerNotificationController extends Controller
 
     private function ensureStorage(): void
     {
+        $systemSchema = Schema::connection('system');
+        $systemConnection = DB::connection('system');
+
+        if (!$systemSchema->hasTable('customer_portal_notifications')) {
+            $systemConnection->statement(<<<'SQL'
+CREATE TABLE IF NOT EXISTS `customer_portal_notifications` (
+    `id` BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+    `login_id` BIGINT UNSIGNED NOT NULL,
+    `customer_id` BIGINT UNSIGNED NOT NULL,
+    `event_type` VARCHAR(50) NOT NULL,
+    `event_key` VARCHAR(191) NOT NULL,
+    `title` VARCHAR(191) NOT NULL,
+    `message` TEXT DEFAULT NULL,
+    `event_at` TIMESTAMP NULL DEFAULT NULL,
+    `is_read` TINYINT(1) NOT NULL DEFAULT 0,
+    `read_at` TIMESTAMP NULL DEFAULT NULL,
+    `created_at` TIMESTAMP NULL DEFAULT NULL,
+    `updated_at` TIMESTAMP NULL DEFAULT NULL,
+    PRIMARY KEY (`id`),
+    UNIQUE KEY `customer_portal_notifications_event_unique` (`event_key`),
+    KEY `customer_portal_generic_owner_unread_idx` (`login_id`, `customer_id`, `is_read`),
+    KEY `customer_portal_generic_customer_event_idx` (`customer_id`, `event_at`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+SQL);
+        }
+
         $schema = Schema::connection('sales_order');
         $connection = DB::connection('sales_order');
 

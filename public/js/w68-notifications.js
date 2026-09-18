@@ -1,3 +1,4 @@
+/* W68_PRICELIST_SOA_NOTIFICATION_20260918 */
 (function () {
     'use strict';
 
@@ -119,12 +120,14 @@
     function eventIcon(type) {
         if (type === 'ORDER_CANCELLED') return '×';
         if (type === 'WAYBILL_CREATED') return 'W';
+        if (type === 'SOA_AUTO_SENT') return '₱';
         return '✓';
     }
 
     function eventClass(type) {
         if (type === 'ORDER_CANCELLED') return ' is-cancelled';
         if (type === 'WAYBILL_CREATED') return ' is-waybill';
+        if (type === 'SOA_AUTO_SENT') return ' is-soa';
         return '';
     }
 
@@ -149,8 +152,13 @@
         main.appendChild(head);
 
         var meta = make('div', 'w68-notification-meta');
-        meta.appendChild(make('span', '', 'ORDER: ' + (item.order_code || ('#' + item.order_id))));
-        if (item.sales_number) meta.appendChild(make('span', '', 'SALES NOTE: ' + item.sales_number));
+        if (item.event_type === 'SOA_AUTO_SENT') {
+            meta.appendChild(make('span', '', 'PAYMENT REMINDER'));
+            meta.appendChild(make('span', '', 'STATEMENT OF ACCOUNT'));
+        } else {
+            meta.appendChild(make('span', '', 'ORDER: ' + (item.order_code || ('#' + item.order_id))));
+            if (item.sales_number) meta.appendChild(make('span', '', 'SALES NOTE: ' + item.sales_number));
+        }
         main.appendChild(meta);
 
         main.appendChild(make('p', 'w68-notification-message', item.message || ''));
@@ -164,9 +172,11 @@
         main.appendChild(movement);
 
         var actions = make('div', 'w68-notification-actions');
-        var view = make('a', 'w68-notification-view', 'VIEW ORDER');
-        view.href = normalizeAppUrl(item.order_url || '#');
-        actions.appendChild(view);
+        if (item.order_url) {
+            var view = make('a', 'w68-notification-view', 'VIEW ORDER');
+            view.href = normalizeAppUrl(item.order_url);
+            actions.appendChild(view);
+        }
 
         if (!item.is_read) {
             var mark = make('button', 'w68-notification-mark-read', 'MARK AS READ');
@@ -202,7 +212,7 @@
         if (readAllButton) readAllButton.hidden = count <= 0;
         if (summary) {
             summary.textContent = count > 0
-                ? (count + ' unread order update' + (count === 1 ? '' : 's'))
+                ? (count + ' unread notification' + (count === 1 ? '' : 's'))
                 : 'You are up to date.';
         }
     }
@@ -214,7 +224,7 @@
         list.innerHTML = '';
 
         if (!items.length) {
-            list.appendChild(make('div', 'w68-notification-empty', 'No Sales Note, waybill, or cancelled-order notifications yet.'));
+            list.appendChild(make('div', 'w68-notification-empty', 'No Sales Note, waybill, cancelled-order, or payment reminder notifications yet.'));
             return;
         }
 

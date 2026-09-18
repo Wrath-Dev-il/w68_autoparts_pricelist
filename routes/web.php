@@ -56,8 +56,9 @@ Route::middleware(['portal.access', 'auth'])->group(function () {
     Route::get('/home/notifications', [CustomerNotificationController::class, 'index'])
         ->name('home.notifications');
 
+    // W68_PRICELIST_SOA_NOTIFICATION_20260918
     Route::post('/home/notifications/{notification}/read', [CustomerNotificationController::class, 'markRead'])
-        ->whereNumber('notification')
+        ->where('notification', '(?:order:|soa:)?[0-9]+')
         ->name('home.notifications.read');
 
     Route::post('/home/notifications/read-all', [CustomerNotificationController::class, 'markAllRead'])

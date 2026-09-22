@@ -4,6 +4,7 @@
     $viewOrder = $viewOrder ?? null;
     $orderCode = $viewMode ? (string) ($viewOrder['order_code'] ?? 'Order') : '';
     $backToOrdersUrl = route('orders') . ($returnViewMode ? '#returns' : '');
+    $shipments = collect($shipments ?? []);
 @endphp
 <!DOCTYPE html>
 <html lang="en">
@@ -13,8 +14,8 @@
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>W68 Autoparts | {{ $returnViewMode ? 'View Return' : ($viewMode ? 'View Order' : 'Process Order') }}</title>
     <link rel="icon" href="{{ asset('images/sidebar_logo.png') }}">
-    <link rel="stylesheet" href="{{ asset('css/w68-process-order.css') }}?v=20260915-v98">
-    <script src="{{ asset('js/w68-process-order.js') }}?v=20260915-v98" defer></script>
+    <link rel="stylesheet" href="{{ asset('css/w68-process-order.css') }}?v=20260922-v108">
+    <script src="{{ asset('js/w68-process-order.js') }}?v=20260922-v108" defer></script>
 </head>
 <body
     data-process-url="{{ $viewMode ? '' : route('home.orders.process') }}"
@@ -252,6 +253,20 @@
                     <button type="button" class="order-confirm-cancel print-preview-close" data-order-confirm-close>CLOSE</button>
                 </footer>
             @else
+                {{-- W68 v107: choose the forwarder directly; its type tells the customer Rush/Regular. --}}
+                <div class="order-delivery-zone" data-delivery-zone>
+                    <div class="order-delivery-copy">
+                        <div class="order-delivery-heading-row">
+                            <span class="order-delivery-kicker">DELIVERY OPTION</span>
+                        </div>
+                        <strong data-delivery-summary>NOT SET</strong>
+                        <small data-delivery-detail>Choose a Shipment under RUSH or REGULAR.</small>
+                    </div>
+                    <button type="button" class="order-delivery-button" data-delivery-open>
+                        SET DELIVERY OPTION
+                    </button>
+                </div>
+
                 <div class="order-terms-zone" data-terms-zone>
                     <label class="order-terms-check">
                         <input type="checkbox" data-terms-checkbox>
@@ -272,6 +287,78 @@
     </div>
 
     @unless($viewMode)
+        <div class="shipment-modal" data-shipment-modal hidden aria-hidden="true">
+            <button type="button" class="order-modal-backdrop shipment-backdrop" data-shipment-cancel aria-label="Close Shipment selection"></button>
+            <section class="shipment-card" role="dialog" aria-modal="true" aria-labelledby="shipment-title">
+                <div class="shipment-card-head">
+                    <div>
+                        <span class="shipment-kicker">DELIVERY OPTION</span>
+                        <h2 id="shipment-title">Choose Shipment</h2>
+                        <p>Choose the forwarder you want to use from the <strong>RUSH</strong> or <strong>REGULAR</strong> group.</p>
+                    </div>
+                    <button type="button" class="shipment-x" data-shipment-cancel aria-label="Close Shipment selection">&times;</button>
+                </div>
+
+                @php
+                    $rushShipments = $shipments->filter(fn ($shipment) => mb_strtolower(trim((string) ($shipment['type'] ?? ''))) === 'rush')->values();
+                    $regularShipments = $shipments->filter(fn ($shipment) => mb_strtolower(trim((string) ($shipment['type'] ?? ''))) === 'regular')->values();
+                @endphp
+
+                <div class="shipment-picker">
+                    <span class="shipment-picker-label">CHOOSE FORWARDER / SHIPMENT</span>
+                    <div class="shipment-options" data-shipment-options>
+                        @if ($rushShipments->isNotEmpty())
+                            <section class="shipment-group shipment-group-rush" aria-label="Rush shipments">
+                                <h3>RUSH</h3>
+                                <div class="shipment-group-list">
+                                    @foreach ($rushShipments as $shipment)
+                                        <button
+                                            type="button"
+                                            class="shipment-option"
+                                            data-shipment-forwarder
+                                            data-shipment-id="{{ (int) ($shipment['id'] ?? 0) }}"
+                                            data-shipment-name="{{ (string) ($shipment['name'] ?? '') }}"
+                                            data-shipment-forwarder-type="rush"
+                                        >
+                                            <span>{{ (string) ($shipment['name'] ?? 'Shipment') }}</span>
+                                        </button>
+                                    @endforeach
+                                </div>
+                            </section>
+                        @endif
+
+                        @if ($regularShipments->isNotEmpty())
+                            <section class="shipment-group shipment-group-regular" aria-label="Regular shipments">
+                                <h3>REGULAR</h3>
+                                <div class="shipment-group-list">
+                                    @foreach ($regularShipments as $shipment)
+                                        <button
+                                            type="button"
+                                            class="shipment-option"
+                                            data-shipment-forwarder
+                                            data-shipment-id="{{ (int) ($shipment['id'] ?? 0) }}"
+                                            data-shipment-name="{{ (string) ($shipment['name'] ?? '') }}"
+                                            data-shipment-forwarder-type="regular"
+                                        >
+                                            <span>{{ (string) ($shipment['name'] ?? 'Shipment') }}</span>
+                                        </button>
+                                    @endforeach
+                                </div>
+                            </section>
+                        @endif
+                    </div>
+                    <div class="shipment-empty" data-shipment-empty>
+                        No Rush or Regular Shipments are available in W68 Masterlist.
+                    </div>
+                </div>
+
+                <div class="shipment-actions">
+                    <button type="button" class="shipment-cancel" data-shipment-cancel>CANCEL</button>
+                    <button type="button" class="shipment-save" data-shipment-save disabled>SET SHIPMENT</button>
+                </div>
+            </section>
+        </div>
+
         <div class="terms-agreement-modal" data-terms-modal hidden aria-hidden="true">
             <button type="button" class="order-modal-backdrop terms-backdrop" data-terms-cancel aria-label="Cancel terms and agreement"></button>
             <section class="terms-agreement-card" role="dialog" aria-modal="true" aria-labelledby="terms-title">

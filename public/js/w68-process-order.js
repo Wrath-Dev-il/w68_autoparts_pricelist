@@ -21,6 +21,22 @@
     var termsZone = document.querySelector('[data-terms-zone]');
     var termsModal = document.querySelector('[data-terms-modal]');
 
+    // W68 v107 direct Shipment / Delivery Option controls.
+    var deliveryZone = document.querySelector('[data-delivery-zone]');
+    var deliverySummary = document.querySelector('[data-delivery-summary]');
+    var deliveryDetail = document.querySelector('[data-delivery-detail]');
+    var shipmentModal = document.querySelector('[data-shipment-modal]');
+    var shipmentSave = document.querySelector('[data-shipment-save]');
+    var shipmentEmpty = document.querySelector('[data-shipment-empty]');
+    var shipmentOptions = Array.prototype.slice.call(document.querySelectorAll('[data-shipment-forwarder]'));
+
+    var selectedDeliveryType = '';
+    var selectedShipmentId = 0;
+    var selectedShipmentName = '';
+    var draftDeliveryType = '';
+    var draftShipmentId = 0;
+    var draftShipmentName = '';
+
     var loaderPaths = loading ? Array.prototype.slice.call(loading.querySelectorAll('[data-w68-process-loader-path]')) : [];
     var loaderPen = loading ? loading.querySelector('[data-w68-process-loader-pen]') : null;
     var loaderDot = loading ? loading.querySelector('[data-w68-process-loader-dot]') : null;
@@ -186,10 +202,115 @@
             });
     }
 
+    function updateConfirmProcessState() {
+        if (!confirmProcess || viewMode) return;
+        var termsAccepted = !!(termsCheckbox && termsCheckbox.checked);
+        var deliveryReady = (selectedDeliveryType === 'rush' || selectedDeliveryType === 'regular')
+            && selectedShipmentId > 0;
+        confirmProcess.disabled = !(termsAccepted && deliveryReady);
+    }
+
     function setTermsChecked(checked) {
         if (termsCheckbox) termsCheckbox.checked = !!checked;
         if (termsZone && termsZone.classList) termsZone.classList.toggle('is-agreed', !!checked);
-        if (confirmProcess) confirmProcess.disabled = !checked;
+        updateConfirmProcessState();
+    }
+
+    function shipmentTypeLabel(type) {
+        return type === 'rush' ? 'RUSH' : (type === 'regular' ? 'REGULAR' : '');
+    }
+
+    function refreshDeliverySummary() {
+        var ready = (selectedDeliveryType === 'rush' || selectedDeliveryType === 'regular')
+            && selectedShipmentId > 0
+            && selectedShipmentName !== '';
+
+        if (deliveryZone && deliveryZone.classList) {
+            deliveryZone.classList.toggle('is-set', ready);
+        }
+
+        if (deliverySummary) {
+            deliverySummary.textContent = ready
+                ? shipmentTypeLabel(selectedDeliveryType) + ' - ' + selectedShipmentName
+                : 'NOT SET';
+        }
+
+        if (deliveryDetail) {
+            deliveryDetail.textContent = ready
+                ? 'Shipment selected. Tap SET DELIVERY OPTION to change it.'
+                : 'Choose a Shipment under RUSH or REGULAR.';
+        }
+
+        updateConfirmProcessState();
+    }
+
+    function renderShipmentOptions() {
+        var availableCount = 0;
+
+        shipmentOptions.forEach(function (option) {
+            var optionType = String(option.getAttribute('data-shipment-forwarder-type') || '').toLowerCase();
+            var optionId = parseInt(option.getAttribute('data-shipment-id') || '0', 10) || 0;
+            var available = optionId > 0 && (optionType === 'rush' || optionType === 'regular');
+
+            option.hidden = !available;
+            if (option.classList) option.classList.toggle('is-selected', available && optionId === draftShipmentId);
+            if (available) availableCount++;
+        });
+
+        if (shipmentEmpty) {
+            shipmentEmpty.hidden = availableCount > 0;
+            shipmentEmpty.textContent = 'No Rush or Regular Shipments are available in W68 Masterlist.';
+        }
+
+        if (shipmentSave) {
+            shipmentSave.disabled = !(
+                (draftDeliveryType === 'rush' || draftDeliveryType === 'regular')
+                && draftShipmentId > 0
+                && draftShipmentName !== ''
+            );
+        }
+    }
+
+    function chooseShipment(option) {
+        if (!option) return;
+
+        var optionType = String(option.getAttribute('data-shipment-forwarder-type') || '').toLowerCase();
+        if (optionType !== 'rush' && optionType !== 'regular') return;
+
+        draftDeliveryType = optionType;
+        draftShipmentId = parseInt(option.getAttribute('data-shipment-id') || '0', 10) || 0;
+        draftShipmentName = String(option.getAttribute('data-shipment-name') || '').trim();
+        renderShipmentOptions();
+    }
+
+    function openShipmentModal() {
+        if (!shipmentModal || viewMode) return;
+
+        draftDeliveryType = selectedDeliveryType;
+        draftShipmentId = selectedShipmentId;
+        draftShipmentName = selectedShipmentName;
+
+        shipmentModal.hidden = false;
+        shipmentModal.setAttribute('aria-hidden', 'false');
+        renderShipmentOptions();
+        syncProcessViewport();
+    }
+
+    function closeShipmentModal() {
+        if (!shipmentModal) return;
+        shipmentModal.hidden = true;
+        shipmentModal.setAttribute('aria-hidden', 'true');
+    }
+
+    function saveShipmentSelection() {
+        if (!draftDeliveryType || draftShipmentId < 1 || !draftShipmentName) return;
+
+        selectedDeliveryType = draftDeliveryType;
+        selectedShipmentId = draftShipmentId;
+        selectedShipmentName = draftShipmentName;
+        closeShipmentModal();
+        clearConfirmError();
+        refreshDeliverySummary();
     }
 
     function openConfirmModal() {
@@ -208,6 +329,10 @@
         if (termsModal) {
             termsModal.hidden = true;
             termsModal.setAttribute('aria-hidden', 'true');
+        }
+        if (shipmentModal) {
+            shipmentModal.hidden = true;
+            shipmentModal.setAttribute('aria-hidden', 'true');
         }
         if (!viewMode) setTermsChecked(false);
         clearConfirmError();
@@ -341,6 +466,11 @@
     function submitOrder() {
         if (viewMode || !confirmProcess || confirmProcess.disabled || !processUrl) return;
 
+        if (!selectedDeliveryType || selectedShipmentId < 1) {
+            setConfirmError('Choose a Shipment before processing the order.');
+            return;
+        }
+
         clearConfirmError();
         confirmProcess.disabled = true;
         showProcessLoader();
@@ -349,7 +479,9 @@
         // rendered before the network/database work begins.
         window.requestAnimationFrame(function () {
             window.requestAnimationFrame(function () {
-                requestJson(processUrl, 'POST', {})
+                requestJson(processUrl, 'POST', {
+                    forwarder_id: selectedShipmentId
+                })
                     .then(function (data) {
                         var redirectUrl = data && data.redirect_url ? String(data.redirect_url) : (ordersUrl || 'orders');
 
@@ -387,6 +519,34 @@
         if (confirmClose) {
             event.preventDefault();
             closeConfirmModal();
+            return;
+        }
+
+        var deliveryOpen = closestFrom(event.target, '[data-delivery-open]');
+        if (deliveryOpen) {
+            event.preventDefault();
+            openShipmentModal();
+            return;
+        }
+
+        var shipmentCancel = closestFrom(event.target, '[data-shipment-cancel]');
+        if (shipmentCancel) {
+            event.preventDefault();
+            closeShipmentModal();
+            return;
+        }
+
+        var shipmentForwarder = closestFrom(event.target, '[data-shipment-forwarder]');
+        if (shipmentForwarder) {
+            event.preventDefault();
+            chooseShipment(shipmentForwarder);
+            return;
+        }
+
+        var shipmentSaveButton = closestFrom(event.target, '[data-shipment-save]');
+        if (shipmentSaveButton) {
+            event.preventDefault();
+            if (!shipmentSaveButton.disabled) saveShipmentSelection();
             return;
         }
 
@@ -451,6 +611,10 @@
 
     document.addEventListener('keydown', function (event) {
         if (event.key !== 'Escape') return;
+        if (shipmentModal && !shipmentModal.hidden) {
+            closeShipmentModal();
+            return;
+        }
         if (termsModal && !termsModal.hidden) {
             cancelTerms();
             return;
@@ -462,4 +626,5 @@
 
     hideProcessLoader();
     refreshSummary();
+    refreshDeliverySummary();
 })();

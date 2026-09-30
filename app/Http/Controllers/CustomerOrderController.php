@@ -41,7 +41,13 @@ class CustomerOrderController extends Controller
         $activeOrders = $orders->where('cancelled', false)->values();
         $toShip = $activeOrders->where('received', false)->values();
         $received = $activeOrders->where('received', true)->values();
-        $returns = $this->portalReturns($activeOrders, $customerId);
+        // W68_ORDERS_UNSERVED_SEARCH_V109_20260930
+        // Match the main W68 Unserved Details rule exactly: ordered quantity
+        // from Sales Note items minus served sales_order_items.actual_qty.
+        $unservedOrders = $this->portalUnservedOrders($activeOrders);
+        $unservedItemsCount = (int) $unservedOrders->sum(
+            fn (array $order): int => count($order['items'] ?? [])
+        );
 
         // Load the same account-specific cart directly on the Orders request.
         // This keeps the cart visible even when Safari/iPad blocks or delays
@@ -53,7 +59,8 @@ class CustomerOrderController extends Controller
             'profileName' => $profileName,
             'toShip' => $toShip,
             'received' => $received,
-            'returns' => $returns,
+            'unservedOrders' => $unservedOrders,
+            'unservedItemsCount' => $unservedItemsCount,
             'cancelled' => $cancelled,
             'serverCart' => $serverCart,
         ]);
@@ -763,6 +770,203 @@ class CustomerOrderController extends Controller
                 'items' => $items,
             ];
         });
+    }
+
+    /**
+     * Customer-facing Unserved Items view.
+     *
+     * This deliberately mirrors the internal W68 Unserved Details report:
+     * - ordered = sales_note_items.quantity (additional_qty is not counted)
+     * - served = SUM(sales_order_items.actual_qty) for the same Sales Note + Product
+     * - unserved = ordered - served
+     * - only Open / Partial Sales Notes with a positive remainder are returned
+     */
+    private function portalUnservedOrders(Collection $orders): Collection
+    {
+        $eligibleOrders = $orders
+            ->filter(function (array $order): bool {
+                $status = mb_strtolower(trim((string) ($order['sales_note_status'] ?? '')));
+
+                return !empty($order['sales_note_id'])
+                    && in_array($status, ['open', 'partial'], true);
+            })
+            ->values();
+
+        if ($eligibleOrders->isEmpty()) {
+            return collect();
+        }
+
+        $noteIds = $eligibleOrders
+            ->pluck('sales_note_id')
+            ->map(fn ($id) => (int) $id)
+            ->filter()
+            ->unique()
+            ->values()
+            ->all();
+
+        $noteItemsQuery = DB::connection('sales_order')
+            ->table('sales_note_items')
+            ->whereIn('sales_note_id', $noteIds)
+            ->whereNotNull('product_id');
+
+        if (Schema::connection('sales_order')->hasColumn('sales_note_items', 'deleted_at')) {
+            $noteItemsQuery->whereNull('deleted_at');
+        }
+
+        $noteItems = $noteItemsQuery->get([
+            'sales_note_id',
+            'product_id',
+            'description',
+            'quantity',
+            'unit_price',
+            'discount',
+            'subtotal',
+        ]);
+
+        if ($noteItems->isEmpty()) {
+            return collect();
+        }
+
+        $requestedMap = [];
+        foreach ($noteItems as $item) {
+            $noteId = (int) ($item->sales_note_id ?? 0);
+            $productId = (int) ($item->product_id ?? 0);
+            $orderedQty = max(0, (float) ($item->quantity ?? 0));
+
+            if ($noteId < 1 || $productId < 1 || $orderedQty <= 0) {
+                continue;
+            }
+
+            $unitPrice = max(0, (float) ($item->unit_price ?? 0));
+            $discount = max(0, min(100, (float) ($item->discount ?? 0)));
+            $effectivePrice = round($unitPrice * (1 - ($discount / 100)), 4);
+            $subtotal = max(0, (float) ($item->subtotal ?? 0));
+
+            if ($subtotal > 0) {
+                $effectivePrice = $subtotal / $orderedQty;
+            }
+
+            if (!isset($requestedMap[$noteId][$productId])) {
+                $requestedMap[$noteId][$productId] = [
+                    'ordered_qty' => 0.0,
+                    'net_value' => 0.0,
+                    'description' => trim((string) ($item->description ?? '')),
+                ];
+            }
+
+            $requestedMap[$noteId][$productId]['ordered_qty'] += $orderedQty;
+            $requestedMap[$noteId][$productId]['net_value'] += $effectivePrice * $orderedQty;
+
+            if ($requestedMap[$noteId][$productId]['description'] === '' && !empty($item->description)) {
+                $requestedMap[$noteId][$productId]['description'] = trim((string) $item->description);
+            }
+        }
+
+        $servedRows = DB::connection('sales_order')
+            ->table('sales_orders as so')
+            ->join('sales_order_items as soi', 'soi.sales_order_id', '=', 'so.id')
+            ->whereIn('so.sales_note_id', $noteIds)
+            ->whereNotNull('soi.product_id')
+            ->get([
+                'so.sales_note_id',
+                'soi.product_id',
+                'soi.actual_qty',
+            ]);
+
+        $servedMap = [];
+        foreach ($servedRows as $row) {
+            $noteId = (int) ($row->sales_note_id ?? 0);
+            $productId = (int) ($row->product_id ?? 0);
+            $servedQty = max(0, (float) ($row->actual_qty ?? 0));
+
+            $servedMap[$noteId][$productId] = ($servedMap[$noteId][$productId] ?? 0) + $servedQty;
+        }
+
+        $productIds = collect($requestedMap)
+            ->flatMap(fn (array $items) => array_keys($items))
+            ->map(fn ($id) => (int) $id)
+            ->filter()
+            ->unique()
+            ->values()
+            ->all();
+
+        $products = $productIds === []
+            ? collect()
+            : DB::connection('masterlist')
+                ->table('products')
+                ->whereIn('id', $productIds)
+                ->get([
+                    'id',
+                    'product_code',
+                    'part_number',
+                    'description',
+                    'application',
+                    'category as brand',
+                ])
+                ->keyBy('id');
+
+        return $eligibleOrders
+            ->map(function (array $order) use ($requestedMap, $servedMap, $products): ?array {
+                $noteId = (int) ($order['sales_note_id'] ?? 0);
+                $items = collect();
+
+                foreach ($requestedMap[$noteId] ?? [] as $productId => $requested) {
+                    $productId = (int) $productId;
+                    $orderedQty = max(0, (float) ($requested['ordered_qty'] ?? 0));
+                    $servedQty = min(
+                        $orderedQty,
+                        max(0, (float) ($servedMap[$noteId][$productId] ?? 0))
+                    );
+                    $unservedQty = max(0, $orderedQty - $servedQty);
+
+                    if ($unservedQty <= 0) {
+                        continue;
+                    }
+
+                    $product = $products->get($productId);
+                    $price = $orderedQty > 0
+                        ? round((float) ($requested['net_value'] ?? 0) / $orderedQty, 2)
+                        : 0.0;
+                    $description = trim((string) ($requested['description'] ?? ''));
+                    if ($description === '') {
+                        $description = trim((string) ($product->description ?? ''));
+                    }
+
+                    $items->push([
+                        'product_id' => $productId,
+                        'description' => $description,
+                        'product_code' => (string) ($product->product_code ?? ''),
+                        'part_number' => (string) ($product->part_number ?? ''),
+                        'application' => (string) ($product->application ?? ''),
+                        'brand' => (string) ($product->brand ?? ''),
+                        'price' => $price,
+                        'ordered_qty' => $orderedQty,
+                        'served_qty' => $servedQty,
+                        'unserved_qty' => $unservedQty,
+                        'total' => round($price * $unservedQty, 2),
+                    ]);
+                }
+
+                if ($items->isEmpty()) {
+                    return null;
+                }
+
+                return [
+                    'id' => (int) ($order['id'] ?? 0),
+                    'order_code' => (string) ($order['order_code'] ?? ''),
+                    'sales_number' => (string) ($order['sales_number'] ?? ''),
+                    'sales_note_id' => $noteId,
+                    'date' => (string) ($order['date'] ?? ''),
+                    'status' => (string) ($order['sales_note_status'] ?? ''),
+                    'ordered_qty' => (float) $items->sum('ordered_qty'),
+                    'served_qty' => (float) $items->sum('served_qty'),
+                    'unserved_qty' => (float) $items->sum('unserved_qty'),
+                    'total_amount' => round((float) $items->sum('total'), 2),
+                    'items' => $items->values()->all(),
+                ];
+            })
+            ->filter()
+            ->values();
     }
 
     private function portalReturns(Collection $orders, int $customerId): Collection

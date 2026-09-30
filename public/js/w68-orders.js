@@ -1,3 +1,4 @@
+// W68_ORDERS_UNSERVED_SEARCH_V109_20260930
 (() => {
     const body = document.body;
     const csrfToken = document.querySelector('meta[name="csrf-token"]')?.content || '';
@@ -75,7 +76,7 @@
 
     const activateTab = (name, updateHash = true) => {
         const requested = name === 'received' ? 'invoiced' : name;
-        const valid = ['to-ship', 'invoiced', 'returns', 'cancelled'].includes(requested) ? requested : 'to-ship';
+        const valid = ['to-ship', 'invoiced', 'unserved', 'cancelled'].includes(requested) ? requested : 'to-ship';
         tabs.forEach((tab) => tab.classList.toggle('is-active', tab.dataset.ordersTab === valid));
         panels.forEach((panel) => {
             const active = panel.dataset.ordersPanel === valid;
@@ -92,6 +93,39 @@
     tabs.forEach((tab) => tab.addEventListener('click', () => activateTab(tab.dataset.ordersTab)));
     const initialTab = location.hash.replace('#', '');
     activateTab(initialTab || 'to-ship', false);
+
+    // Client-side search for each Orders tab. Search uses the rendered record
+    // text so it covers order IDs, dates, statuses, waybills and item details.
+    const normalizeSearchText = (value) => String(value || '')
+        .toLocaleLowerCase()
+        .replace(/\s+/g, ' ')
+        .trim();
+
+    document.querySelectorAll('[data-orders-search-input]').forEach((input) => {
+        const panel = input.closest('[data-orders-panel]');
+        if (!panel) return;
+
+        const empty = panel.querySelector('[data-orders-search-empty]');
+        const records = Array.from(panel.querySelectorAll('[data-order-search-record]'));
+
+        const applySearch = () => {
+            const query = normalizeSearchText(input.value);
+            let visible = 0;
+
+            records.forEach((record) => {
+                const matches = !query || normalizeSearchText(record.textContent).includes(query);
+                record.style.display = matches ? '' : 'none';
+                if (matches) visible += 1;
+            });
+
+            if (empty) {
+                empty.hidden = !query || visible > 0;
+            }
+        };
+
+        input.addEventListener('input', applySearch);
+        input.addEventListener('search', applySearch);
+    });
 
     const createCell = (text, className = '') => {
         const td = document.createElement('td');

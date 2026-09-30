@@ -1,9 +1,10 @@
 @php
     $viewMode = (bool) ($viewMode ?? false);
     $returnViewMode = (bool) ($returnViewMode ?? false);
+    $invoiceViewMode = (bool) ($invoiceViewMode ?? false);
     $viewOrder = $viewOrder ?? null;
     $orderCode = $viewMode ? (string) ($viewOrder['order_code'] ?? 'Order') : '';
-    $backToOrdersUrl = route('orders') . ($returnViewMode ? '#returns' : '');
+    $backToOrdersUrl = route('orders') . ($returnViewMode ? '#returns' : ($invoiceViewMode ? '#invoiced' : ''));
     $shipments = collect($shipments ?? []);
 @endphp
 <!DOCTYPE html>
@@ -42,6 +43,8 @@
                     <p>
                         @if ($returnViewMode)
                             This view contains only the item(s) returned from this invoice.
+                        @elseif ($invoiceViewMode)
+                            This View Order contains only the item(s) served on invoice <strong>{{ $viewOrder['invoice_no'] ?: '—' }}</strong>.
                         @elseif ($viewMode)
                             Review the items and print preview for this order.
                         @else
@@ -53,6 +56,10 @@
                             @if ($returnViewMode)
                                 <span>Order: <strong>{{ $viewOrder['portal_order_code'] ?: 'â€”' }}</strong></span>
                                 <span>Invoice: <strong>{{ $viewOrder['invoice_no'] ?: 'â€”' }}</strong></span>
+                            @elseif ($invoiceViewMode)
+                                <span>Order: <strong>{{ $viewOrder['order_code'] ?: 'â€”' }}</strong></span>
+                                <span>Sales Note: <strong>{{ $viewOrder['sales_number'] ?: 'â€”' }}</strong></span>
+                                <span>Invoice: <strong>{{ $viewOrder['invoice_no'] ?: 'â€”' }}</strong></span>
                             @else
                                 <span>Sales Note: <strong>{{ $viewOrder['sales_number'] ?: 'â€”' }}</strong></span>
                             @endif
@@ -62,15 +69,15 @@
                     @endif
                 </div>
                 <div class="process-heading-count">
-                    <span>{{ $returnViewMode ? 'RETURNED ITEMS' : ($viewMode ? 'ORDER ITEMS' : 'SELECTED ITEMS') }}</span>
+                    <span>{{ $returnViewMode ? 'RETURNED ITEMS' : ($invoiceViewMode ? 'INVOICE ITEMS' : ($viewMode ? 'ORDER ITEMS' : 'SELECTED ITEMS')) }}</span>
                     <strong>{{ $items->count() }}</strong>
                 </div>
             </div>
 
             @if ($items->isEmpty())
                 <div class="process-empty-state">
-                    <strong>{{ $returnViewMode ? 'This return has no items.' : ($viewMode ? 'This order has no items.' : 'No selected cart items.') }}</strong>
-                    <span>{{ $returnViewMode ? 'Return to Orders and choose another return.' : ($viewMode ? 'Return to Orders and choose another order.' : 'Go back to Home, select at least one item in your cart, then choose PROCESS ORDER.') }}</span>
+                    <strong>{{ $returnViewMode ? 'This return has no items.' : ($invoiceViewMode ? 'This invoice has no served items.' : ($viewMode ? 'This order has no items.' : 'No selected cart items.')) }}</strong>
+                    <span>{{ $returnViewMode ? 'Return to Orders and choose another return.' : ($invoiceViewMode ? 'Return to Invoiced and choose another invoice.' : ($viewMode ? 'Return to Orders and choose another order.' : 'Go back to Home, select at least one item in your cart, then choose PROCESS ORDER.')) }}</span>
                 </div>
             @else
                 <div class="process-items-scroll" aria-label="{{ $returnViewMode ? 'Returned items' : ($viewMode ? 'Order items' : 'Selected order items') }}">

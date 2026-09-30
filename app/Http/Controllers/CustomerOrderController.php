@@ -41,9 +41,15 @@ class CustomerOrderController extends Controller
         $activeOrders = $orders->where('cancelled', false)->values();
         $toShip = $activeOrders->where('received', false)->values();
         $received = $activeOrders->where('received', true)->values();
-        // W68_ORDERS_UNSERVED_SEARCH_V109_20260930
-        // Match the main W68 Unserved Details rule exactly: ordered quantity
-        // from Sales Note items minus served sales_order_items.actual_qty.
+
+        // W68_ORDERS_INVOICE_PARTIAL_UNSERVED_V110_20260930
+        // Each Sales Order row is an invoice batch. This allows one portal
+        // order to remain PARTIAL / To Ship while already-served batches are
+        // listed individually under Invoiced.
+        $invoices = $this->portalInvoices($activeOrders);
+
+        // Unserved Items is intentionally limited to PARTIAL Sales Notes.
+        // OPEN notes are not shown in the Unserved tab.
         $unservedOrders = $this->portalUnservedOrders($activeOrders);
         $unservedItemsCount = (int) $unservedOrders->sum(
             fn (array $order): int => count($order['items'] ?? [])
@@ -59,6 +65,7 @@ class CustomerOrderController extends Controller
             'profileName' => $profileName,
             'toShip' => $toShip,
             'received' => $received,
+            'invoices' => $invoices,
             'unservedOrders' => $unservedOrders,
             'unservedItemsCount' => $unservedItemsCount,
             'cancelled' => $cancelled,
@@ -131,6 +138,53 @@ class CustomerOrderController extends Controller
             ->first(fn (array $row): bool => (int) ($row['id'] ?? 0) === $order);
 
         abort_unless($orderData, 404, 'Order not found.');
+
+        // Invoice-specific view: the portal order ownership is resolved first,
+        // then the requested Sales Order must belong to that exact Sales Note.
+        // This prevents a customer from requesting another user's invoice by ID.
+        $invoiceSalesOrderId = max(0, (int) $request->query('sales_order', 0));
+        if ($invoiceSalesOrderId > 0) {
+            $invoice = DB::connection('sales_order')
+                ->table('sales_orders')
+                ->where('id', $invoiceSalesOrderId)
+                ->where('sales_note_id', (int) ($orderData['sales_note_id'] ?? 0))
+                ->whereNotNull('invoice_numbers')
+                ->whereRaw("TRIM(COALESCE(invoice_numbers, '')) <> ''")
+                ->first([
+                    'id',
+                    'sales_note_id',
+                    'invoice_numbers',
+                    'total_amount',
+                    'status',
+                    'created_at',
+                    'updated_at',
+                ]);
+
+            abort_unless($invoice, 404, 'Invoice not found for this W68 order.');
+
+            $items = $this->invoiceItemsForView((int) $invoice->id);
+            $totalItems = (int) $items->sum(fn (array $item): int => (int) $item['qty']);
+            $computedTotal = round((float) $items->sum(fn (array $item): float => (float) $item['lineTotal']), 2);
+            $invoiceTotal = round((float) ($invoice->total_amount ?? 0), 2);
+            $totalPrice = $invoiceTotal > 0 ? $invoiceTotal : $computedTotal;
+            $invoiceDate = substr((string) ($invoice->created_at ?: $invoice->updated_at), 0, 10);
+
+            return view('process-order', [
+                'items' => $items,
+                'totalItems' => $totalItems,
+                'totalPrice' => $totalPrice,
+                'viewMode' => true,
+                'invoiceViewMode' => true,
+                'viewOrder' => [
+                    ...$orderData,
+                    'date' => $invoiceDate,
+                    'status_label' => 'INVOICED',
+                    'invoice_no' => trim((string) ($invoice->invoice_numbers ?? '')),
+                    'sales_order_id' => (int) $invoice->id,
+                    'invoice_total' => $totalPrice,
+                ],
+            ]);
+        }
 
         $items = collect($orderData['items'] ?? [])->map(function (array $item): array {
             $qty = max(1, min(9999, (int) ($item['quantity'] ?? 1)));
@@ -721,7 +775,9 @@ class CustomerOrderController extends Controller
             $salesOrders = $downstream->get($row->sales_note_id, collect());
             $portalStatus = mb_strtoupper(trim((string) ($row->portal_status ?? '')));
             $cancelled = $portalStatus === 'CANCELLED';
-            $closed = mb_strtolower(trim((string) ($row->sales_note_status ?? ''))) === 'closed';
+            $noteStatus = mb_strtolower(trim((string) ($row->sales_note_status ?? '')));
+            $closed = $noteStatus === 'closed';
+            $partial = !$cancelled && $noteStatus === 'partial';
             // A W68 order moves to INVOICED as soon as its linked Sales Note is Closed.
             // A waybill is informational only and is no longer required for the tab movement.
             $received = !$cancelled && $closed;
@@ -760,7 +816,7 @@ class CustomerOrderController extends Controller
                 'total_amount' => (float) $row->total_amount,
                 'sales_note_status' => (string) ($row->sales_note_status ?? 'Open'),
                 'portal_status' => (string) ($row->portal_status ?? ''),
-                'status_label' => $cancelled ? 'CANCELLED' : ($received ? 'ORDERED' : 'PROCESSED'),
+                'status_label' => $cancelled ? 'CANCELLED' : ($partial ? 'PARTIAL' : ($received ? 'INVOICED' : 'PROCESSED')),
                 'cancelled' => $cancelled,
                 'received' => $received,
                 'editable' => $editable,
@@ -773,13 +829,193 @@ class CustomerOrderController extends Controller
     }
 
     /**
+     * One row per invoice batch belonging to this portal customer's orders.
+     * sales_order_items are tied to sales_orders.id, so VIEW can show only the
+     * items for the selected invoice even when one Sales Note has many invoices.
+     */
+    private function portalInvoices(Collection $orders): Collection
+    {
+        $ordersByNote = $orders
+            ->filter(fn (array $order): bool => !empty($order['sales_note_id']))
+            ->keyBy(fn (array $order): int => (int) $order['sales_note_id']);
+
+        $noteIds = $ordersByNote->keys()->map(fn ($id) => (int) $id)->all();
+        if ($noteIds === []) {
+            return collect();
+        }
+
+        $rows = DB::connection('sales_order')
+            ->table('sales_orders')
+            ->whereIn('sales_note_id', $noteIds)
+            ->whereNotNull('invoice_numbers')
+            ->whereRaw("TRIM(COALESCE(invoice_numbers, '')) <> ''")
+            ->orderByDesc('created_at')
+            ->orderByDesc('id')
+            ->get([
+                'id',
+                'sales_note_id',
+                'invoice_numbers',
+                'total_amount',
+                'status',
+                'created_at',
+                'updated_at',
+            ]);
+
+        if ($rows->isEmpty()) {
+            return collect();
+        }
+
+        $itemSearchBySalesOrder = DB::connection('sales_order')
+            ->table('sales_order_items')
+            ->whereIn('sales_order_id', $rows->pluck('id')->map(fn ($id) => (int) $id)->all())
+            ->orderBy('id')
+            ->get(['sales_order_id', 'product_code', 'description'])
+            ->groupBy('sales_order_id')
+            ->map(fn (Collection $items): string => $items
+                ->map(fn ($item): string => trim(
+                    (string) ($item->product_code ?? '') . ' ' . (string) ($item->description ?? '')
+                ))
+                ->filter()
+                ->implode(' '));
+
+        return $rows
+            ->map(function ($row) use ($ordersByNote, $itemSearchBySalesOrder): ?array {
+                $portalOrder = $ordersByNote->get((int) $row->sales_note_id);
+                if (!$portalOrder) {
+                    return null;
+                }
+
+                return [
+                    'sales_order_id' => (int) $row->id,
+                    'order_id' => (int) ($portalOrder['id'] ?? 0),
+                    'order_code' => (string) ($portalOrder['order_code'] ?? ''),
+                    'sales_number' => (string) ($portalOrder['sales_number'] ?? ''),
+                    'invoice_no' => trim((string) ($row->invoice_numbers ?? '')),
+                    'invoiced_date' => substr((string) ($row->created_at ?: $row->updated_at), 0, 10),
+                    'total_amount' => round((float) ($row->total_amount ?? 0), 2),
+                    'status' => (string) ($row->status ?? ''),
+                    'item_search' => (string) ($itemSearchBySalesOrder[(int) $row->id] ?? ''),
+                ];
+            })
+            ->filter()
+            ->values();
+    }
+
+    /**
+     * Convert one invoice batch into the same item shape used by View Order.
+     * Prefer actual_qty (the W68 served quantity). Legacy rows that have no
+     * positive actual_qty fall back to quantity so old invoices remain visible.
+     */
+    private function invoiceItemsForView(int $salesOrderId): Collection
+    {
+        $rows = DB::connection('sales_order')
+            ->table('sales_order_items')
+            ->where('sales_order_id', $salesOrderId)
+            ->orderBy('id')
+            ->get([
+                'id',
+                'product_id',
+                'product_code',
+                'description',
+                'quantity',
+                'actual_qty',
+                'unit_price',
+                'discount',
+                'additional_discount',
+                'subtotal',
+            ]);
+
+        if ($rows->isEmpty()) {
+            return collect();
+        }
+
+        $useActualQty = $rows->contains(
+            fn ($row): bool => (int) ($row->actual_qty ?? 0) > 0
+        );
+
+        $productIds = $rows
+            ->pluck('product_id')
+            ->filter()
+            ->map(fn ($id) => (int) $id)
+            ->unique()
+            ->values()
+            ->all();
+
+        $products = $productIds === []
+            ? collect()
+            : DB::connection('masterlist')
+                ->table('products')
+                ->whereIn('id', $productIds)
+                ->get([
+                    'id',
+                    'product_code',
+                    'part_number',
+                    'description',
+                    'application',
+                    'Position as position',
+                    'category as brand',
+                ])
+                ->keyBy('id');
+
+        return $rows
+            ->map(function ($row) use ($useActualQty, $products): ?array {
+                $productId = (int) ($row->product_id ?? 0);
+                $product = $products->get($productId);
+                $orderedOnBatch = max(0, (int) ($row->quantity ?? 0));
+                $actualQty = max(0, (int) ($row->actual_qty ?? 0));
+                $qty = $useActualQty ? $actualQty : $orderedOnBatch;
+
+                if ($qty <= 0) {
+                    return null;
+                }
+
+                $originalPrice = round(max(0, (float) ($row->unit_price ?? 0)), 2);
+                $discount = max(0, min(100, (float) ($row->discount ?? 0)));
+                $additionalDiscount = max(0, min(100, (float) ($row->additional_discount ?? 0)));
+                $baseQty = max(1, $orderedOnBatch);
+                $storedSubtotal = max(0, (float) ($row->subtotal ?? 0));
+
+                $discountedPrice = $storedSubtotal > 0
+                    ? $storedSubtotal / $baseQty
+                    : $originalPrice
+                        * (1 - ($discount / 100))
+                        * (1 - ($additionalDiscount / 100));
+
+                $discountedPrice = round(max(0, $discountedPrice), 2);
+                $effectiveDiscount = $originalPrice > 0
+                    ? max(0, min(100, (1 - ($discountedPrice / $originalPrice)) * 100))
+                    : 0.0;
+                $lineTotal = round($discountedPrice * $qty, 2);
+
+                return [
+                    'id' => (string) $productId,
+                    'image' => $this->currentProductImageUrl($productId),
+                    'productCode' => (string) ($row->product_code ?: ($product->product_code ?? '')),
+                    'partNumber' => (string) ($product->part_number ?? ''),
+                    'description' => (string) ($row->description ?: ($product->description ?? '')),
+                    'application' => (string) ($product->application ?? ''),
+                    'position' => (string) ($product->position ?? ''),
+                    'brand' => (string) ($product->brand ?? ''),
+                    'price' => $originalPrice,
+                    'discountPercent' => round($effectiveDiscount, 2),
+                    'discountedPrice' => $discountedPrice,
+                    'qty' => $qty,
+                    'lineTotal' => $lineTotal,
+                    'hasDiscount' => ($discountedPrice + 0.0001) < $originalPrice,
+                ];
+            })
+            ->filter()
+            ->values();
+    }
+
+    /**
      * Customer-facing Unserved Items view.
      *
      * This deliberately mirrors the internal W68 Unserved Details report:
      * - ordered = sales_note_items.quantity (additional_qty is not counted)
      * - served = SUM(sales_order_items.actual_qty) for the same Sales Note + Product
      * - unserved = ordered - served
-     * - only Open / Partial Sales Notes with a positive remainder are returned
+     * - only Partial Sales Notes with a positive remainder are returned
      */
     private function portalUnservedOrders(Collection $orders): Collection
     {
@@ -788,7 +1024,7 @@ class CustomerOrderController extends Controller
                 $status = mb_strtolower(trim((string) ($order['sales_note_status'] ?? '')));
 
                 return !empty($order['sales_note_id'])
-                    && in_array($status, ['open', 'partial'], true);
+                    && $status === 'partial';
             })
             ->values();
 
@@ -934,6 +1170,7 @@ class CustomerOrderController extends Controller
 
                     $items->push([
                         'product_id' => $productId,
+                        'image' => $this->currentProductImageUrl($productId),
                         'description' => $description,
                         'product_code' => (string) ($product->product_code ?? ''),
                         'part_number' => (string) ($product->part_number ?? ''),

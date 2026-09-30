@@ -6,13 +6,14 @@
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>W68 Autoparts | Orders</title>
     <link rel="icon" href="{{ asset('images/sidebar_logo.png') }}">
-    <link rel="stylesheet" href="{{ asset('css/w68-orders.css') }}?v=20260930-v109">
+    <link rel="stylesheet" href="{{ asset('css/w68-orders.css') }}?v=20260930-v110">
     <link rel="stylesheet" href="{{ asset('css/w68-notifications.css') }}?v=20260916-v102">
     <script src="{{ asset('js/w68-orders.js') }}?v=20260930-v109" defer></script>
     <script src="{{ asset('js/w68-orders-cart.js') }}?v=20260916-v102" defer></script>
     <script src="{{ asset('js/w68-notifications.js') }}?v=20260916-v102" defer></script>
 </head>
 {{-- W68_ORDERS_UNSERVED_SEARCH_V109_20260930 --}}
+{{-- W68_ORDERS_INVOICE_PARTIAL_UNSERVED_V110_20260930 --}}
 <body
     data-order-update-base="{{ rtrim(request()->getSchemeAndHttpHost(), '/') }}{{ preg_replace('#/index\.php$#i', '', rtrim(str_replace('\\', '/', (string) request()->getBaseUrl()), '/')) }}/orders"
     data-cart-state-url="{{ route('home.cart.state', [], false) }}"
@@ -24,6 +25,12 @@
 @php
     $logo = asset('images/sidebar_logo.png');
     $allOrders = $toShip->concat($received)->concat($cancelled ?? collect())->values();
+    $unservedItemRows = collect($unservedOrders ?? [])->flatMap(function ($order) {
+        return collect($order['items'] ?? [])->map(fn ($item) => [
+            'order' => $order,
+            'item' => $item,
+        ]);
+    })->values();
     $jsonFlags = JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP | JSON_HEX_QUOT;
 @endphp
 
@@ -68,7 +75,7 @@
                 <span class="orders-stat-icon" aria-hidden="true">
                     <svg viewBox="0 0 24 24"><path d="M6 3h12v18l-3-2-3 2-3-2-3 2zM9 8h6M9 12h6M9 16h4"/></svg>
                 </span>
-                <span class="orders-stat-copy"><strong>{{ $received->count() }}</strong><span>INVOICED</span></span>
+                <span class="orders-stat-copy"><strong>{{ ($invoices ?? collect())->count() }}</strong><span>INVOICED</span></span>
             </div>
             <div class="orders-stat-card orders-stat-unserved">
                 <span class="orders-stat-icon" aria-hidden="true">
@@ -84,7 +91,7 @@
             <span>1</span> TO SHIP <b>{{ $toShip->count() }}</b>
         </button>
         <button type="button" data-orders-tab="invoiced">
-            <span>2</span> INVOICED <b>{{ $received->count() }}</b>
+            <span>2</span> INVOICED <b>{{ ($invoices ?? collect())->count() }}</b>
         </button>
         <button type="button" data-orders-tab="unserved">
             <span>3</span> UNSERVED ITEMS <b>{{ $unservedItemsCount ?? 0 }}</b>
@@ -116,7 +123,12 @@
                     <div><span>ORDER ID</span><strong>{{ $order['order_code'] }}</strong><small>{{ $order['sales_number'] }}</small></div>
                     <div><span>DATE</span><strong>{{ $order['date'] }}</strong></div>
                     <div><span>TOTAL</span><strong>{{ number_format($order['total_amount'], 2) }}</strong><small>Discount {{ number_format($order['discount_total'], 2) }}</small></div>
-                    <div><span>STATUS</span><strong class="status-badge processed">PROCESSED</strong></div>
+                    <div>
+                        <span>STATUS</span>
+                        <strong class="status-badge {{ ($order['status_label'] ?? '') === 'PARTIAL' ? 'partial' : 'processed' }}">
+                            {{ $order['status_label'] ?? 'PROCESSED' }}
+                        </strong>
+                    </div>
                 </div>
                 <a class="view-order-button" href="{{ route('orders.view', ['order' => $order['id']]) }}">VIEW</a>
             </article>
@@ -127,47 +139,53 @@
 
     <section class="orders-tab-panel" data-orders-panel="invoiced" hidden>
         <div class="orders-section-heading">
-            <div><span>CLOSED SALES NOTES</span><h2>Invoiced</h2></div>
-            <p>An order moves here as soon as its linked Sales Note becomes <strong>Closed</strong>. If a waybill exists, its details are shown with the order.</p>
+            <div><span>INVOICE HISTORY</span><h2>Invoiced</h2></div>
+            <p>Each row is one W68 Sales Order / invoice batch. A Partial order may appear here for its served invoice while its remaining quantity stays under To Ship.</p>
         </div>
         <label class="orders-search-bar">
             <span>SEARCH</span>
-            <input type="search" data-orders-search-input placeholder="Search order ID, sales note, date, waybill or item" autocomplete="off">
+            <input type="search" data-orders-search-input placeholder="Search order ID, invoice no., invoiced date, total or item" autocomplete="off">
         </label>
-        <div class="orders-search-empty" data-orders-search-empty hidden>No matching invoiced orders.</div>
+        <div class="orders-search-empty" data-orders-search-empty hidden>No matching invoices.</div>
 
-        @forelse ($received as $order)
-            <article class="order-summary-card received-card" data-order-search-record>
-                <span class="orders-search-index" aria-hidden="true">
-                    @foreach (($order['items'] ?? []) as $searchItem)
-                        {{ $searchItem['description'] ?? '' }} {{ $searchItem['product_code'] ?? '' }} {{ $searchItem['part_number'] ?? '' }} {{ $searchItem['application'] ?? '' }} {{ $searchItem['brand'] ?? '' }}
-                    @endforeach
-                </span>
-                <div class="order-summary-main">
-                    <div><span>ORDER ID</span><strong>{{ $order['order_code'] }}</strong><small>{{ $order['sales_number'] }}</small></div>
-                    <div><span>DATE</span><strong>{{ $order['date'] }}</strong></div>
-                    <div><span>TOTAL</span><strong>{{ number_format($order['total_amount'], 2) }}</strong></div>
+        @forelse (($invoices ?? collect()) as $invoice)
+            <article class="order-summary-card received-card invoice-summary-card" data-order-search-record>
+                <span class="orders-search-index" aria-hidden="true">{{ $invoice['item_search'] ?? '' }} {{ $invoice['sales_number'] ?? '' }}</span>
+                <div class="order-summary-main invoice-summary-main">
                     <div>
-                        <span>STATUS</span>
-                        <strong class="status-badge ordered">INVOICED</strong>
-                        @if($order['waybill_no'])
-                            <small>Waybill {{ $order['waybill_no'] }}@if($order['waybill_date']) Â· {{ $order['waybill_date'] }}@endif</small>
-                        @elseif(!empty($order['waybill_id']))
-                            <small>Waybill #{{ $order['waybill_id'] }}@if($order['waybill_date']) Â· {{ $order['waybill_date'] }}@endif</small>
-                        @endif
+                        <span>ORDER ID</span>
+                        <strong>{{ $invoice['order_code'] ?: '—' }}</strong>
+                    </div>
+                    <div>
+                        <span>INVOICE NO.</span>
+                        <strong>{{ $invoice['invoice_no'] ?: '—' }}</strong>
+                    </div>
+                    <div>
+                        <span>INVOICED DATE</span>
+                        <strong>{{ $invoice['invoiced_date'] ?: '—' }}</strong>
+                    </div>
+                    <div>
+                        <span>TOTAL</span>
+                        <strong>{{ number_format($invoice['total_amount'], 2) }}</strong>
                     </div>
                 </div>
-                <a class="view-order-button" href="{{ route('orders.view', ['order' => $order['id']]) }}">VIEW</a>
+                <a
+                    class="view-order-button"
+                    href="{{ route('orders.view', ['order' => $invoice['order_id'], 'sales_order' => $invoice['sales_order_id']]) }}"
+                >VIEW</a>
             </article>
         @empty
-            <div class="orders-empty"><strong>No invoiced orders yet.</strong><span>Closed Sales Notes will automatically move to this tab. Waybill details appear when available.</span></div>
+            <div class="orders-empty">
+                <strong>No invoices yet.</strong>
+                <span>As soon as a W68 Sales Order has an Invoice No., that invoice batch will appear here.</span>
+            </div>
         @endforelse
     </section>
 
     <section class="orders-tab-panel" data-orders-panel="unserved" hidden>
         <div class="orders-section-heading">
-            <div><span>OPEN / PARTIAL SALES NOTES</span><h2>Unserved Items</h2></div>
-            <p>Unserved follows the same W68 rule used by the internal Unserved Details report: <strong>Ordered Qty - Served Qty</strong>, where Served comes from Sales Order item <strong>actual_qty</strong>.</p>
+            <div><span>PARTIAL SALES NOTES ONLY</span><h2>Unserved Items</h2></div>
+            <p>Only <strong>Partial</strong> notes are shown here. Open notes stay out of this tab. Unserved = Ordered Qty - Served Qty, using W68 Sales Order item <strong>actual_qty</strong>.</p>
         </div>
 
         <label class="orders-search-bar">
@@ -176,70 +194,66 @@
         </label>
         <div class="orders-search-empty" data-orders-search-empty hidden>No matching unserved items.</div>
 
-        @forelse (($unservedOrders ?? collect()) as $order)
-            <article class="unserved-order-card" data-order-search-record>
-                <header class="unserved-order-header">
-                    <div class="unserved-order-title">
-                        <span>ORDER DETAILS</span>
-                        <h3>{{ $order['sales_number'] ?: $order['order_code'] }}</h3>
-                    </div>
-                    <div class="unserved-order-meta">
-                        <div><span>ORDER ID</span><strong>{{ $order['order_code'] ?: '—' }}</strong></div>
-                        <div><span>DATE</span><strong>{{ $order['date'] ?: '—' }}</strong></div>
-                        <div><span>STATUS</span><strong class="status-badge processed">{{ strtoupper($order['status'] ?: 'OPEN') }}</strong></div>
-                        <div><span>UNSERVED TOTAL</span><strong>{{ number_format($order['total_amount'], 2) }}</strong></div>
-                    </div>
+        @forelse ($unservedItemRows as $row)
+            @php
+                $order = $row['order'];
+                $item = $row['item'];
+            @endphp
+            <article class="unserved-product-card" data-order-search-record>
+                <header class="unserved-product-name">
+                    <span>ITEM DETAILS</span>
+                    <h3>{{ $item['description'] ?: 'W68 PRODUCT' }}</h3>
                 </header>
 
-                <div class="unserved-item-heading">ITEM DETAILS</div>
-                <div class="unserved-items-table-wrap">
-                    <table class="unserved-items-table">
-                        <thead>
-                            <tr>
-                                <th>DESCRIPTION</th>
-                                <th>PRODUCT CODE</th>
-                                <th>PART NUMBER</th>
-                                <th>APPLICATION</th>
-                                <th>BRAND</th>
-                                <th class="num">PRICE</th>
-                                <th class="num">ORDERED QTY</th>
-                                <th class="num">SERVED</th>
-                                <th class="num">UNSERVED</th>
-                                <th class="num">TOTAL</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            @foreach ($order['items'] as $item)
-                                <tr>
-                                    <td>{{ $item['description'] ?: '—' }}</td>
-                                    <td><strong>{{ $item['product_code'] ?: '—' }}</strong></td>
-                                    <td>{{ $item['part_number'] ?: '—' }}</td>
-                                    <td>{{ $item['application'] ?: '—' }}</td>
-                                    <td>{{ $item['brand'] ?: '—' }}</td>
-                                    <td class="num">{{ number_format($item['price'], 2) }}</td>
-                                    <td class="num">{{ number_format($item['ordered_qty'], 0) }}</td>
-                                    <td class="num served-qty">{{ number_format($item['served_qty'], 0) }}</td>
-                                    <td class="num unserved-qty">{{ number_format($item['unserved_qty'], 0) }}</td>
-                                    <td class="num total-cell">{{ number_format($item['total'], 2) }}</td>
-                                </tr>
-                            @endforeach
-                        </tbody>
-                        <tfoot>
-                            <tr>
-                                <td colspan="6">ORDER UNSERVED SUMMARY</td>
-                                <td class="num">{{ number_format($order['ordered_qty'], 0) }}</td>
-                                <td class="num">{{ number_format($order['served_qty'], 0) }}</td>
-                                <td class="num">{{ number_format($order['unserved_qty'], 0) }}</td>
-                                <td class="num">{{ number_format($order['total_amount'], 2) }}</td>
-                            </tr>
-                        </tfoot>
-                    </table>
+                <div class="unserved-product-layout">
+                    <div class="unserved-product-image">
+                        <img
+                            src="{{ $item['image'] }}"
+                            alt="{{ $item['description'] ?: $item['product_code'] }}"
+                            loading="lazy"
+                            onerror="this.onerror=null;this.src='{{ $logo }}';"
+                        >
+                    </div>
+
+                    <div class="unserved-product-details">
+                        <div class="unserved-detail-line"><span>PRODUCT CODE:</span><strong>{{ $item['product_code'] ?: '—' }}</strong></div>
+                        <div class="unserved-detail-line"><span>PART NUMBER:</span><strong>{{ $item['part_number'] ?: '—' }}</strong></div>
+                        <div class="unserved-detail-line"><span>APPLICATION:</span><strong>{{ $item['application'] ?: '—' }}</strong></div>
+                        <div class="unserved-detail-line"><span>BRAND:</span><strong>{{ $item['brand'] ?: '—' }}</strong></div>
+                        <div class="unserved-detail-line"><span>PRICE:</span><strong>{{ number_format($item['price'], 2) }}</strong></div>
+
+                        <div class="unserved-ordered-line">
+                            <span>ORDERED QTY</span>
+                            <strong>{{ number_format($item['ordered_qty'], 0) }}</strong>
+                        </div>
+
+                        <div class="unserved-quantity-box">
+                            <div class="unserved-order-date-row">
+                                <div><span>ORDER ID:</span><strong>{{ $order['order_code'] ?: '—' }}</strong></div>
+                                <div><span>DATE:</span><strong>{{ $order['date'] ?: '—' }}</strong></div>
+                            </div>
+                            <div class="unserved-qty-row">
+                                <span>SERVED:</span>
+                                <strong>{{ number_format($item['served_qty'], 0) }}</strong>
+                            </div>
+                            <div class="unserved-qty-row is-unserved">
+                                <span>UNSERVED:</span>
+                                <strong>{{ number_format($item['unserved_qty'], 0) }}</strong>
+                            </div>
+                            <div class="unserved-qty-row is-total">
+                                <span>TOTAL:</span>
+                                <strong>{{ number_format($item['total'], 2) }}</strong>
+                            </div>
+                        </div>
+                    </div>
+
+                    <a class="unserved-view-button" href="{{ route('orders.view', ['order' => $order['id']]) }}">VIEW</a>
                 </div>
             </article>
         @empty
             <div class="orders-empty">
-                <strong>No unserved items.</strong>
-                <span>Open or Partial W68 orders with Ordered Qty greater than Served Qty will appear here automatically.</span>
+                <strong>No Partial unserved items.</strong>
+                <span>Items appear here only after the linked W68 Sales Note becomes Partial and still has an unserved quantity.</span>
             </div>
         @endforelse
     </section>

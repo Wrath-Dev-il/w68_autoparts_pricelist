@@ -2426,3 +2426,355 @@ button, a { font: inherit; }
         order: 2;
     }
 }
+
+
+/* =========================================================
+   W68 v112 - Customer invoice receipt mirrors Sales Order print
+   W68_PORTAL_INVOICE_RECEIPT_V112_20261001
+   ========================================================= */
+.w68-invoice-receipt {
+    width: 100%;
+    padding: 12px 16px 18px;
+    background: #fff;
+    color: #000;
+    font-family: Arial, sans-serif;
+    font-size: 12px;
+    line-height: 1.3;
+    font-weight: 400;
+}
+
+.w68-invoice-receipt .sales-order-topline {
+    width: 100%;
+    border-collapse: collapse;
+    table-layout: fixed;
+    margin: 0;
+}
+
+.w68-invoice-receipt .sales-order-topline td {
+    padding: 0;
+    vertical-align: middle;
+    font-weight: 400;
+}
+
+.w68-invoice-receipt .top-left { width: 30%; }
+.w68-invoice-receipt .erw-heading {
+    width: 40%;
+    text-align: center;
+    font-size: 15px;
+    line-height: 1.2;
+    font-weight: 700;
+    white-space: nowrap;
+}
+
+.w68-invoice-receipt .invoice-heading {
+    width: 30%;
+    text-align: left;
+    font-size: 12px;
+    font-weight: 700;
+    color: #d00000;
+    white-space: nowrap;
+}
+
+.w68-invoice-receipt .invoice-align-row {
+    display: flex;
+    align-items: baseline;
+    width: max-content;
+    margin-left: 80px;
+    gap: 0;
+}
+
+.w68-invoice-receipt .invoice-label {
+    font-size: 12px;
+    font-weight: 700;
+    color: #d00000;
+}
+
+.w68-invoice-receipt .invoice-value {
+    font-size: 14px;
+    font-weight: 700;
+    color: #d00000;
+    font-variant-numeric: tabular-nums;
+}
+
+.w68-invoice-receipt .sep-dash {
+    border-top: 1px dashed #000;
+    margin: 5px 0;
+}
+
+.w68-invoice-receipt .sales-order-header-separator {
+    margin: 5px 0 6px;
+}
+
+.w68-invoice-receipt .sales-order-customer-info {
+    width: 100%;
+    margin-bottom: 15px;
+}
+
+.w68-invoice-receipt .sales-order-customer-info > table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.w68-invoice-receipt .sales-order-customer-info td {
+    padding: 0;
+    vertical-align: top;
+    font-size: 12px;
+    line-height: 1.35;
+    font-weight: 400;
+}
+
+.w68-invoice-receipt .customer-side { width: 70%; }
+.w68-invoice-receipt .meta-side { width: 30%; }
+
+.w68-invoice-receipt .label {
+    font-size: 12px;
+    font-weight: 400;
+}
+
+.w68-invoice-receipt .header-value {
+    font-size: 11px;
+    font-weight: 400;
+}
+
+.w68-invoice-receipt .customer-value {
+    font-size: 11.5px;
+    font-weight: 700;
+}
+
+.w68-invoice-receipt .sales-order-meta {
+    width: max-content;
+    border-collapse: collapse;
+    table-layout: auto;
+}
+
+.w68-invoice-receipt .sales-order-meta .meta-label {
+    width: 80px;
+    min-width: 80px;
+    max-width: 80px;
+    padding-right: 3px;
+    text-align: left;
+    font-size: 12px;
+    font-weight: 400;
+    white-space: nowrap;
+}
+
+.w68-invoice-receipt .sales-order-meta .meta-value {
+    padding: 0;
+    text-align: left;
+    font-size: 11px;
+    font-weight: 400;
+    white-space: nowrap;
+}
+
+.w68-invoice-receipt .sales-order-meta .terms-value {
+    font-size: 11.5px;
+}
+
+.w68-invoice-receipt .items-table {
+    width: 100%;
+    table-layout: fixed;
+    border-collapse: collapse;
+    margin-bottom: 8px;
+}
+
+.w68-invoice-receipt .items-table th,
+.w68-invoice-receipt .items-table td {
+    padding: 2px 4px;
+    border: 1px solid transparent;
+    font-size: 12px;
+    line-height: 1.3;
+    font-weight: 400;
+}
+
+.w68-invoice-receipt .items-table thead th {
+    padding: 1px 2px 3px;
+    text-align: center;
+    vertical-align: middle;
+    white-space: nowrap;
+}
+
+.w68-invoice-receipt .items-table thead .sales-order-heading-bottom th {
+    height: 0;
+    padding: 0;
+    line-height: 0;
+    font-size: 0;
+    border-top: 1px dashed #000;
+}
+
+.w68-invoice-receipt .items-table .c { text-align: center; }
+.w68-invoice-receipt .items-table .r { text-align: right; }
+.w68-invoice-receipt .qty-col { width: 7%; }
+.w68-invoice-receipt .unit-col { width: 9%; }
+.w68-invoice-receipt .code-col { width: 18%; word-break: break-word; }
+.w68-invoice-receipt .desc-col { width: 34%; word-break: break-word; }
+.w68-invoice-receipt .price-col { width: 12%; }
+.w68-invoice-receipt .disc-col { width: 8%; }
+.w68-invoice-receipt .total-col { width: 12%; }
+
+.w68-invoice-receipt .items-table tbody .code-col,
+.w68-invoice-receipt .items-table tbody .price-col,
+.w68-invoice-receipt .items-table tbody .total-col {
+    text-align: center;
+}
+
+.w68-invoice-receipt .items-table.no-discount .qty-col { width: 8.333333%; }
+.w68-invoice-receipt .items-table.no-discount .unit-col { width: 10.333333%; }
+.w68-invoice-receipt .items-table.no-discount .code-col { width: 19.333333%; }
+.w68-invoice-receipt .items-table.no-discount .desc-col { width: 35.333333%; }
+.w68-invoice-receipt .items-table.no-discount .price-col { width: 13.333333%; }
+.w68-invoice-receipt .items-table.no-discount .total-col { width: 13.333333%; }
+
+.w68-invoice-receipt .summary {
+    width: 100%;
+    table-layout: fixed;
+    border-collapse: collapse;
+    margin-top: 3px;
+}
+
+.w68-invoice-receipt .summary td {
+    padding: 1px 4px;
+    font-size: 12px;
+    font-weight: 400;
+}
+
+.w68-invoice-receipt .summary .lb { width: 65%; }
+.w68-invoice-receipt .summary .vl {
+    width: 35%;
+    text-align: right;
+}
+
+.w68-invoice-receipt .rush-text {
+    margin: 5px 0;
+    text-align: center;
+    font-family: 'Arial Black', Arial, sans-serif;
+    font-size: 25px;
+    font-weight: 400;
+}
+
+.w68-invoice-receipt .sales-order-footer {
+    width: 100%;
+    margin-top: 3px;
+    table-layout: fixed;
+    border-collapse: collapse;
+}
+
+.w68-invoice-receipt .sales-order-footer td {
+    padding: 1px 4px;
+    vertical-align: top;
+    font-size: 12px;
+    line-height: 1.3;
+    font-weight: 400;
+}
+
+.w68-invoice-receipt .sales-order-footer .signoff-cell,
+.w68-invoice-receipt .sales-order-footer .financial-label,
+.w68-invoice-receipt .sales-order-footer .financial-value {
+    width: auto;
+}
+
+.w68-invoice-receipt .signoff-line {
+    width: 100%;
+    display: grid;
+    grid-template-columns: 100px minmax(0, 1fr);
+    align-items: baseline;
+}
+
+.w68-invoice-receipt .signoff-label,
+.w68-invoice-receipt .signoff-value {
+    font-size: 12px;
+    font-weight: 400;
+    white-space: nowrap;
+}
+
+.w68-invoice-receipt .signoff-value {
+    padding-left: 5px;
+}
+
+.w68-invoice-receipt .financial-label {
+    text-align: left;
+    white-space: nowrap;
+}
+
+.w68-invoice-receipt .financial-value {
+    text-align: right;
+    white-space: nowrap;
+}
+
+.print-only-actions.has-invoice-print {
+    grid-template-columns: 1fr 1fr;
+}
+
+.invoice-receipt-print-button {
+    min-height: 46px;
+    padding: 0 18px;
+    border: 0;
+    border-radius: 10px;
+    background: var(--w68-maroon);
+    color: #ffe357;
+    font-size: 11px;
+    font-weight: 1000;
+    letter-spacing: .45px;
+    cursor: pointer;
+    touch-action: manipulation;
+}
+
+@media (max-width: 900px), (pointer: coarse) {
+    .w68-invoice-receipt {
+        min-width: 760px;
+    }
+
+    .order-confirm-card:has(.w68-invoice-receipt) {
+        overflow-x: auto;
+    }
+}
+
+@media print {
+    @page {
+        size: A4 portrait;
+        margin: 1cm;
+    }
+
+    body.w68-invoice-printing {
+        margin: 0 !important;
+        padding: 0 !important;
+        background: #fff !important;
+    }
+
+    body.w68-invoice-printing .process-page-shell,
+    body.w68-invoice-printing .order-modal-backdrop,
+    body.w68-invoice-printing .order-confirm-header,
+    body.w68-invoice-printing .order-confirm-actions {
+        display: none !important;
+    }
+
+    body.w68-invoice-printing .order-confirm-modal {
+        position: static !important;
+        inset: auto !important;
+        display: block !important;
+        width: 100% !important;
+        height: auto !important;
+        padding: 0 !important;
+        background: #fff !important;
+    }
+
+    body.w68-invoice-printing .order-confirm-card {
+        position: static !important;
+        width: 100% !important;
+        max-width: none !important;
+        height: auto !important;
+        max-height: none !important;
+        overflow: visible !important;
+        border: 0 !important;
+        border-radius: 0 !important;
+        box-shadow: none !important;
+        background: #fff !important;
+    }
+
+    body.w68-invoice-printing .w68-invoice-receipt {
+        display: block !important;
+        width: 100% !important;
+        min-width: 0 !important;
+        padding: 0 !important;
+        margin: 0 !important;
+    }
+}

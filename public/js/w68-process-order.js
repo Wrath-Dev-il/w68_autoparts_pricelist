@@ -1,8 +1,11 @@
 (function () {
     var body = document.body;
     var viewMode = body && body.getAttribute('data-view-mode') === '1';
+    var invoiceViewMode = body && body.getAttribute('data-invoice-view-mode') === '1';
+    var autoInvoicePrintPreview = body && body.getAttribute('data-auto-invoice-print-preview') === '1';
     var pageProcessButton = document.querySelector('[data-final-process]');
     var viewPrintButton = document.querySelector('[data-view-print-preview]');
+    var invoiceReceiptPrintButton = document.querySelector('[data-print-invoice-receipt]');
     var errorNode = document.querySelector('[data-process-error]');
     var loading = document.querySelector('[data-process-loading]');
     var csrf = document.querySelector('meta[name="csrf-token"]');
@@ -586,6 +589,32 @@
         }, false);
     }
 
+    function printInvoiceReceipt() {
+        if (!invoiceViewMode || !body) return;
+        body.classList.add('w68-invoice-printing');
+        window.setTimeout(function () {
+            window.print();
+        }, 40);
+    }
+
+    window.addEventListener('afterprint', function () {
+        if (body) body.classList.remove('w68-invoice-printing');
+    }, false);
+
+    if (invoiceReceiptPrintButton) {
+        var receiptPrintTouchAt = 0;
+        invoiceReceiptPrintButton.addEventListener('touchend', function (event) {
+            event.preventDefault();
+            receiptPrintTouchAt = Date.now();
+            printInvoiceReceipt();
+        }, { passive: false });
+        invoiceReceiptPrintButton.addEventListener('click', function (event) {
+            if (Date.now() - receiptPrintTouchAt < 600) return;
+            event.preventDefault();
+            printInvoiceReceipt();
+        }, false);
+    }
+
     if (viewPrintButton) {
         var printTouchAt = 0;
         viewPrintButton.addEventListener('touchend', function (event) {
@@ -627,4 +656,10 @@
     hideProcessLoader();
     refreshSummary();
     refreshDeliverySummary();
+
+    if (invoiceViewMode && autoInvoicePrintPreview && confirmModal) {
+        window.setTimeout(function () {
+            openConfirmModal();
+        }, 80);
+    }
 })();

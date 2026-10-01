@@ -153,7 +153,10 @@ class CustomerOrderController extends Controller
                 ->first([
                     'id',
                     'sales_note_id',
+                    'customer_id',
+                    'customer_name',
                     'invoice_numbers',
+                    'terms',
                     'total_amount',
                     'status',
                     'created_at',
@@ -162,12 +165,59 @@ class CustomerOrderController extends Controller
 
             abort_unless($invoice, 404, 'Invoice not found for this W68 order.');
 
+            // W68_PORTAL_INVOICE_RECEIPT_V112_20261001
+            // Pull the same Sales Note / Customer fields used by the internal
+            // W68 Sales Order receipt so the portal copy matches its print.
+            $salesNote = DB::connection('sales_order')
+                ->table('sales_notes')
+                ->where('id', (int) $invoice->sales_note_id)
+                ->first([
+                    'id',
+                    'sales_number',
+                    'customer_id',
+                    'customer_name',
+                    'order_date',
+                    'salesman',
+                    'prepared_by',
+                    'packed_by',
+                    'checked_by',
+                    'is_rush',
+                ]);
+
+            $printCustomerId = (int) ($invoice->customer_id ?? $salesNote->customer_id ?? 0);
+            $printCustomer = $printCustomerId > 0
+                ? DB::connection('masterlist')
+                    ->table('customers')
+                    ->where('id', $printCustomerId)
+                    ->first(['id', 'name', 'address', 'tin', 'terms'])
+                : null;
+
             $items = $this->invoiceItemsForView((int) $invoice->id);
             $totalItems = (int) $items->sum(fn (array $item): int => (int) $item['qty']);
-            $computedTotal = round((float) $items->sum(fn (array $item): float => (float) $item['lineTotal']), 2);
+            $invoiceAmount = round((float) $items->sum('printSubtotal'), 2);
+            $additionalLess = round((float) $items->sum('additionalLess'), 2);
+            $calculatedNet = round(max(0, $invoiceAmount - $additionalLess), 2);
             $invoiceTotal = round((float) ($invoice->total_amount ?? 0), 2);
-            $totalPrice = $invoiceTotal > 0 ? $invoiceTotal : $computedTotal;
+            $totalPrice = $invoiceTotal > 0 ? $invoiceTotal : $calculatedNet;
             $invoiceDate = substr((string) ($invoice->created_at ?: $invoice->updated_at), 0, 10);
+
+            $invoiceReceipt = [
+                'invoice_no' => trim((string) ($invoice->invoice_numbers ?? '')),
+                'customer_name' => trim((string) ($printCustomer->name ?? $invoice->customer_name ?? $salesNote->customer_name ?? '')),
+                'customer_address' => trim((string) ($printCustomer->address ?? '')),
+                'customer_tin' => trim((string) ($printCustomer->tin ?? '')),
+                'sales_number' => trim((string) ($salesNote->sales_number ?? $orderData['sales_number'] ?? '')),
+                'date' => $invoiceDate,
+                'terms' => trim((string) ($invoice->terms ?? $printCustomer->terms ?? '')),
+                'salesman' => trim((string) ($salesNote->salesman ?? '')),
+                'rush_text' => !empty($salesNote->is_rush) ? 'RUSH' : '',
+                'prepared_by' => trim((string) ($salesNote->prepared_by ?? '')),
+                'packed_by' => trim((string) ($salesNote->packed_by ?? '')),
+                'checked_by' => trim((string) ($salesNote->checked_by ?? '')),
+                'invoice_amount' => $invoiceAmount,
+                'additional_less' => $additionalLess,
+                'net_amount' => $totalPrice,
+            ];
 
             return view('process-order', [
                 'items' => $items,
@@ -175,6 +225,8 @@ class CustomerOrderController extends Controller
                 'totalPrice' => $totalPrice,
                 'viewMode' => true,
                 'invoiceViewMode' => true,
+                'invoiceReceipt' => $invoiceReceipt,
+                'autoInvoicePrintPreview' => $request->boolean('print'),
                 'viewOrder' => [
                     ...$orderData,
                     'date' => $invoiceDate,
@@ -917,8 +969,11 @@ class CustomerOrderController extends Controller
                 'product_id',
                 'product_code',
                 'description',
+                'price_code',
                 'quantity',
                 'actual_qty',
+                'additional_qty',
+                'oum',
                 'unit_price',
                 'discount',
                 'additional_discount',
@@ -972,36 +1027,56 @@ class CustomerOrderController extends Controller
                 $originalPrice = round(max(0, (float) ($row->unit_price ?? 0)), 2);
                 $discount = max(0, min(100, (float) ($row->discount ?? 0)));
                 $additionalDiscount = max(0, min(100, (float) ($row->additional_discount ?? 0)));
-                $baseQty = max(1, $orderedOnBatch);
                 $storedSubtotal = max(0, (float) ($row->subtotal ?? 0));
 
-                $discountedPrice = $storedSubtotal > 0
-                    ? $storedSubtotal / $baseQty
-                    : $originalPrice
-                        * (1 - ($discount / 100))
-                        * (1 - ($additionalDiscount / 100));
+                // Match W68 history printing: sales_order_items.subtotal already
+                // includes Additional Less, so reverse it to get the printable
+                // line TOTAL before Additional Less is applied.
+                $subtotalBeforeAdditional = $storedSubtotal;
+                if ($storedSubtotal > 0 && $additionalDiscount > 0 && $additionalDiscount < 100) {
+                    $subtotalBeforeAdditional = round(
+                        $storedSubtotal / (1 - ($additionalDiscount / 100)),
+                        2
+                    );
+                } elseif ($storedSubtotal <= 0) {
+                    $subtotalBeforeAdditional = round(
+                        $qty * $originalPrice * (1 - ($discount / 100)),
+                        2
+                    );
+                }
 
-                $discountedPrice = round(max(0, $discountedPrice), 2);
-                $effectiveDiscount = $originalPrice > 0
-                    ? max(0, min(100, (1 - ($discountedPrice / $originalPrice)) * 100))
+                $additionalLess = round(
+                    $subtotalBeforeAdditional * ($additionalDiscount / 100),
+                    2
+                );
+                $lineTotal = $storedSubtotal > 0
+                    ? round($storedSubtotal, 2)
+                    : round(max(0, $subtotalBeforeAdditional - $additionalLess), 2);
+                $discountedPrice = $qty > 0
+                    ? round($lineTotal / $qty, 2)
                     : 0.0;
-                $lineTotal = round($discountedPrice * $qty, 2);
 
                 return [
                     'id' => (string) $productId,
                     'image' => $this->currentProductImageUrl($productId),
                     'productCode' => (string) ($row->product_code ?: ($product->product_code ?? '')),
+                    'priceCode' => (string) ($row->price_code ?? ''),
                     'partNumber' => (string) ($product->part_number ?? ''),
                     'description' => (string) ($row->description ?: ($product->description ?? '')),
                     'application' => (string) ($product->application ?? ''),
                     'position' => (string) ($product->position ?? ''),
                     'brand' => (string) ($product->brand ?? ''),
+                    'oum' => trim((string) ($row->oum ?? '')),
+                    'additionalQty' => max(0, (int) ($row->additional_qty ?? 0)),
                     'price' => $originalPrice,
-                    'discountPercent' => round($effectiveDiscount, 2),
+                    'discountPercent' => round($discount, 2),
+                    'additionalDiscountPercent' => round($additionalDiscount, 2),
                     'discountedPrice' => $discountedPrice,
                     'qty' => $qty,
                     'lineTotal' => $lineTotal,
-                    'hasDiscount' => ($discountedPrice + 0.0001) < $originalPrice,
+                    'printSubtotal' => round($subtotalBeforeAdditional, 2),
+                    'additionalLess' => $additionalLess,
+                    'hasDiscount' => $discount > 0.0001,
                 ];
             })
             ->filter()

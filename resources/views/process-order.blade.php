@@ -2,6 +2,8 @@
     $viewMode = (bool) ($viewMode ?? false);
     $returnViewMode = (bool) ($returnViewMode ?? false);
     $invoiceViewMode = (bool) ($invoiceViewMode ?? false);
+    $invoiceReceipt = $invoiceReceipt ?? null;
+    $autoInvoicePrintPreview = (bool) ($autoInvoicePrintPreview ?? false);
     $viewOrder = $viewOrder ?? null;
     $orderCode = $viewMode ? (string) ($viewOrder['order_code'] ?? 'Order') : '';
     $backToOrdersUrl = route('orders') . ($returnViewMode ? '#returns' : ($invoiceViewMode ? '#invoiced' : ''));
@@ -15,13 +17,15 @@
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>W68 Autoparts | {{ $returnViewMode ? 'View Return' : ($viewMode ? 'View Order' : 'Process Order') }}</title>
     <link rel="icon" href="{{ asset('images/sidebar_logo.png') }}">
-    <link rel="stylesheet" href="{{ asset('css/w68-process-order.css') }}?v=20260922-v108">
-    <script src="{{ asset('js/w68-process-order.js') }}?v=20260922-v108" defer></script>
+    <link rel="stylesheet" href="{{ asset('css/w68-process-order.css') }}?v=20261001-v112">
+    <script src="{{ asset('js/w68-process-order.js') }}?v=20261001-v112" defer></script>
 </head>
 <body
     data-process-url="{{ $viewMode ? '' : route('home.orders.process') }}"
     data-orders-url="{{ ltrim(route('orders', [], false), '/') }}"
     data-view-mode="{{ $viewMode ? '1' : '0' }}"
+    data-invoice-view-mode="{{ $invoiceViewMode ? '1' : '0' }}"
+    data-auto-invoice-print-preview="{{ $autoInvoicePrintPreview ? '1' : '0' }}"
 >
     <main class="process-page-shell {{ $viewMode ? 'is-view-mode' : '' }}">
         <header class="process-page-header">
@@ -181,7 +185,7 @@
                     @if ($viewMode)
                         <a class="process-back-button" href="{{ $backToOrdersUrl }}">BACK TO ORDERS</a>
                         <button type="button" class="process-final-button process-preview-button" data-view-print-preview @disabled($items->isEmpty())>
-                            VIEW PRINT PREVIEW
+                            {{ $invoiceViewMode ? 'PRINT RECEIVED ITEMS' : 'VIEW PRINT PREVIEW' }}
                         </button>
                     @else
                         <a class="process-back-button" href="{{ route('home') }}">GO BACK TO HOME</a>
@@ -205,6 +209,222 @@
                 <button type="button" class="order-confirm-x" data-order-confirm-close aria-label="Close">Ã—</button>
             </header>
 
+            @if ($invoiceViewMode && $invoiceReceipt)
+                @php
+                    $receiptDate = trim((string) ($invoiceReceipt['date'] ?? ''));
+                    if ($receiptDate !== '') {
+                        try {
+                            $receiptDate = \Carbon\Carbon::parse($receiptDate)->format('d-m-Y');
+                        } catch (\Throwable $invoiceReceiptDateError) {
+                            // Keep the stored value if it cannot be parsed.
+                        }
+                    }
+
+                    $showReceiptDiscount = $items->contains(
+                        fn (array $receiptItem): bool => abs((float) ($receiptItem['discountPercent'] ?? 0)) > 0.000001
+                    );
+
+                    $formatReceiptQty = static function ($value): string {
+                        $number = (float) $value;
+                        return floor($number) == $number
+                            ? number_format($number, 0, '.', '')
+                            : rtrim(rtrim(number_format($number, 2, '.', ''), '0'), '.');
+                    };
+
+                    $normalizeReceiptText = static function ($value): string {
+                        $value = strtoupper(trim((string) $value));
+                        $value = preg_replace('/[^A-Z0-9]+/u', ' ', $value) ?? '';
+                        return trim(preg_replace('/\s+/u', ' ', $value) ?? '');
+                    };
+
+                    $receiptAlreadyIncludes = static function ($existing, $candidate) use ($normalizeReceiptText): bool {
+                        $existingNormalized = $normalizeReceiptText($existing);
+                        $candidateNormalized = $normalizeReceiptText($candidate);
+
+                        if ($candidateNormalized === '') return true;
+                        if ($existingNormalized === '') return false;
+                        if (str_contains($existingNormalized, $candidateNormalized)) return true;
+
+                        $existingTokens = array_values(array_unique(array_filter(explode(' ', $existingNormalized))));
+                        $candidateTokens = array_values(array_unique(array_filter(explode(' ', $candidateNormalized))));
+                        if ($candidateTokens === []) return true;
+
+                        $matchedTokens = count(array_intersect($candidateTokens, $existingTokens));
+                        $requiredMatches = count($candidateTokens) <= 2
+                            ? count($candidateTokens)
+                            : (int) ceil(count($candidateTokens) * 0.70);
+
+                        return $matchedTokens >= $requiredMatches;
+                    };
+                @endphp
+
+                <div class="w68-invoice-receipt" data-invoice-receipt>
+                    <table class="sales-order-topline">
+                        <tr>
+                            <td class="top-left"></td>
+                            <td class="erw-heading">ERW</td>
+                            <td class="invoice-heading">
+                                <div class="invoice-align-row">
+                                    <span class="invoice-label">NO.</span>
+                                    <span class="invoice-value">{{ $invoiceReceipt['invoice_no'] ?? '' }}</span>
+                                </div>
+                            </td>
+                        </tr>
+                    </table>
+
+                    <div class="sep-dash sales-order-header-separator"></div>
+
+                    <div class="sales-order-customer-info">
+                        <table>
+                            <tr>
+                                <td class="customer-side">
+                                    <span class="label">CUSTOMER:</span>
+                                    <span class="header-value customer-value">{{ $invoiceReceipt['customer_name'] ?? '' }}</span><br>
+                                    <span class="label">ADDRESS:</span>
+                                    <span class="header-value">{{ $invoiceReceipt['customer_address'] ?? '' }}</span>
+                                </td>
+                                <td class="meta-side">
+                                    <table class="sales-order-meta">
+                                        <tr><td class="meta-label">SN NO.:</td><td class="meta-value">{{ $invoiceReceipt['sales_number'] ?? '' }}</td></tr>
+                                        <tr><td class="meta-label">DATE:</td><td class="meta-value">{{ $receiptDate }}</td></tr>
+                                        <tr><td class="meta-label">TIN:</td><td class="meta-value">{{ $invoiceReceipt['customer_tin'] ?? '' }}</td></tr>
+                                        <tr><td class="meta-label">TERMS:</td><td class="meta-value terms-value">{{ $invoiceReceipt['terms'] ?? '' }}</td></tr>
+                                        <tr><td class="meta-label">SALESMAN:</td><td class="meta-value">{{ $invoiceReceipt['salesman'] ?? '' }}</td></tr>
+                                    </table>
+                                </td>
+                            </tr>
+                        </table>
+                    </div>
+
+                    <div class="sep-dash sales-order-header-separator"></div>
+
+                    <table class="items-table {{ $showReceiptDiscount ? '' : 'no-discount' }}">
+                        <thead>
+                            <tr class="sales-order-items-heading">
+                                <th class="qty-col">QTY</th>
+                                <th class="unit-col">UNIT</th>
+                                <th class="code-col">PRODUCT CODE</th>
+                                <th class="desc-col">ITEM</th>
+                                <th class="price-col">UNIT PRICE</th>
+                                @if ($showReceiptDiscount)
+                                    <th class="disc-col">LESS</th>
+                                @endif
+                                <th class="total-col">TOTAL</th>
+                            </tr>
+                            <tr class="sales-order-heading-bottom">
+                                <th colspan="{{ $showReceiptDiscount ? 7 : 6 }}"></th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach ($items as $item)
+                                @php
+                                    $receiptDetails = [];
+                                    $receiptDescription = trim((string) ($item['description'] ?? ''));
+                                    if ($receiptDescription !== '') {
+                                        $receiptDetails[] = $receiptDescription;
+                                    }
+                                    foreach (['application', 'position'] as $detailKey) {
+                                        $detailValue = trim((string) ($item[$detailKey] ?? ''));
+                                        if ($detailValue !== '' && !$receiptAlreadyIncludes(implode(' ', $receiptDetails), $detailValue)) {
+                                            $receiptDetails[] = $detailValue;
+                                        }
+                                    }
+
+                                    $receiptQty = (float) ($item['qty'] ?? 0);
+                                    $receiptAdditionalQty = (float) ($item['additionalQty'] ?? 0);
+                                    $receiptQtyLabel = $formatReceiptQty($receiptQty)
+                                        . ($receiptAdditionalQty > 0 ? '+(' . $formatReceiptQty($receiptAdditionalQty) . ')' : '');
+                                    $receiptCode = trim((string) ($item['priceCode'] ?? ''))
+                                        ?: trim((string) ($item['productCode'] ?? ''));
+                                @endphp
+                                <tr>
+                                    <td class="qty-col c">{{ $receiptQtyLabel }}</td>
+                                    <td class="unit-col c">{{ $item['oum'] ?? '' }}</td>
+                                    <td class="code-col">{{ $receiptCode }}</td>
+                                    <td class="desc-col">{{ implode(' ', $receiptDetails) }}</td>
+                                    <td class="price-col r">{{ number_format((float) ($item['price'] ?? 0), 2) }}</td>
+                                    @if ($showReceiptDiscount)
+                                        <td class="disc-col c">
+                                            @if ((float) ($item['discountPercent'] ?? 0) > 0)
+                                                {{ $formatReceiptQty($item['discountPercent']) }}%
+                                            @endif
+                                        </td>
+                                    @endif
+                                    <td class="total-col r">{{ number_format((float) ($item['printSubtotal'] ?? 0), 2) }}</td>
+                                </tr>
+                            @endforeach
+                        </tbody>
+                    </table>
+
+                    <div class="sep-dash"></div>
+
+                    <table class="summary sales-order-total-summary">
+                        <tr>
+                            <td class="lb">TOTAL(QTY: {{ $formatReceiptQty($totalItems) }})</td>
+                            <td class="vl">{{ number_format((float) ($invoiceReceipt['invoice_amount'] ?? 0), 2) }}</td>
+                        </tr>
+                    </table>
+
+                    <div class="sep-dash"></div>
+
+                    @if (!empty($invoiceReceipt['rush_text']))
+                        <div class="rush-text">{{ $invoiceReceipt['rush_text'] }}</div>
+                    @endif
+
+                    <table class="sales-order-footer {{ $showReceiptDiscount ? 'with-discount' : 'no-discount' }}">
+                        <colgroup>
+                            @if ($showReceiptDiscount)
+                                <col style="width:7%">
+                                <col style="width:9%">
+                                <col style="width:18%">
+                                <col style="width:34%">
+                                <col style="width:12%">
+                                <col style="width:8%">
+                                <col style="width:12%">
+                            @else
+                                <col style="width:8.333333%">
+                                <col style="width:10.333333%">
+                                <col style="width:19.333333%">
+                                <col style="width:35.333333%">
+                                <col style="width:13.333333%">
+                                <col style="width:13.333333%">
+                            @endif
+                        </colgroup>
+                        <tr>
+                            <td colspan="4" class="signoff-cell">
+                                <span class="signoff-line"><span class="signoff-label">PREPARED BY:</span><span class="signoff-value">{{ $invoiceReceipt['prepared_by'] ?? '' }}</span></span>
+                            </td>
+                            <td class="financial-label">INVOICE AMOUNT:</td>
+                            @if ($showReceiptDiscount)<td></td>@endif
+                            <td class="financial-value">{{ number_format((float) ($invoiceReceipt['invoice_amount'] ?? 0), 2) }}</td>
+                        </tr>
+                        <tr>
+                            <td colspan="4" class="signoff-cell">
+                                <span class="signoff-line"><span class="signoff-label">PACKED BY:</span><span class="signoff-value">{{ $invoiceReceipt['packed_by'] ?? '' }}</span></span>
+                            </td>
+                            <td class="financial-label">ADDITIONAL LESS:</td>
+                            @if ($showReceiptDiscount)<td></td>@endif
+                            <td class="financial-value">{{ number_format((float) ($invoiceReceipt['additional_less'] ?? 0), 2) }}</td>
+                        </tr>
+                        <tr>
+                            <td colspan="4" class="signoff-cell">
+                                <span class="signoff-line"><span class="signoff-label">CHECKED BY:</span><span class="signoff-value">{{ $invoiceReceipt['checked_by'] ?? '' }}</span></span>
+                            </td>
+                            <td class="financial-label">NET AMOUNT:</td>
+                            @if ($showReceiptDiscount)<td></td>@endif
+                            <td class="financial-value">{{ number_format((float) ($invoiceReceipt['net_amount'] ?? 0), 2) }}</td>
+                        </tr>
+                        <tr>
+                            <td colspan="4" class="signoff-cell">
+                                <span class="signoff-line"><span class="signoff-label">RECEIVED BY:</span><span class="signoff-value">&nbsp;</span></span>
+                            </td>
+                            <td></td>
+                            @if ($showReceiptDiscount)<td></td>@endif
+                            <td></td>
+                        </tr>
+                    </table>
+                </div>
+            @else
             <div class="order-print-preview">
                 <div class="order-print-head">
                     <strong>W68 Autoparts &amp; Service Center</strong>
@@ -254,10 +474,14 @@
                     <strong>{{ number_format($totalPrice, 2) }}</strong>
                 </div>
             </div>
+            @endif
 
             @if ($viewMode)
-                <footer class="order-confirm-actions print-only-actions">
+                <footer class="order-confirm-actions print-only-actions {{ $invoiceViewMode ? 'has-invoice-print' : '' }}">
                     <button type="button" class="order-confirm-cancel print-preview-close" data-order-confirm-close>CLOSE</button>
+                    @if ($invoiceViewMode)
+                        <button type="button" class="invoice-receipt-print-button" data-print-invoice-receipt>PRINT RECEIVED ITEMS</button>
+                    @endif
                 </footer>
             @else
                 {{-- W68 v107: choose the forwarder directly; its type tells the customer Rush/Regular. --}}

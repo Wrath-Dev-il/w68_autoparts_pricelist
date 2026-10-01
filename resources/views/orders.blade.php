@@ -6,7 +6,7 @@
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>W68 Autoparts | Orders</title>
     <link rel="icon" href="{{ asset('images/sidebar_logo.png') }}">
-    <link rel="stylesheet" href="{{ asset('css/w68-orders.css') }}?v=20260930-v110">
+    <link rel="stylesheet" href="{{ asset('css/w68-orders.css') }}?v=20261001-v112">
     <link rel="stylesheet" href="{{ asset('css/w68-notifications.css') }}?v=20260916-v102">
     <script src="{{ asset('js/w68-orders.js') }}?v=20260930-v109" defer></script>
     <script src="{{ asset('js/w68-orders-cart.js') }}?v=20260916-v102" defer></script>
@@ -169,10 +169,16 @@
                         <strong>{{ number_format($invoice['total_amount'], 2) }}</strong>
                     </div>
                 </div>
-                <a
-                    class="view-order-button"
-                    href="{{ route('orders.view', ['order' => $invoice['order_id'], 'sales_order' => $invoice['sales_order_id']]) }}"
-                >VIEW</a>
+                <div class="invoice-row-actions">
+                    <a
+                        class="view-order-button"
+                        href="{{ route('orders.view', ['order' => $invoice['order_id'], 'sales_order' => $invoice['sales_order_id']]) }}"
+                    >VIEW</a>
+                    <a
+                        class="invoice-print-button"
+                        href="{{ route('orders.view', ['order' => $invoice['order_id'], 'sales_order' => $invoice['sales_order_id'], 'print' => 1]) }}"
+                    >PRINT</a>
+                </div>
             </article>
         @empty
             <div class="orders-empty">

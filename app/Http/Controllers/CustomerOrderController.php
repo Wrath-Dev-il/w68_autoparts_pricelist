@@ -1231,6 +1231,12 @@ class CustomerOrderController extends Controller
 
                 $invoice['terms_days'] = $termsDays;
                 $invoice['due_date'] = $dueDate->format('Y-m-d');
+                $invoice['invoiced_date_display'] = mb_strtoupper(
+                    $invoiceDate->format('F j, Y')
+                );
+                $invoice['due_date_display'] = mb_strtoupper(
+                    $dueDate->format('F j, Y')
+                );
 
                 return $invoice;
             })

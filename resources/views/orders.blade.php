@@ -8,7 +8,7 @@
     <link rel="icon" href="{{ asset('images/sidebar_logo.png') }}">
     <link rel="stylesheet" href="{{ asset('css/w68-orders.css') }}?v=20261001-v122">
     <link rel="stylesheet" href="{{ asset('css/w68-notifications.css') }}?v=20260916-v102">
-    <script src="{{ asset('js/w68-orders.js') }}?v=20261001-v126" defer></script>
+    <script src="{{ asset('js/w68-orders.js') }}?v=20261001-v129" defer></script>
     <script src="{{ asset('js/w68-orders-cart.js') }}?v=20260916-v102" defer></script>
     <script src="{{ asset('js/w68-notifications.js') }}?v=20260916-v102" defer></script>
 </head>
@@ -183,16 +183,12 @@
                         class="view-order-button"
                         href="{{ route('orders.view', ['order' => $invoice['order_id'], 'sales_order' => $invoice['sales_order_id']]) }}"
                     >VIEW</a>
-                    <form
-                        class="invoice-bridge-form"
-                        method="POST"
-                        action="{{ route('orders.invoice.bridge', ['order' => $invoice['order_id'], 'salesOrder' => $invoice['sales_order_id']]) }}"
+                    <a
+                        class="invoice-print-button"
+                        href="{{ route('orders.invoice.print', ['order' => $invoice['order_id'], 'salesOrder' => $invoice['sales_order_id']]) }}"
                         target="_blank"
-                    >
-                        @csrf
-                        <input type="hidden" name="print_client_mode" value="bridge" data-w68-print-client-mode>
-                        <button class="invoice-print-button" type="submit">PRINT</button>
-                    </form>
+                        rel="noopener"
+                    >PRINT</a>
                 </div>
             </article>
         @empty
@@ -339,8 +335,8 @@
                     <div class="order-summary-main bill-summary-main">
                         <div><span>ORDER ID</span><strong>{{ $bill['order_code'] ?: '—' }}</strong></div>
                         <div><span>INVOICE NO.</span><strong>{{ $bill['invoice_no'] ?: '—' }}</strong></div>
-                        <div><span>INVOICED DATE</span><strong>{{ $bill['invoiced_date'] ?: '—' }}</strong></div>
-                        <div class="bill-due-cell"><span>DUE DATE</span><strong>{{ $bill['due_date'] ?: '—' }}</strong></div>
+                        <div><span>INVOICED DATE</span><strong>{{ $bill['invoiced_date_display'] ?? ($bill['invoiced_date'] ?: '—') }}</strong></div>
+                        <div class="bill-due-cell"><span>DUE DATE</span><strong>{{ $bill['due_date_display'] ?? ($bill['due_date'] ?: '—') }}</strong></div>
                         <div><span>TOTAL AMOUNT</span><strong>{{ number_format((float) ($bill['total_amount'] ?? 0), 2) }}</strong></div>
                     </div>
                     <a
@@ -371,8 +367,8 @@
                     <div class="order-summary-main bill-summary-main">
                         <div><span>ORDER ID</span><strong>{{ $bill['order_code'] ?: '—' }}</strong></div>
                         <div><span>INVOICE NO.</span><strong>{{ $bill['invoice_no'] ?: '—' }}</strong></div>
-                        <div><span>INVOICED DATE</span><strong>{{ $bill['invoiced_date'] ?: '—' }}</strong></div>
-                        <div class="bill-due-cell"><span>DUE DATE</span><strong>{{ $bill['due_date'] ?: '—' }}</strong></div>
+                        <div><span>INVOICED DATE</span><strong>{{ $bill['invoiced_date_display'] ?? ($bill['invoiced_date'] ?: '—') }}</strong></div>
+                        <div class="bill-due-cell"><span>DUE DATE</span><strong>{{ $bill['due_date_display'] ?? ($bill['due_date'] ?: '—') }}</strong></div>
                         <div><span>TOTAL AMOUNT</span><strong>{{ number_format((float) ($bill['total_amount'] ?? 0), 2) }}</strong></div>
                     </div>
                     <a

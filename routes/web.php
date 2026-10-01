@@ -34,12 +34,6 @@ Route::get('/authorized-access/{token}', AuthorizedAccessController::class)
     ->where('token', '[A-Fa-f0-9]{64}')
     ->name('authorized-access');
 
-// W68_PRINTER_BRIDGE_V117_20261001
-Route::get('/printer-bridge/jobs/{token}', [CustomerOrderController::class, 'printerBridgeJob'])
-    ->where('token', '[A-Fa-f0-9]{64}')
-    ->middleware('throttle:60,1')
-    ->name('printer-bridge.job');
-
 /*
 |--------------------------------------------------------------------------
 | Account Type 5 Customer Home
@@ -123,18 +117,13 @@ Route::middleware(['portal.access', 'auth'])->group(function () {
         ->whereNumber('return')
         ->name('orders.return.view');
 
-    // W68_HYBRID_PRINT_V126_20261001
-    // Desktop/laptop uses the standalone browser print page.
-    // iPad/mobile/tablet uses W68 Printer Bridge.
+    // W68_BROWSER_PRINT_ONLY_V129_20261001
+    // All customer devices, including iPad/mobile/tablet, use the
+    // standalone browser/system print flow. Printer Bridge is not used.
     Route::get('/orders/{order}/invoice/{salesOrder}/print', [CustomerOrderController::class, 'printInvoice'])
         ->whereNumber('order')
         ->whereNumber('salesOrder')
         ->name('orders.invoice.print');
-
-    Route::post('/orders/{order}/invoice/{salesOrder}/printer-bridge', [CustomerOrderController::class, 'launchPrinterBridge'])
-        ->whereNumber('order')
-        ->whereNumber('salesOrder')
-        ->name('orders.invoice.bridge');
 
     Route::post('/home/orders/process', [CustomerOrderController::class, 'processSelectedCart'])
         ->name('home.orders.process');

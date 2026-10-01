@@ -200,7 +200,7 @@
 
     <div class="order-confirm-modal {{ $viewMode ? 'is-print-only' : '' }}" data-order-confirm-modal hidden aria-hidden="true">
         <button type="button" class="order-modal-backdrop" data-order-confirm-close aria-label="Close print preview"></button>
-        <section class="order-confirm-card" role="dialog" aria-modal="true" aria-labelledby="order-confirm-title">
+        <section class="order-confirm-card {{ $invoiceViewMode ? 'has-invoice-receipt' : '' }}" role="dialog" aria-modal="true" aria-labelledby="order-confirm-title">
             <header class="order-confirm-header">
                 <div>
                     <span class="order-confirm-kicker">PRINT PREVIEW</span>

@@ -2723,7 +2723,7 @@ button, a { font: inherit; }
         min-width: 760px;
     }
 
-    .order-confirm-card:has(.w68-invoice-receipt) {
+    .order-confirm-card.has-invoice-receipt {
         overflow-x: auto;
     }
 }

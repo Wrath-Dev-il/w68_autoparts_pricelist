@@ -16,10 +16,10 @@ class BridgePrinter {
 
   String get key => printer.url.trim().isNotEmpty
       ? printer.url.trim().toLowerCase()
-      : (printer.name ?? '').trim().toLowerCase();
+      : printer.name.trim().toLowerCase();
 
   String get displayName {
-    final value = (printer.name ?? '').trim();
+    final value = printer.name.trim();
     return value.isNotEmpty ? value : printer.url;
   }
 

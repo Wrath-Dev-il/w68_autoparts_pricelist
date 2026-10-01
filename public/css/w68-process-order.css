@@ -3123,3 +3123,156 @@ dialog.shipment-modal[open] .shipment-card {
         padding: 8px !important;
     }
 }
+
+
+/* =========================================================
+   W68 v137 — iPad viewport-safe Shipment modal sizing
+   W68_PROCESS_DELIVERY_IPAD_VIEWPORT_V137_20261001
+   ========================================================= */
+
+/* Keep the top-layer dialog locked to the actual visible viewport. */
+dialog.shipment-modal[open] {
+    position: fixed !important;
+    top: 0 !important;
+    right: 0 !important;
+    bottom: 0 !important;
+    left: 0 !important;
+    inset: 0 !important;
+
+    width: auto !important;
+    max-width: none !important;
+    height: auto !important;
+    max-height: none !important;
+
+    margin: 0 !important;
+    box-sizing: border-box !important;
+
+    overflow-x: hidden !important;
+    overflow-y: auto !important;
+
+    align-items: flex-start !important;
+    justify-content: center !important;
+
+    padding:
+        max(12px, env(safe-area-inset-top, 0px))
+        max(10px, env(safe-area-inset-right, 0px))
+        max(12px, env(safe-area-inset-bottom, 0px))
+        max(10px, env(safe-area-inset-left, 0px))
+        !important;
+
+    -webkit-overflow-scrolling: touch;
+}
+
+/* The card must size from the dialog viewport, never desktop width. */
+dialog.shipment-modal[open] .shipment-card {
+    width: min(620px, 100%) !important;
+    max-width: 100% !important;
+
+    height: auto !important;
+    max-height: calc(100dvh - 32px) !important;
+
+    margin: auto 0 !important;
+    padding: 18px !important;
+
+    box-sizing: border-box !important;
+    overflow-x: hidden !important;
+    overflow-y: auto !important;
+
+    -webkit-overflow-scrolling: touch;
+}
+
+/* Keep the forwarder list usable even when the iPad is in landscape. */
+dialog.shipment-modal[open] .shipment-options {
+    max-height: min(340px, 42dvh) !important;
+    overflow-y: auto !important;
+    -webkit-overflow-scrolling: touch;
+}
+
+/* Header cannot push the X button off the right edge. */
+dialog.shipment-modal[open] .shipment-card-head {
+    width: 100% !important;
+    min-width: 0 !important;
+    align-items: flex-start !important;
+}
+
+dialog.shipment-modal[open] .shipment-card-head > div {
+    min-width: 0 !important;
+    flex: 1 1 auto !important;
+}
+
+dialog.shipment-modal[open] .shipment-card-head h2,
+dialog.shipment-modal[open] .shipment-card-head p {
+    overflow-wrap: anywhere;
+}
+
+/* iPad / tablet portrait + landscape */
+@media (max-width: 1180px), (pointer: coarse) {
+    dialog.shipment-modal[open] {
+        padding:
+            max(8px, env(safe-area-inset-top, 0px))
+            max(8px, env(safe-area-inset-right, 0px))
+            max(8px, env(safe-area-inset-bottom, 0px))
+            max(8px, env(safe-area-inset-left, 0px))
+            !important;
+    }
+
+    dialog.shipment-modal[open] .shipment-card {
+        width: 100% !important;
+        max-width: 620px !important;
+        max-height: calc(100dvh - 16px) !important;
+        margin: 0 auto !important;
+        padding: 14px !important;
+        border-radius: 14px !important;
+    }
+
+    dialog.shipment-modal[open] .shipment-card-head h2 {
+        font-size: 21px !important;
+    }
+
+    dialog.shipment-modal[open] .shipment-card-head p {
+        font-size: 10px !important;
+    }
+
+    dialog.shipment-modal[open] .shipment-picker {
+        margin-top: 10px !important;
+        padding: 10px !important;
+    }
+
+    dialog.shipment-modal[open] .shipment-options {
+        max-height: 40dvh !important;
+    }
+
+    dialog.shipment-modal[open] .shipment-actions {
+        position: sticky;
+        bottom: 0;
+        z-index: 4;
+        padding-top: 10px;
+        padding-bottom: max(2px, env(safe-area-inset-bottom, 0px));
+        background: #fff;
+    }
+}
+
+/* Smaller iPad split-view / phone widths. */
+@media (max-width: 700px) {
+    dialog.shipment-modal[open] .shipment-card {
+        width: 100% !important;
+        max-height: calc(100dvh - 12px) !important;
+        padding: 12px !important;
+    }
+
+    dialog.shipment-modal[open] .shipment-options {
+        max-height: 36dvh !important;
+    }
+
+    dialog.shipment-modal[open] .shipment-actions {
+        grid-template-columns: 1fr !important;
+    }
+
+    dialog.shipment-modal[open] .shipment-save {
+        order: 1;
+    }
+
+    dialog.shipment-modal[open] .shipment-cancel {
+        order: 2;
+    }
+}

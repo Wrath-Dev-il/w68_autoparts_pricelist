@@ -1789,3 +1789,87 @@ a.view-order-button:visited {
         width: fit-content;
     }
 }
+
+
+/* =========================================================
+   W68 v122 — Keep all 4 dashboard cards on one row
+   ========================================================= */
+.orders-stats {
+    width: 100% !important;
+    min-width: 0 !important;
+    grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
+    gap: 10px !important;
+}
+
+.orders-stats .orders-stat-card {
+    min-width: 0 !important;
+    min-height: 84px !important;
+    padding: 12px 14px !important;
+    gap: 11px !important;
+}
+
+.orders-stat-icon {
+    width: 42px !important;
+    height: 42px !important;
+    flex: 0 0 42px !important;
+}
+
+.orders-stat-icon svg {
+    width: 23px !important;
+    height: 23px !important;
+}
+
+.orders-stats .orders-stat-copy {
+    min-width: 0;
+}
+
+.orders-stats .orders-stat-copy strong {
+    font-size: 21px !important;
+    line-height: 1 !important;
+}
+
+.orders-stats .orders-stat-copy span {
+    font-size: 7px !important;
+    line-height: 1.15 !important;
+    white-space: nowrap;
+    letter-spacing: .45px !important;
+}
+
+@media (min-width: 621px) and (max-width: 1100px) {
+    .orders-stats {
+        grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
+        gap: 7px !important;
+    }
+
+    .orders-stats .orders-stat-card {
+        min-height: 76px !important;
+        padding: 9px 8px !important;
+        gap: 7px !important;
+    }
+
+    .orders-stat-icon {
+        width: 34px !important;
+        height: 34px !important;
+        flex-basis: 34px !important;
+    }
+
+    .orders-stat-icon svg {
+        width: 19px !important;
+        height: 19px !important;
+    }
+
+    .orders-stats .orders-stat-copy strong {
+        font-size: 18px !important;
+    }
+
+    .orders-stats .orders-stat-copy span {
+        font-size: 6px !important;
+        letter-spacing: .2px !important;
+    }
+}
+
+@media (max-width: 620px) {
+    .orders-stats {
+        grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    }
+}

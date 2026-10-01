@@ -569,7 +569,179 @@
             .printer-dot { animation-duration: 1.8s; }
             .scan-ring { animation-duration: 2.4s; }
         }
-    </style>
+    
+
+        /* =====================================================
+           W68 v139 — iPad/Safari printer scan visibility
+           W68_IPAD_PRINTER_RADAR_V139_20261001
+           ===================================================== */
+
+        @media (max-width: 1180px), (pointer: coarse), (hover: none) {
+            .radar-screen {
+                position: fixed;
+                inset: 0;
+                width: 100vw;
+                height: 100vh;
+                height: 100dvh;
+                min-height: 0;
+                overflow-y: auto;
+                -webkit-overflow-scrolling: touch;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                padding:
+                    max(14px, env(safe-area-inset-top, 0px))
+                    max(14px, env(safe-area-inset-right, 0px))
+                    max(14px, env(safe-area-inset-bottom, 0px))
+                    max(14px, env(safe-area-inset-left, 0px));
+            }
+
+            .radar-card {
+                width: min(430px, calc(100vw - 28px));
+                max-width: 100%;
+                margin: auto;
+                gap: 8px;
+            }
+
+            .radar {
+                width: min(320px, 74vw, 48dvh);
+                height: min(320px, 74vw, 48dvh);
+                min-width: 220px;
+                min-height: 220px;
+                aspect-ratio: 1 / 1;
+                flex: 0 0 auto;
+            }
+
+            .sweep {
+                display: block !important;
+                opacity: 1 !important;
+                animation: sweep 3.4s linear infinite !important;
+                -webkit-animation: sweep 3.4s linear infinite !important;
+                will-change: transform;
+                transform: rotate(0deg);
+                -webkit-transform: rotate(0deg);
+            }
+
+            .scan-ring {
+                display: block !important;
+                opacity: 1;
+                animation: scan-ring 1.35s ease-out infinite !important;
+                -webkit-animation: scan-ring 1.35s ease-out infinite !important;
+            }
+
+            .scan-ring.r2 {
+                animation-delay: .45s !important;
+                -webkit-animation-delay: .45s !important;
+            }
+
+            .scan-ring.r3 {
+                animation-delay: .90s !important;
+                -webkit-animation-delay: .90s !important;
+            }
+
+            .printer-dot {
+                display: grid !important;
+                animation: pulse 1s ease-in-out infinite alternate !important;
+                -webkit-animation: pulse 1s ease-in-out infinite alternate !important;
+            }
+
+            .radar-printer {
+                display: grid !important;
+                animation: printer-found 3.6s ease-in-out infinite !important;
+                -webkit-animation: printer-found 3.6s ease-in-out infinite !important;
+            }
+
+            .radar-printer.p1 {
+                animation-delay: .55s !important;
+                -webkit-animation-delay: .55s !important;
+            }
+
+            .radar-printer.p2 {
+                animation-delay: 1.15s !important;
+                -webkit-animation-delay: 1.15s !important;
+            }
+
+            .radar-printer.p3 {
+                animation-delay: 1.75s !important;
+                -webkit-animation-delay: 1.75s !important;
+            }
+
+            .radar-printer.p4 {
+                animation-delay: 2.35s !important;
+                -webkit-animation-delay: 2.35s !important;
+            }
+
+            .radar-card strong {
+                font-size: clamp(15px, 3.8vw, 18px);
+            }
+
+            .radar-card > span {
+                font-size: clamp(10px, 2.8vw, 12px);
+            }
+
+            .radar-result-note {
+                max-width: 390px;
+                font-size: 9px;
+            }
+
+            .open-printer {
+                min-height: 46px;
+                touch-action: manipulation;
+            }
+        }
+
+        /*
+         * The user explicitly needs the W68 scan animation visible on iPad.
+         * Override the older reduced-motion rule for the printer radar only.
+         */
+        @media (prefers-reduced-motion: reduce) and (max-width: 1180px),
+               (prefers-reduced-motion: reduce) and (pointer: coarse),
+               (prefers-reduced-motion: reduce) and (hover: none) {
+            .sweep {
+                animation: sweep 3.4s linear infinite !important;
+                -webkit-animation: sweep 3.4s linear infinite !important;
+            }
+
+            .scan-ring {
+                animation: scan-ring 1.35s ease-out infinite !important;
+                -webkit-animation: scan-ring 1.35s ease-out infinite !important;
+            }
+
+            .printer-dot {
+                animation: pulse 1s ease-in-out infinite alternate !important;
+                -webkit-animation: pulse 1s ease-in-out infinite alternate !important;
+            }
+
+            .radar-printer {
+                animation: printer-found 3.6s ease-in-out infinite !important;
+                -webkit-animation: printer-found 3.6s ease-in-out infinite !important;
+            }
+        }
+
+        @media (orientation: landscape) and (max-height: 700px) {
+            .radar-screen {
+                align-items: flex-start;
+            }
+
+            .radar-card {
+                padding-top: 8px;
+                padding-bottom: 8px;
+            }
+
+            .radar {
+                width: min(270px, 42dvh, 56vw);
+                height: min(270px, 42dvh, 56vw);
+                min-width: 180px;
+                min-height: 180px;
+            }
+        }
+
+        @-webkit-keyframes sweep { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+
+        @-webkit-keyframes scan-ring { 0% { opacity: .65; transform: translate(-50%, -50%) scale(.55); } 100% { opacity: 0; transform: translate(-50%, -50%) scale(3.2); } }
+
+        @-webkit-keyframes pulse { from { transform: translate(-50%, -50%) scale(.94); } to { transform: translate(-50%, -50%) scale(1.04); } }
+</style>
 </head>
 <body>
     <section class="radar-screen" id="printer-radar">

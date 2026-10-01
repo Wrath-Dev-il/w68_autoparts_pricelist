@@ -108,15 +108,12 @@ class PrinterDiscoveryService {
 
       subscription = stream.listen((event) {
         if (event is BonsoirDiscoveryServiceFoundEvent) {
-          final service = event.service;
-          if (service != null) {
-            resolutions.add(
-              _resolveQuietly(
-                service,
-                discovery.serviceResolver,
-              ),
-            );
-          }
+          resolutions.add(
+            _resolveQuietly(
+              event.service,
+              discovery.serviceResolver,
+            ),
+          );
           return;
         }
 
@@ -132,16 +129,13 @@ class PrinterDiscoveryService {
         }
 
         if (event is BonsoirDiscoveryServiceUpdatedEvent) {
-          final service = event.service;
-          if (service != null) {
-            additions.add(
-              _addResolvedService(
-                target,
-                service,
-                type,
-              ),
-            );
-          }
+          additions.add(
+            _addResolvedService(
+              target,
+              event.service,
+              type,
+            ),
+          );
         }
       });
 

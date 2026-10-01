@@ -76,7 +76,7 @@
 
     const activateTab = (name, updateHash = true) => {
         const requested = name === 'received' ? 'invoiced' : name;
-        const valid = ['to-ship', 'invoiced', 'unserved', 'cancelled'].includes(requested) ? requested : 'to-ship';
+        const valid = ['to-ship', 'invoiced', 'bills', 'unserved', 'cancelled'].includes(requested) ? requested : 'to-ship';
         tabs.forEach((tab) => tab.classList.toggle('is-active', tab.dataset.ordersTab === valid));
         panels.forEach((panel) => {
             const active = panel.dataset.ordersPanel === valid;

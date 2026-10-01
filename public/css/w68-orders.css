@@ -110,7 +110,7 @@ button, a { -webkit-tap-highlight-color: transparent; }
 .orders-kicker { color: var(--gold); font-size: 10px; font-weight: 1000; letter-spacing: 1.5px; }
 .orders-hero h1 { margin: 6px 0 5px; font-size: clamp(28px, 4vw, 46px); line-height: 1; color: var(--green); }
 .orders-hero p { margin: 0; max-width: 760px; color: var(--muted); font-size: 13px; line-height: 1.55; }
-.orders-stats { display: grid; grid-template-columns: repeat(3, minmax(105px, 1fr)); gap: 10px; min-width: min(430px, 45%); }
+.orders-stats { display: grid; grid-template-columns: repeat(4, minmax(105px, 1fr)); gap: 10px; min-width: min(570px, 56%); }
 .orders-stats.orders-stats-single { grid-template-columns: minmax(130px, 170px); min-width: 0; justify-content: end; }
 .orders-stats div { padding: 14px; border-radius: 13px; background: var(--green); color: #fff; text-align: center; }
 .orders-stats strong { display: block; color: #ffe358; font-size: 23px; }
@@ -120,7 +120,7 @@ button, a { -webkit-tap-highlight-color: transparent; }
     margin: 18px 0;
     padding: 6px;
     display: grid;
-    grid-template-columns: repeat(4, 1fr);
+    grid-template-columns: repeat(5, 1fr);
     gap: 6px;
     border: 1px solid var(--line);
     border-radius: 14px;
@@ -351,7 +351,7 @@ button, a { -webkit-tap-highlight-color: transparent; }
     .orders-home-button span { display: none; }
     .orders-home-button { width: 43px; padding: 0; justify-content: center; }
     .orders-hero { padding: 16px; }
-    .orders-stats { grid-template-columns: repeat(3, 1fr); gap: 5px; }
+    .orders-stats { grid-template-columns: repeat(2, 1fr); gap: 5px; }
     .orders-stats div { padding: 10px 5px; }
     .orders-stats strong { font-size: 18px; }
     .orders-tabs { grid-template-columns: 1fr; }
@@ -530,8 +530,8 @@ body.orders-cart-open { overflow: hidden; }
 }
 
 .orders-stats {
-    grid-template-columns: repeat(3, minmax(110px, 1fr));
-    min-width: min(470px, 48%);
+    grid-template-columns: repeat(4, minmax(110px, 1fr));
+    min-width: min(600px, 58%);
 }
 
 .orders-stats > div:nth-child(2) {
@@ -812,7 +812,7 @@ a.view-order-button:visited {
    ========================================================= */
 @media (min-width: 621px) and (max-width: 1100px) {
     .orders-tabs {
-        grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
+        grid-template-columns: repeat(5, minmax(0, 1fr)) !important;
         gap: 5px !important;
         padding: 5px !important;
         overflow: hidden;
@@ -1629,4 +1629,163 @@ a.view-order-button:visited {
     appearance: none;
     -webkit-appearance: none;
     cursor: pointer;
+}
+
+
+/* =========================================================
+   W68 v121 — Bills tab: current + upcoming invoice receipts
+   ========================================================= */
+.orders-stat-bills {
+    background: #0b6b50 !important;
+    border: 1px solid rgba(255, 227, 88, .38);
+}
+
+.orders-stat-bills .orders-stat-icon {
+    color: #ffe358;
+}
+
+.bills-panel {
+    gap: 16px !important;
+}
+
+.bills-month-section {
+    display: grid;
+    gap: 9px;
+    padding: 14px;
+    border: 1px solid #dce7e1;
+    border-radius: 15px;
+    background: #f9fcfa;
+}
+
+.bills-current-section {
+    border-top: 4px solid var(--maroon);
+}
+
+.bills-upcoming-section {
+    border-top: 4px solid var(--gold);
+}
+
+.bills-section-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 14px;
+    padding: 2px 2px 8px;
+}
+
+.bills-section-header span {
+    display: block;
+    color: var(--gold);
+    font-size: 8px;
+    font-weight: 1000;
+    letter-spacing: 1px;
+}
+
+.bills-section-header h3 {
+    margin: 2px 0 0;
+    color: var(--green);
+    font-size: 18px;
+}
+
+.bills-section-header > b {
+    padding: 7px 10px;
+    border-radius: 999px;
+    background: var(--green);
+    color: #ffe358;
+    font-size: 8px;
+    font-weight: 1000;
+    letter-spacing: .45px;
+    white-space: nowrap;
+}
+
+.bill-summary-card {
+    border-left-color: var(--green);
+}
+
+.current-bill-card {
+    border-left-color: var(--maroon);
+}
+
+.upcoming-bill-card {
+    border-left-color: var(--gold);
+}
+
+.bill-summary-main {
+    grid-template-columns: 1.15fr 1fr 1fr 1fr 1fr !important;
+}
+
+.bill-due-cell {
+    background: #fff7d7 !important;
+}
+
+.bill-due-cell strong {
+    color: var(--maroon) !important;
+}
+
+.bill-view-button {
+    display: inline-grid;
+    place-items: center;
+    text-decoration: none;
+}
+
+.bills-empty {
+    min-height: 92px;
+    padding: 20px;
+    display: grid;
+    place-items: center;
+    align-content: center;
+    gap: 4px;
+    border: 1px dashed #cbd7d1;
+    border-radius: 11px;
+    background: #fff;
+    text-align: center;
+}
+
+.bills-empty strong {
+    color: var(--green);
+    font-size: 12px;
+}
+
+.bills-empty span {
+    color: var(--muted);
+    font-size: 9px;
+}
+
+@media (max-width: 1100px) {
+    .orders-stats {
+        min-width: 0 !important;
+        width: 100%;
+    }
+
+    .bill-summary-main {
+        grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+    }
+
+    .orders-tabs button {
+        font-size: 8px !important;
+    }
+}
+
+@media (max-width: 720px) {
+    .bill-summary-main {
+        grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    }
+
+    .bills-section-header {
+        align-items: flex-start;
+    }
+}
+
+@media (max-width: 430px) {
+    .bill-summary-main {
+        grid-template-columns: 1fr !important;
+    }
+
+    .bills-section-header {
+        display: grid;
+    }
+
+    .bills-section-header > b {
+        width: fit-content;
+    }
 }

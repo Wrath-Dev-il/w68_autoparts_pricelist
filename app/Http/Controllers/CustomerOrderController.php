@@ -48,6 +48,15 @@ class CustomerOrderController extends Controller
         // listed individually under Invoiced.
         $invoices = $this->portalInvoices($activeOrders);
 
+        // W68_ORDERS_BILLS_V121_20261001
+        // Bills are grouped by DUE DATE, not invoice amount:
+        //   CURRENT  = due date falls in this calendar month
+        //   UPCOMING = due date falls in next calendar month
+        // Per W68 billing convention, the invoice date counts as day 1.
+        // Example: Oct 1 + 30-day terms => Oct 30.
+        [$currentBills, $upcomingBills] = $this->portalBillBuckets($invoices);
+        $billsReceiptCount = $currentBills->count() + $upcomingBills->count();
+
         // Unserved Items is intentionally limited to PARTIAL Sales Notes.
         // OPEN notes are not shown in the Unserved tab.
         $unservedOrders = $this->portalUnservedOrders($activeOrders);
@@ -66,6 +75,9 @@ class CustomerOrderController extends Controller
             'toShip' => $toShip,
             'received' => $received,
             'invoices' => $invoices,
+            'currentBills' => $currentBills,
+            'upcomingBills' => $upcomingBills,
+            'billsReceiptCount' => $billsReceiptCount,
             'unservedOrders' => $unservedOrders,
             'unservedItemsCount' => $unservedItemsCount,
             'cancelled' => $cancelled,
@@ -1116,6 +1128,7 @@ class CustomerOrderController extends Controller
                 'id',
                 'sales_note_id',
                 'invoice_numbers',
+                'terms',
                 'total_amount',
                 'status',
                 'created_at',
@@ -1153,6 +1166,7 @@ class CustomerOrderController extends Controller
                     'sales_number' => (string) ($portalOrder['sales_number'] ?? ''),
                     'invoice_no' => trim((string) ($row->invoice_numbers ?? '')),
                     'invoiced_date' => substr((string) ($row->created_at ?: $row->updated_at), 0, 10),
+                    'terms' => trim((string) ($row->terms ?? '')),
                     'total_amount' => round((float) ($row->total_amount ?? 0), 2),
                     'status' => (string) ($row->status ?? ''),
                     'item_search' => (string) ($itemSearchBySalesOrder[(int) $row->id] ?? ''),
@@ -1160,6 +1174,80 @@ class CustomerOrderController extends Controller
             })
             ->filter()
             ->values();
+    }
+
+    /**
+     * Split invoice receipts into this-month and next-month bills.
+     *
+     * W68 counts the invoice date as day one for numeric terms. Therefore:
+     * invoice 2026-10-01 with 30-day terms is due 2026-10-30.
+     * Terms without a numeric day value (CASH/COD/etc.) are due on invoice date.
+     *
+     * @return array{0: Collection, 1: Collection}
+     */
+    private function portalBillBuckets(Collection $invoices): array
+    {
+        $today = now();
+        $currentMonthStart = $today->copy()->startOfMonth();
+        $currentMonthEnd = $today->copy()->endOfMonth();
+        $nextMonthStart = $today->copy()->addMonthNoOverflow()->startOfMonth();
+        $nextMonthEnd = $nextMonthStart->copy()->endOfMonth();
+
+        $bills = $invoices
+            ->map(function (array $invoice): array {
+                $invoiceDateRaw = trim((string) ($invoice['invoiced_date'] ?? ''));
+                $terms = trim((string) ($invoice['terms'] ?? ''));
+
+                try {
+                    $invoiceDate = $invoiceDateRaw !== ''
+                        ? \Carbon\Carbon::parse($invoiceDateRaw)->startOfDay()
+                        : now()->startOfDay();
+                } catch (Throwable) {
+                    $invoiceDate = now()->startOfDay();
+                }
+
+                $termsDays = 0;
+                if (preg_match('/(\d+)/', $terms, $matches) === 1) {
+                    $termsDays = max(0, (int) ($matches[1] ?? 0));
+                }
+
+                $daysToAdd = $termsDays > 0 ? $termsDays - 1 : 0;
+                $dueDate = $invoiceDate->copy()->addDays($daysToAdd);
+
+                $invoice['terms_days'] = $termsDays;
+                $invoice['due_date'] = $dueDate->format('Y-m-d');
+
+                return $invoice;
+            })
+            ->values();
+
+        $currentBills = $bills
+            ->filter(function (array $invoice) use ($currentMonthStart, $currentMonthEnd): bool {
+                try {
+                    $dueDate = \Carbon\Carbon::parse((string) ($invoice['due_date'] ?? ''))->startOfDay();
+                } catch (Throwable) {
+                    return false;
+                }
+
+                return $dueDate->betweenIncluded($currentMonthStart, $currentMonthEnd);
+            })
+            ->sortBy('due_date')
+            ->values();
+
+        $upcomingBills = $bills
+            ->filter(function (array $invoice) use ($nextMonthStart, $nextMonthEnd): bool {
+                try {
+                    $dueDate = \Carbon\Carbon::parse((string) ($invoice['due_date'] ?? ''))->startOfDay();
+                } catch (Throwable) {
+                    return false;
+                }
+
+                return $dueDate->betweenIncluded($nextMonthStart, $nextMonthEnd);
+            })
+            ->sortBy('due_date')
+            ->values();
+
+        return [$currentBills, $upcomingBills];
     }
 
     /**

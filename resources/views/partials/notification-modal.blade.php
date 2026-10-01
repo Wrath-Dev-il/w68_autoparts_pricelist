@@ -4,9 +4,9 @@
     <section class="w68-notification-card" role="dialog" aria-modal="true" aria-labelledby="w68-notification-title">
         <header class="w68-notification-header">
             <div>
-                <span>ORDER MOVEMENT</span>
+                <span>ACCOUNT UPDATES</span>
                 <h2 id="w68-notification-title">Notifications</h2>
-                <small>Updates from your W68 Sales Notes, waybills, and cancelled orders.</small>
+                <small>Updates from your W68 orders, current bills, due-soon reminders, and statements of account.</small>
             </div>
 
             <div class="w68-notification-header-actions">

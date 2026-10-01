@@ -10,7 +10,7 @@
     <link rel="stylesheet" href="{{ asset('css/w68-notifications.css') }}?v=20260916-v102">
     <script src="{{ asset('js/w68-orders.js') }}?v=20261001-v129" defer></script>
     <script src="{{ asset('js/w68-orders-cart.js') }}?v=20260916-v102" defer></script>
-    <script src="{{ asset('js/w68-notifications.js') }}?v=20260916-v102" defer></script>
+    <script src="{{ asset('js/w68-notifications.js') }}?v=20261001-v131" defer></script>
 </head>
 {{-- W68_ORDERS_UNSERVED_SEARCH_V109_20260930 --}}
 {{-- W68_ORDERS_INVOICE_PARTIAL_UNSERVED_V110_20260930 --}}

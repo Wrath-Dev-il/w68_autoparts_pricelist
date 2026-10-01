@@ -10,7 +10,7 @@
     <link rel="stylesheet" href="{{ asset('css/w68-home.css') }}?v=20260916-v104">
     <link rel="stylesheet" href="{{ asset('css/w68-notifications.css') }}?v=20260915-v95">
     <script src="{{ asset('js/w68-home.js') }}?v=20260916-v104" defer></script>
-    <script src="{{ asset('js/w68-notifications.js') }}?v=20260915-v92" defer></script>
+    <script src="{{ asset('js/w68-notifications.js') }}?v=20261001-v131" defer></script>
 </head>
 <body
     data-search-suggestion-url="{{ rtrim(request()->getSchemeAndHttpHost(), '/') }}{{ preg_replace('#/index\.php$#i', '', rtrim(str_replace('\\', '/', (string) request()->getBaseUrl()), '/')) }}/home/search-suggestions"

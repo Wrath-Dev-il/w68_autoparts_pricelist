@@ -11,7 +11,7 @@
     <link rel="stylesheet" href="{{ asset('css/w68-discounts.css') }}?v=20260915-v72">
     <link rel="stylesheet" href="{{ asset('css/w68-notifications.css') }}?v=20260915-v92">
     <script src="{{ asset('js/w68-discounts.js') }}?v=20260915-v93" defer></script>
-    <script src="{{ asset('js/w68-notifications.js') }}?v=20260915-v92" defer></script>
+    <script src="{{ asset('js/w68-notifications.js') }}?v=20261001-v131" defer></script>
 </head>
 <body
     data-cart-state-url="{{ route('home.cart.state') }}"

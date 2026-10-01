@@ -117,17 +117,21 @@
         });
     }
 
+    function isBillingEvent(type) {
+        return type === 'BILL_CURRENT' || type === 'BILL_DUE_SOON';
+    }
+
     function eventIcon(type) {
         if (type === 'ORDER_CANCELLED') return '×';
         if (type === 'WAYBILL_CREATED') return 'W';
-        if (type === 'SOA_AUTO_SENT') return '₱';
+        if (type === 'SOA_AUTO_SENT' || isBillingEvent(type)) return '₱';
         return '✓';
     }
 
     function eventClass(type) {
         if (type === 'ORDER_CANCELLED') return ' is-cancelled';
         if (type === 'WAYBILL_CREATED') return ' is-waybill';
-        if (type === 'SOA_AUTO_SENT') return ' is-soa';
+        if (type === 'SOA_AUTO_SENT' || isBillingEvent(type)) return ' is-soa';
         return '';
     }
 
@@ -155,6 +159,12 @@
         if (item.event_type === 'SOA_AUTO_SENT') {
             meta.appendChild(make('span', '', 'PAYMENT REMINDER'));
             meta.appendChild(make('span', '', 'STATEMENT OF ACCOUNT'));
+        } else if (item.event_type === 'BILL_CURRENT') {
+            meta.appendChild(make('span', '', 'BILLING'));
+            meta.appendChild(make('span', '', 'CURRENT BILL'));
+        } else if (item.event_type === 'BILL_DUE_SOON') {
+            meta.appendChild(make('span', '', 'PAYMENT REMINDER'));
+            meta.appendChild(make('span', '', 'DUE SOON'));
         } else {
             meta.appendChild(make('span', '', 'ORDER: ' + (item.order_code || ('#' + item.order_id))));
             if (item.sales_number) meta.appendChild(make('span', '', 'SALES NOTE: ' + item.sales_number));
@@ -173,7 +183,8 @@
 
         var actions = make('div', 'w68-notification-actions');
         if (item.order_url) {
-            var view = make('a', 'w68-notification-view', 'VIEW ORDER');
+            var viewLabel = isBillingEvent(item.event_type) ? 'VIEW BILLS' : 'VIEW ORDER';
+            var view = make('a', 'w68-notification-view', viewLabel);
             view.href = normalizeAppUrl(item.order_url);
             actions.appendChild(view);
         }
@@ -224,7 +235,7 @@
         list.innerHTML = '';
 
         if (!items.length) {
-            list.appendChild(make('div', 'w68-notification-empty', 'No Sales Note, waybill, cancelled-order, or payment reminder notifications yet.'));
+            list.appendChild(make('div', 'w68-notification-empty', 'No Sales Note, waybill, cancelled-order, bill, or payment reminder notifications yet.'));
             return;
         }
 

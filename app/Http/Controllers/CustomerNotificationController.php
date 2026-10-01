@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
@@ -36,6 +37,16 @@ class CustomerNotificationController extends Controller
         // stored notifications can still be displayed and marked as read.
         try {
             $this->reconcileOrderNotifications($loginId, $customerId);
+        } catch (Throwable $exception) {
+            report($exception);
+        }
+
+        // W68_PORTAL_BILLING_NOTIFICATIONS_V131_20261001
+        // Current-bill reminders are created from the customer's portal
+        // invoices. Due-soon reminders use the same global SOA(AUTO) lead
+        // configuration saved in W68 Customer Master.
+        try {
+            $this->reconcileBillingNotifications($loginId, $customerId);
         } catch (Throwable $exception) {
             report($exception);
         }
@@ -114,25 +125,36 @@ class CustomerNotificationController extends Controller
                 ->orderByDesc('id')
                 ->limit(80)
                 ->get()
-                ->map(function ($row): array {
+                ->map(function ($row) use ($basePath): array {
+                    $eventType = (string) ($row->event_type ?? 'SOA_AUTO_SENT');
+                    $isCurrentBill = $eventType === 'BILL_CURRENT';
+                    $isDueSoon = $eventType === 'BILL_DUE_SOON';
+                    $isBilling = $isCurrentBill || $isDueSoon;
+
+                    $movement = match (true) {
+                        $isCurrentBill => ['BILLING', 'CURRENT BILL'],
+                        $isDueSoon => ['PAYMENT REMINDER', 'DUE SOON'],
+                        default => ['PAYMENT REMINDER', 'SOA SENT TO EMAIL'],
+                    };
+
                     return [
                         'id' => 'soa:' . (int) $row->id,
                         'source' => 'soa',
                         'order_id' => null,
                         'order_code' => '',
                         'sales_number' => '',
-                        'event_type' => (string) ($row->event_type ?? 'SOA_AUTO_SENT'),
+                        'event_type' => $eventType,
                         'event_value' => '',
                         'title' => (string) ($row->title ?? 'Statement of Account Sent'),
                         'message' => (string) ($row->message ?? ''),
                         'event_at' => $this->formatDateTime($row->event_at ?? $row->created_at ?? null),
                         'is_read' => (bool) ($row->is_read ?? false),
                         'read_at' => $this->formatDateTime($row->read_at ?? null),
-                        'movement' => ['PAYMENT REMINDER', 'SOA SENT TO EMAIL'],
+                        'movement' => $movement,
                         'waybill_no' => '',
                         'portal_status' => '',
                         'sales_note_status' => '',
-                        'order_url' => '',
+                        'order_url' => $isBilling ? ($basePath . '/orders#bills') : '',
                     ];
                 });
         }
@@ -261,6 +283,217 @@ class CustomerNotificationController extends Controller
             'ok' => true,
             'unread_count' => 0,
         ]);
+    }
+
+    /**
+     * Create in-app billing reminders for this linked customer.
+     *
+     * BILL_CURRENT:
+     *   One notification when an invoice due date falls in the current month.
+     *
+     * BILL_DUE_SOON:
+     *   One notification when the invoice enters the global SOA(AUTO) lead
+     *   window configured in W68 Customer Master.
+     *
+     * These events are stored in core4_system_proposal.customer_portal_notifications
+     * so the same notification bell/read-state mechanism handles them.
+     */
+    private function reconcileBillingNotifications(int $loginId, int $customerId): void
+    {
+        $systemSchema = Schema::connection('system');
+        $salesSchema = Schema::connection('sales_order');
+
+        if (
+            !$systemSchema->hasTable('customer_portal_notifications')
+            || !$salesSchema->hasTable('w68_portal_orders')
+            || !$salesSchema->hasTable('sales_orders')
+            || !$salesSchema->hasColumn('sales_orders', 'sales_note_id')
+            || !$salesSchema->hasColumn('sales_orders', 'invoice_numbers')
+        ) {
+            return;
+        }
+
+        $customer = Schema::connection('masterlist')->hasTable('customers')
+            ? DB::connection('masterlist')
+                ->table('customers')
+                ->where('id', $customerId)
+                ->first(['id', 'terms'])
+            : null;
+
+        $customerTerms = trim((string) ($customer->terms ?? ''));
+
+        $columns = [
+            'po.id as portal_order_id',
+            'po.order_code',
+            'po.sales_note_id',
+            'so.id as sales_order_id',
+            'so.invoice_numbers',
+            'so.total_amount',
+            'so.created_at',
+            'so.updated_at',
+        ];
+
+        if ($salesSchema->hasColumn('sales_orders', 'terms')) {
+            $columns[] = 'so.terms';
+        }
+
+        $invoices = DB::connection('sales_order')
+            ->table('w68_portal_orders as po')
+            ->join('sales_orders as so', 'so.sales_note_id', '=', 'po.sales_note_id')
+            ->where('po.login_id', $loginId)
+            ->where('po.customer_id', $customerId)
+            ->whereNotNull('so.invoice_numbers')
+            ->whereRaw("TRIM(COALESCE(so.invoice_numbers, '')) <> ''")
+            ->orderByDesc('so.id')
+            ->get($columns);
+
+        if ($invoices->isEmpty()) {
+            return;
+        }
+
+        $soaConfig = null;
+        if (
+            $systemSchema->hasTable('customer_soa_auto_configs')
+            && $systemSchema->hasColumn('customer_soa_auto_configs', 'config_key')
+        ) {
+            $soaConfig = DB::connection('system')
+                ->table('customer_soa_auto_configs')
+                ->where('config_key', 'global')
+                ->where('enabled', 1)
+                ->first(['enabled', 'lead_value', 'lead_unit']);
+        }
+
+        $leadValue = $soaConfig && $soaConfig->lead_value !== null
+            ? max(1, (int) $soaConfig->lead_value)
+            : null;
+        $leadUnit = $soaConfig
+            ? strtolower(trim((string) ($soaConfig->lead_unit ?? '')))
+            : '';
+
+        if (!in_array($leadUnit, ['minutes', 'days', 'months'], true)) {
+            $leadValue = null;
+            $leadUnit = '';
+        }
+
+        $now = Carbon::now('Asia/Manila');
+        $monthStart = $now->copy()->startOfMonth();
+        $monthEnd = $now->copy()->endOfMonth();
+        $system = DB::connection('system');
+
+        foreach ($invoices as $invoice) {
+            $salesOrderId = (int) ($invoice->sales_order_id ?? 0);
+            $invoiceNo = trim((string) ($invoice->invoice_numbers ?? ''));
+            $amount = round((float) ($invoice->total_amount ?? 0), 2);
+
+            if ($salesOrderId <= 0 || $invoiceNo === '' || $amount <= 0) {
+                continue;
+            }
+
+            $invoiceTerms = property_exists($invoice, 'terms')
+                ? trim((string) ($invoice->terms ?? ''))
+                : '';
+
+            // Per-invoice Terms is authoritative for the portal Bills page.
+            // Older invoices without it fall back to Customer Master Terms.
+            $termDays = $this->parseBillingTermsDays(
+                $invoiceTerms !== '' ? $invoiceTerms : $customerTerms
+            );
+
+            if ($termDays === null) {
+                continue;
+            }
+
+            $invoiceRawDate = $invoice->created_at ?? $invoice->updated_at ?? null;
+            if ($invoiceRawDate === null || trim((string) $invoiceRawDate) === '') {
+                continue;
+            }
+
+            try {
+                $invoiceAt = Carbon::parse($invoiceRawDate, 'Asia/Manila');
+            } catch (Throwable $exception) {
+                continue;
+            }
+
+            // Match the Bills page's inclusive day convention:
+            // invoice date is day 1, so Oct 1 + 30-day terms = Oct 30.
+            $daysToAdd = $termDays > 0 ? $termDays - 1 : 0;
+            $dueAt = $invoiceAt->copy()->addDays($daysToAdd);
+            $dueDateLabel = mb_strtoupper($dueAt->format('F j, Y'));
+            $orderCode = trim((string) ($invoice->order_code ?? ''));
+
+            if ($dueAt->betweenIncluded($monthStart, $monthEnd)) {
+                $eventKey = 'BILL_CURRENT:' . $customerId . ':SO:' . $salesOrderId . ':' . $dueAt->format('Y-m');
+
+                $system->table('customer_portal_notifications')->insertOrIgnore([
+                    'login_id' => $loginId,
+                    'customer_id' => $customerId,
+                    'event_type' => 'BILL_CURRENT',
+                    'event_key' => $eventKey,
+                    'title' => 'Current Bill Available',
+                    'message' => 'You have a current bill for Invoice ' . $invoiceNo
+                        . ($orderCode !== '' ? ' (' . $orderCode . ')' : '')
+                        . '. Due date: ' . $dueDateLabel
+                        . '. Total amount: PHP ' . number_format($amount, 2) . '.',
+                    'event_at' => $now,
+                    'is_read' => 0,
+                    'read_at' => null,
+                    'created_at' => $now,
+                    'updated_at' => $now,
+                ]);
+            }
+
+            if ($leadValue === null || $leadUnit === '') {
+                continue;
+            }
+
+            $sendAt = match ($leadUnit) {
+                'minutes' => $dueAt->copy()->subMinutes($leadValue),
+                'months' => $dueAt->copy()->subMonthsNoOverflow($leadValue),
+                default => $dueAt->copy()->subDays($leadValue),
+            };
+
+            if (!$now->betweenIncluded($sendAt, $dueAt)) {
+                continue;
+            }
+
+            $unitLabel = $leadValue === 1
+                ? rtrim($leadUnit, 's')
+                : $leadUnit;
+
+            $eventKey = 'BILL_DUE_SOON:' . $customerId . ':SO:' . $salesOrderId . ':' . $dueAt->format('Y-m-d');
+
+            $system->table('customer_portal_notifications')->insertOrIgnore([
+                'login_id' => $loginId,
+                'customer_id' => $customerId,
+                'event_type' => 'BILL_DUE_SOON',
+                'event_key' => $eventKey,
+                'title' => 'Payment Due Soon',
+                'message' => 'Invoice ' . $invoiceNo
+                    . ' is due on ' . $dueDateLabel
+                    . '. Your W68 SOA(AUTO) reminder is set to '
+                    . $leadValue . ' ' . $unitLabel
+                    . ' before the end of terms. Amount due: PHP '
+                    . number_format($amount, 2) . '.',
+                'event_at' => $sendAt,
+                'is_read' => 0,
+                'read_at' => null,
+                'created_at' => $now,
+                'updated_at' => $now,
+            ]);
+        }
+    }
+
+    private function parseBillingTermsDays(?string $terms): ?int
+    {
+        $terms = trim((string) $terms);
+
+        if ($terms === '' || preg_match('/(\d+)/', $terms, $matches) !== 1) {
+            return null;
+        }
+
+        $days = (int) ($matches[1] ?? 0);
+
+        return $days > 0 ? $days : null;
     }
 
     private function reconcileOrderNotifications(int $loginId, int $customerId): void

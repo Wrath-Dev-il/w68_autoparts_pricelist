@@ -8,7 +8,7 @@
     <link rel="icon" href="{{ asset('images/sidebar_logo.png') }}">
     <link rel="stylesheet" href="{{ asset('css/w68-orders.css') }}?v=20261001-v122">
     <link rel="stylesheet" href="{{ asset('css/w68-notifications.css') }}?v=20260916-v102">
-    <script src="{{ asset('js/w68-orders.js') }}?v=20261001-v121" defer></script>
+    <script src="{{ asset('js/w68-orders.js') }}?v=20261001-v126" defer></script>
     <script src="{{ asset('js/w68-orders-cart.js') }}?v=20260916-v102" defer></script>
     <script src="{{ asset('js/w68-notifications.js') }}?v=20260916-v102" defer></script>
 </head>
@@ -190,6 +190,7 @@
                         target="_blank"
                     >
                         @csrf
+                        <input type="hidden" name="print_client_mode" value="bridge" data-w68-print-client-mode>
                         <button class="invoice-print-button" type="submit">PRINT</button>
                     </form>
                 </div>

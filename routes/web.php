@@ -123,7 +123,14 @@ Route::middleware(['portal.access', 'auth'])->group(function () {
         ->whereNumber('return')
         ->name('orders.return.view');
 
-    // W68_PRINTER_BRIDGE_REQUIRED_V125_20261001
+    // W68_HYBRID_PRINT_V126_20261001
+    // Desktop/laptop uses the standalone browser print page.
+    // iPad/mobile/tablet uses W68 Printer Bridge.
+    Route::get('/orders/{order}/invoice/{salesOrder}/print', [CustomerOrderController::class, 'printInvoice'])
+        ->whereNumber('order')
+        ->whereNumber('salesOrder')
+        ->name('orders.invoice.print');
+
     Route::post('/orders/{order}/invoice/{salesOrder}/printer-bridge', [CustomerOrderController::class, 'launchPrinterBridge'])
         ->whereNumber('order')
         ->whereNumber('salesOrder')

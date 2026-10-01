@@ -18,7 +18,7 @@
     <title>W68 Autoparts | {{ $returnViewMode ? 'View Return' : ($viewMode ? 'View Order' : 'Process Order') }}</title>
     <link rel="icon" href="{{ asset('images/sidebar_logo.png') }}">
     <link rel="stylesheet" href="{{ asset('css/w68-process-order.css') }}?v=20261001-v115">
-    <script src="{{ asset('js/w68-process-order.js') }}?v=20261001-v112" defer></script>
+    <script src="{{ asset('js/w68-process-order.js') }}?v=20261001-v126" defer></script>
 </head>
 <body
     data-process-url="{{ $viewMode ? '' : route('home.orders.process') }}"
@@ -192,6 +192,7 @@
                                 target="_blank"
                             >
                                 @csrf
+                                <input type="hidden" name="print_client_mode" value="bridge" data-w68-print-client-mode>
                                 <button type="submit" class="process-final-button process-preview-button process-print-link">
                                     PRINT RECEIVED ITEMS
                                 </button>

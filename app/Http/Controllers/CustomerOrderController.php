@@ -305,6 +305,20 @@ class CustomerOrderController extends Controller
 
         [, $loginId, $customerId] = $this->identity($request);
         $this->ensureOrderTables();
+
+        // W68_HYBRID_PRINT_V126_20261001
+        // Client-side detection explicitly tells us whether this is a
+        // computer/laptop or an iPad/mobile/tablet. This avoids treating
+        // modern iPads as Mac desktops when Safari reports a desktop UA.
+        $clientPrintMode = strtolower(trim((string) $request->input('print_client_mode', 'bridge')));
+
+        if ($clientPrintMode === 'browser') {
+            return redirect()->route('orders.invoice.print', [
+                'order' => $order,
+                'salesOrder' => $salesOrder,
+            ]);
+        }
+
         $this->ensurePrinterBridgeJobsTable();
 
         $payload = $this->printerBridgeInvoicePayload($order, $salesOrder, $loginId, $customerId);

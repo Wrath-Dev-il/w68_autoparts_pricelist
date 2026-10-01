@@ -258,7 +258,34 @@
 
             function installerUrl() {
                 if (!install) return '';
-                return (install.getAttribute('data-' + platform()) || '').trim();
+
+                var targetPlatform = platform();
+                var raw = (install.getAttribute('data-' + targetPlatform) || '').trim();
+
+                if (!raw) return '';
+
+                try {
+                    var parsed = new URL(raw, window.location.href);
+
+                    if (parsed.protocol !== 'https:') return '';
+
+                    if (targetPlatform === 'ios') {
+                        var host = parsed.hostname.toLowerCase();
+
+                        // iPad/iPhone installers must be real Apple distribution
+                        // links. Do not send customers to a placeholder/404 URL.
+                        if (
+                            host !== 'apps.apple.com' &&
+                            host !== 'testflight.apple.com'
+                        ) {
+                            return '';
+                        }
+                    }
+
+                    return parsed.href;
+                } catch (error) {
+                    return '';
+                }
             }
 
             function showInstallModal() {
@@ -267,7 +294,7 @@
                 var url = installerUrl();
 
                 if (install) {
-                    install.href = url || '#';
+                    install.href = url || 'javascript:void(0)';
                     install.setAttribute('aria-disabled', url ? 'false' : 'true');
                 }
 
@@ -275,7 +302,7 @@
                     installError.hidden = !!url;
                     installError.textContent = url
                         ? ''
-                        : 'The installer for this device has not been published by W68 yet.';
+                        : 'The W68 Printer Bridge installer for this device has not been published yet. The INSTALL button is disabled so you are not sent to a broken page.';
                 }
 
                 modal.hidden = false;
@@ -340,4 +367,4 @@
 </body>
 </html>
 
-{{-- W68_PRINTER_BRIDGE_REQUIRED_V125_20261001 --}}
+{{-- W68_HYBRID_PRINT_V126_20261001 --}}

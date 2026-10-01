@@ -172,6 +172,70 @@
         .radar-card > span { font-size: 12px; font-weight: 800; color: #dcf4ff; }
         .radar-card small { max-width: 370px; font-size: 10px; line-height: 1.45; color: rgba(235,248,255,.84); }
 
+        .printer-ready-card {
+            width: min(390px, 100%);
+            margin-top: 7px;
+            padding: 12px 14px;
+            display: none;
+            grid-template-columns: 44px minmax(0, 1fr) auto;
+            align-items: center;
+            gap: 11px;
+            border: 1px solid #ffe36e;
+            border-radius: 12px;
+            background: #064e3b;
+            color: #fff;
+            text-align: left;
+            box-shadow: 0 8px 26px rgba(0,0,0,.14);
+        }
+
+        .printer-ready-card.is-ready {
+            display: grid;
+        }
+
+        .printer-ready-icon {
+            width: 44px;
+            height: 44px;
+            display: grid;
+            place-items: center;
+            border-radius: 10px;
+            background: rgba(255,227,110,.12);
+            color: #ffe36e;
+        }
+
+        .printer-ready-icon svg {
+            width: 27px;
+            height: 27px;
+            fill: currentColor;
+        }
+
+        .printer-ready-copy {
+            min-width: 0;
+            display: grid;
+            gap: 2px;
+        }
+
+        .printer-ready-copy strong {
+            color: #ffe36e;
+            font-size: 11px;
+            font-weight: 1000;
+            letter-spacing: .35px;
+        }
+
+        .printer-ready-copy span {
+            color: #fff;
+            font-size: 9px;
+            font-weight: 800;
+            line-height: 1.35;
+        }
+
+        .printer-ready-badge {
+            color: #ffe36e;
+            font-size: 8px;
+            font-weight: 1000;
+            letter-spacing: .7px;
+            white-space: nowrap;
+        }
+
         .open-printer {
             min-width: 180px;
             min-height: 46px;
@@ -184,6 +248,11 @@
             font: 900 11px Arial, sans-serif;
             letter-spacing: .7px;
             cursor: pointer;
+        }
+
+        .open-printer:disabled {
+            opacity: .55;
+            cursor: wait;
         }
 
         .back-link {
@@ -319,10 +388,22 @@
                     <svg viewBox="0 0 24 24"><path d="M7 7V3h10v4M7 17v4h10v-4M6 9h12a3 3 0 0 1 3 3v4h-4v-3H7v3H3v-4a3 3 0 0 1 3-3Zm2 6h8v4H8z"/></svg>
                 </span>
             </div>
-            <strong>FINDING AVAILABLE PRINTERS</strong>
-            <span id="printer-status">Preparing your device printer list…</span>
-            <small>No app is required. Your iPad/iPhone will use AirPrint; computers will use the printers installed in the operating system. W68 does not ask customers to configure printer passwords.</small>
-            <button type="button" class="open-printer" id="open-printer">SHOW AVAILABLE PRINTERS</button>
+            <strong id="radar-title">PREPARING PRINTERS</strong>
+            <span id="printer-status">Checking your device printing service…</span>
+            <small>No app is required. On iPad/iPhone, AirPrint shows the printers the device can use. On computers, the operating system shows installed/available printers.</small>
+
+            <div class="printer-ready-card" id="printer-ready-card" aria-live="polite">
+                <span class="printer-ready-icon" aria-hidden="true">
+                    <svg viewBox="0 0 24 24"><path d="M7 7V3h10v4M7 17v4h10v-4M6 9h12a3 3 0 0 1 3 3v4h-4v-3H7v3H3v-4a3 3 0 0 1 3-3Zm2 6h8v4H8z"/></svg>
+                </span>
+                <span class="printer-ready-copy">
+                    <strong>AIRPRINT / SYSTEM PRINTERS</strong>
+                    <span id="printer-ready-detail">Ready to open your device printer list.</span>
+                </span>
+                <span class="printer-ready-badge">READY</span>
+            </div>
+
+            <button type="button" class="open-printer" id="open-printer" disabled>CHOOSE PRINTER</button>
             <a class="back-link" href="{{ $ordersUrl }}">BACK TO INVOICED</a>
         </div>
     </section>
@@ -467,51 +548,77 @@
         (function () {
             var button = document.getElementById('open-printer');
             var status = document.getElementById('printer-status');
-            var attempted = false;
+            var title = document.getElementById('radar-title');
+            var readyCard = document.getElementById('printer-ready-card');
+            var readyDetail = document.getElementById('printer-ready-detail');
             var isIOS =
                 /iPad|iPhone|iPod/.test(navigator.userAgent) ||
                 (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
 
-            function setReadyText() {
-                if (!status) return;
-                status.textContent = isIOS
-                    ? 'AirPrint will now show the printers available to this iPad/iPhone.'
-                    : 'Your device will now show its available system printers.';
+            function markReady() {
+                if (title) title.textContent = 'PRINTER SERVICE READY';
+
+                if (status) {
+                    status.textContent = isIOS
+                        ? 'Tap CHOOSE PRINTER to open the AirPrint printer list.'
+                        : 'Tap CHOOSE PRINTER to open your system printer list.';
+                }
+
+                if (readyDetail) {
+                    readyDetail.textContent = isIOS
+                        ? 'AirPrint will list the printers this iPad/iPhone can currently use.'
+                        : 'Your operating system will list the printers currently available to this device.';
+                }
+
+                if (readyCard) readyCard.classList.add('is-ready');
+
+                if (button) {
+                    button.disabled = false;
+                    button.removeAttribute('aria-disabled');
+                }
             }
 
-            function openPrinter() {
-                if (attempted && document.visibilityState === 'hidden') return;
-                attempted = true;
-                setReadyText();
+            function openPrinter(event) {
+                if (event) event.preventDefault();
 
+                // This must remain inside the direct user click/tap. Safari and
+                // Chrome intentionally block automatic printing that happens
+                // after a timer or page navigation.
                 try {
                     window.print();
                 } catch (error) {
-                    attempted = false;
                     if (status) {
-                        status.textContent = 'Tap SHOW AVAILABLE PRINTERS to continue.';
+                        status.textContent = 'Unable to open the printer list. Tap CHOOSE PRINTER again.';
                     }
                     console.error('Unable to open native print dialog:', error);
                 }
             }
 
             if (button) {
+                button.setAttribute('aria-disabled', 'true');
+
                 button.addEventListener('click', openPrinter, false);
                 button.addEventListener('touchend', function (event) {
                     event.preventDefault();
-                    openPrinter();
+                    openPrinter(event);
                 }, { passive: false });
             }
 
-            // Give the customer enough time to visibly see the radar sweep,
-            // then open the operating-system printer UI. No native W68 app,
-            // custom URL scheme, or customer setup is required.
+            window.addEventListener('afterprint', function () {
+                if (status) {
+                    status.textContent = 'Printer window closed. Tap CHOOSE PRINTER to print again.';
+                }
+            }, false);
+
+            // Radar is visual preparation only. Browser security does not expose
+            // real printer names to page JavaScript. The real list is shown by
+            // AirPrint / Windows / macOS after the customer taps CHOOSE PRINTER.
             window.addEventListener('load', function () {
-                window.setTimeout(openPrinter, 1400);
+                window.setTimeout(markReady, 1400);
             }, false);
         })();
     </script>
 </body>
 </html>
 
-{{-- W68_ZERO_INSTALL_PRINT_V119_20261001 --}}
+{{-- W68_ZERO_INSTALL_PRINT_V120_20261001 --}}

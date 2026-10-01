@@ -111,8 +111,13 @@
         }
 
         .button[aria-disabled="true"] {
-            opacity: 1;
+            opacity: .72;
             cursor: pointer;
+        }
+
+        .button.bridge-locked {
+            background: transparent;
+            color: #ffe36e;
         }
 
         .expiry { color: #b9d9cd; font-size: 9px; }
@@ -202,10 +207,17 @@
         </p>
 
         <div class="actions">
-            <a class="button" id="open-bridge" href="{{ $deepLink }}">OPEN W68 PRINTER BRIDGE</a>
+            <button
+                class="button bridge-locked"
+                type="button"
+                id="open-bridge"
+                data-deep-link="{{ $deepLink }}"
+                aria-disabled="true"
+            >OPEN W68 PRINTER BRIDGE</button>
             <button class="button secondary" type="button" id="show-install">INSTALL PRINTER BRIDGE</button>
         </div>
 
+        <div class="install-error" id="page-install-status" hidden></div>
         <div class="expiry">Secure print job expires {{ $expiresAt->format('Y-m-d H:i:s') }}.</div>
     </main>
 
@@ -243,6 +255,7 @@
             var install = document.getElementById('install-bridge');
             var alreadyInstalled = document.getElementById('already-installed');
             var installError = document.getElementById('install-error');
+            var pageInstallStatus = document.getElementById('page-install-status');
 
             function platform() {
                 var ua = navigator.userAgent || '';
@@ -272,8 +285,6 @@
                     if (targetPlatform === 'ios') {
                         var host = parsed.hostname.toLowerCase();
 
-                        // iPad/iPhone installers must be real Apple distribution
-                        // links. Do not send customers to a placeholder/404 URL.
                         if (
                             host !== 'apps.apple.com' &&
                             host !== 'testflight.apple.com'
@@ -288,19 +299,75 @@
                 }
             }
 
+            function hasPublishedInstaller() {
+                return installerUrl() !== '';
+            }
+
+            function isConfirmedInstalled() {
+                try {
+                    return localStorage.getItem('w68PrinterBridgeInstalled') === '1';
+                } catch (error) {
+                    return false;
+                }
+            }
+
+            function setConfirmedInstalled(value) {
+                try {
+                    if (value) {
+                        localStorage.setItem('w68PrinterBridgeInstalled', '1');
+                    } else {
+                        localStorage.removeItem('w68PrinterBridgeInstalled');
+                    }
+                } catch (error) {}
+            }
+
+            function setBridgeLocked(locked) {
+                if (!openBridge) return;
+
+                openBridge.setAttribute('aria-disabled', locked ? 'true' : 'false');
+                openBridge.classList.toggle('bridge-locked', locked);
+            }
+
+            function showNoInstallerMessage() {
+                var message =
+                    'W68 Printer Bridge for iPad has not been published to TestFlight/App Store yet. Safari will not open the W68 bridge until a valid Apple installer is configured.';
+
+                if (installError) {
+                    installError.hidden = false;
+                    installError.textContent = message;
+                }
+
+                if (pageInstallStatus) {
+                    pageInstallStatus.hidden = false;
+                    pageInstallStatus.textContent = message;
+                }
+            }
+
+            function clearMessages() {
+                if (installError) {
+                    installError.hidden = true;
+                    installError.textContent = '';
+                }
+
+                if (pageInstallStatus) {
+                    pageInstallStatus.hidden = true;
+                    pageInstallStatus.textContent = '';
+                }
+            }
+
             function showInstallModal() {
                 if (!modal) return;
 
                 var url = installerUrl();
+                clearMessages();
 
                 if (install) {
                     install.href = url || '#';
                     install.setAttribute('aria-disabled', 'false');
                 }
 
-                if (installError) {
-                    installError.hidden = true;
-                    installError.textContent = '';
+                if (!url) {
+                    showNoInstallerMessage();
                 }
 
                 modal.hidden = false;
@@ -313,8 +380,34 @@
                 modal.setAttribute('aria-hidden', 'true');
             }
 
+            function refreshBridgeState() {
+                var targetPlatform = platform();
+                var published = hasPublishedInstaller();
+                var confirmed = isConfirmedInstalled();
+
+                // Clear stale flags left by earlier W68 versions. Without a
+                // published Apple installer, an iPad must never attempt the
+                // w68print:// scheme because Safari reports an invalid address
+                // when the native app is absent.
+                if (targetPlatform === 'ios' && !published) {
+                    setConfirmedInstalled(false);
+                    confirmed = false;
+                    setBridgeLocked(true);
+                    showNoInstallerMessage();
+                    return;
+                }
+
+                setBridgeLocked(!confirmed);
+
+                if (!confirmed) {
+                    window.setTimeout(showInstallModal, 180);
+                }
+            }
+
             if (showInstall) {
-                showInstall.addEventListener('click', showInstallModal, false);
+                showInstall.addEventListener('click', function () {
+                    showInstallModal();
+                }, false);
             }
 
             if (install) {
@@ -323,13 +416,7 @@
 
                     if (!url) {
                         event.preventDefault();
-
-                        if (installError) {
-                            installError.hidden = false;
-                            installError.textContent =
-                                'W68 Printer Bridge for iPad is not published in TestFlight/App Store yet. A real Apple installer link must be added before iPadOS can install it.';
-                        }
-
+                        showNoInstallerMessage();
                         return;
                     }
 
@@ -341,34 +428,46 @@
 
             if (alreadyInstalled) {
                 alreadyInstalled.addEventListener('click', function () {
-                    try {
-                        localStorage.setItem('w68PrinterBridgeInstalled', '1');
-                    } catch (error) {}
+                    if (platform() === 'ios' && !hasPublishedInstaller()) {
+                        setConfirmedInstalled(false);
+                        setBridgeLocked(true);
+                        showNoInstallerMessage();
+                        return;
+                    }
 
+                    setConfirmedInstalled(true);
+                    setBridgeLocked(false);
                     hideInstallModal();
+                    clearMessages();
                 }, false);
             }
 
             if (openBridge) {
-                openBridge.addEventListener('click', function () {
-                    try {
-                        localStorage.setItem('w68PrinterBridgeInstalled', '1');
-                    } catch (error) {}
+                openBridge.addEventListener('click', function (event) {
+                    event.preventDefault();
+
+                    if (openBridge.getAttribute('aria-disabled') === 'true') {
+                        showInstallModal();
+                        return;
+                    }
+
+                    var deepLink = (openBridge.getAttribute('data-deep-link') || '').trim();
+
+                    if (!deepLink) {
+                        showInstallModal();
+                        return;
+                    }
+
+                    // Only navigate after the user has explicitly confirmed
+                    // installation and W68 has a published installer path.
+                    window.location.href = deepLink;
                 }, false);
             }
 
-            var remembered = false;
-
-            try {
-                remembered = localStorage.getItem('w68PrinterBridgeInstalled') === '1';
-            } catch (error) {}
-
-            if (!remembered) {
-                window.setTimeout(showInstallModal, 250);
-            }
+            refreshBridgeState();
         })();
     </script>
 </body>
 </html>
 
-{{-- W68_HYBRID_PRINT_V127_20261001 --}}
+{{-- W68_IPAD_BRIDGE_GUARD_V128_20261001 --}}

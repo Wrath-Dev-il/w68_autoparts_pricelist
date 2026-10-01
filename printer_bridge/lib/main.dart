@@ -48,7 +48,6 @@ class PrinterBridgeHome extends StatefulWidget {
 class _PrinterBridgeHomeState extends State<PrinterBridgeHome>
     with SingleTickerProviderStateMixin {
   static const green = Color(0xFF064E3B);
-  static const greenDark = Color(0xFF043F31);
   static const gold = Color(0xFFFFE36E);
   static const maroon = Color(0xFF76051D);
 
@@ -71,9 +70,10 @@ class _PrinterBridgeHomeState extends State<PrinterBridgeHome>
   @override
   void initState() {
     super.initState();
+
     radarController = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 1150),
+      duration: const Duration(milliseconds: 3400),
     )..repeat();
 
     _initializeLinks();
@@ -85,12 +85,14 @@ class _PrinterBridgeHomeState extends State<PrinterBridgeHome>
       final initial = await appLinks.getInitialLink();
       if (initial != null) await _handleLink(initial);
     } catch (e) {
-      _setError('Unable to read initial print link: $e');
+      _setError('Unable to read the W68 print request: $e');
     }
 
     linkSubscription = appLinks.uriLinkStream.listen(
       _handleLink,
-      onError: (Object e) => _setError('Unable to read W68 print link: $e'),
+      onError: (Object e) {
+        _setError('Unable to read the W68 print request: $e');
+      },
     );
   }
 
@@ -102,8 +104,9 @@ class _PrinterBridgeHomeState extends State<PrinterBridgeHome>
 
     final rawUrl = uri.queryParameters['url'];
     final jobUri = rawUrl == null ? null : Uri.tryParse(rawUrl);
+
     if (jobUri == null) {
-      _setError('The W68 print link is missing a valid job URL.');
+      _setError('The W68 print request is invalid.');
       return;
     }
 
@@ -116,11 +119,13 @@ class _PrinterBridgeHomeState extends State<PrinterBridgeHome>
     try {
       final loaded = await jobClient.fetch(jobUri);
       if (!mounted) return;
+
       setState(() {
         job = loaded;
         loadingJob = false;
-        status = 'Scanning for connected printers…';
+        status = 'Scanning for available printers…';
       });
+
       await _scanPrinters();
     } catch (e) {
       if (!mounted) return;
@@ -131,105 +136,455 @@ class _PrinterBridgeHomeState extends State<PrinterBridgeHome>
 
   Future<void> _scanPrinters() async {
     if (scanning) return;
+
+    final previousSelection = selectedPrinterKey;
+
     setState(() {
       scanning = true;
       error = null;
-      status = 'Scanning system + Wi-Fi printers…';
+      status = 'Scanning printers within the local network…';
     });
 
     try {
       final found = await discovery.discover();
       if (!mounted) return;
+
+      final available = found.where((printer) => printer.connected).toList();
+      String? nextSelection;
+
+      if (available.isNotEmpty) {
+        final previousMatches = available
+            .where((printer) => printer.key == previousSelection)
+            .toList();
+
+        if (previousMatches.isNotEmpty) {
+          nextSelection = previousMatches.first.key;
+        } else {
+          final defaults =
+              available.where((printer) => printer.isDefault).toList();
+          nextSelection =
+              defaults.isNotEmpty ? defaults.first.key : available.first.key;
+        }
+      }
+
+      final selected = _selectedPrinterFrom(available, nextSelection);
+
       setState(() {
-        printers = found;
+        printers = available;
+        selectedPrinterKey = nextSelection;
         scanning = false;
-        status = found.isEmpty
-            ? 'No printers found yet. Try the native printer picker.'
-            : '${found.length} printer${found.length == 1 ? '' : 's'} found';
+
+        if (available.isEmpty) {
+          status = 'NO PRINTER AVAILABLE WITHIN RANGE / NETWORK';
+        } else if (available.length == 1) {
+          status = '${available.first.displayName} selected automatically.';
+        } else {
+          status =
+              '${available.length} printers found. ${selected?.displayName ?? available.first.displayName} selected.';
+        }
       });
     } catch (e) {
       if (!mounted) return;
-      setState(() => scanning = false);
+
+      setState(() {
+        printers = const [];
+        selectedPrinterKey = null;
+        scanning = false;
+      });
+
       _setError('Printer scan failed: $e');
     }
   }
 
-  Future<void> _printTo(BridgePrinter target) async {
+  BridgePrinter? _selectedPrinterFrom(
+    List<BridgePrinter> source,
+    String? key,
+  ) {
+    if (key == null) return null;
+
+    for (final printer in source) {
+      if (printer.key == key) return printer;
+    }
+
+    return null;
+  }
+
+  BridgePrinter? get selectedPrinter =>
+      _selectedPrinterFrom(printers, selectedPrinterKey);
+
+  Future<void> _openReceiptDialog() async {
     final currentJob = job;
-    if (currentJob == null || printing) return;
+    final target = selectedPrinter;
+
+    if (currentJob == null || target == null || printing) return;
+
+    var copies = 1;
+    final controller = TextEditingController(text: '1');
+
+    await showDialog<void>(
+      context: context,
+      barrierDismissible: !printing,
+      builder: (dialogContext) {
+        return StatefulBuilder(
+          builder: (dialogContext, setDialogState) {
+            void updateCopies(int next) {
+              copies = next.clamp(1, 20);
+              controller.text = copies.toString();
+              controller.selection = TextSelection.collapsed(
+                offset: controller.text.length,
+              );
+              setDialogState(() {});
+            }
+
+            return Dialog(
+              insetPadding: const EdgeInsets.all(12),
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(
+                  maxWidth: 1050,
+                  maxHeight: 850,
+                ),
+                child: Column(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.fromLTRB(16, 12, 10, 12),
+                      color: green,
+                      child: Row(
+                        children: [
+                          const Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  'PRINT RECEIPT',
+                                  style: TextStyle(
+                                    color: gold,
+                                    fontSize: 17,
+                                    fontWeight: FontWeight.w900,
+                                  ),
+                                ),
+                                SizedBox(height: 2),
+                                Text(
+                                  'A4 PORTRAIT • 10 MM W68 DOCUMENT MARGINS',
+                                  style: TextStyle(
+                                    color: Color(0xFFD8EEE6),
+                                    fontSize: 9,
+                                    fontWeight: FontWeight.w800,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          IconButton(
+                            onPressed: printing
+                                ? null
+                                : () => Navigator.of(dialogContext).pop(),
+                            color: gold,
+                            icon: const Icon(Icons.close),
+                          ),
+                        ],
+                      ),
+                    ),
+                    Expanded(
+                      child: LayoutBuilder(
+                        builder: (context, constraints) {
+                          final compact = constraints.maxWidth < 720;
+
+                          final controls = _receiptControls(
+                            target: target,
+                            copies: copies,
+                            controller: controller,
+                            onMinus: () => updateCopies(copies - 1),
+                            onPlus: () => updateCopies(copies + 1),
+                            onChanged: (value) {
+                              final parsed = int.tryParse(value) ?? 1;
+                              updateCopies(parsed);
+                            },
+                          );
+
+                          final preview = Container(
+                            color: const Color(0xFFE8EEEB),
+                            padding: const EdgeInsets.all(8),
+                            child: PdfPreview(
+                              key: ValueKey<int>(copies),
+                              build: (_) => ReceiptPdf.build(
+                                currentJob,
+                                PdfPageFormat.a4,
+                                copies: copies,
+                              ),
+                              initialPageFormat: PdfPageFormat.a4,
+                              canChangePageFormat: false,
+                              canChangeOrientation: false,
+                              canDebug: false,
+                              allowPrinting: false,
+                              allowSharing: false,
+                              pdfFileName:
+                                  'W68-Invoice-${currentJob.invoiceNo}.pdf',
+                            ),
+                          );
+
+                          if (compact) {
+                            return Column(
+                              children: [
+                                controls,
+                                const Divider(height: 1),
+                                Expanded(child: preview),
+                              ],
+                            );
+                          }
+
+                          return Row(
+                            children: [
+                              SizedBox(width: 270, child: controls),
+                              const VerticalDivider(width: 1),
+                              Expanded(child: preview),
+                            ],
+                          );
+                        },
+                      ),
+                    ),
+                    Container(
+                      padding: const EdgeInsets.all(12),
+                      decoration: const BoxDecoration(
+                        border: Border(
+                          top: BorderSide(color: Color(0xFFD8E2DD)),
+                        ),
+                      ),
+                      child: Row(
+                        children: [
+                          Expanded(
+                            child: Text(
+                              'Selected printer: ${target.displayName}',
+                              style: const TextStyle(
+                                color: green,
+                                fontSize: 10,
+                                fontWeight: FontWeight.w800,
+                              ),
+                            ),
+                          ),
+                          FilledButton.icon(
+                            onPressed: printing
+                                ? null
+                                : () async {
+                                    final sent = await _directPrint(
+                                      target,
+                                      copies,
+                                    );
+
+                                    if (!dialogContext.mounted) return;
+                                    if (sent) Navigator.of(dialogContext).pop();
+                                  },
+                            style: FilledButton.styleFrom(
+                              backgroundColor: green,
+                              foregroundColor: gold,
+                              minimumSize: const Size(140, 46),
+                            ),
+                            icon: const Icon(Icons.print),
+                            label: Text(
+                              printing ? 'PRINTING…' : 'PRINT',
+                              style: const TextStyle(
+                                fontWeight: FontWeight.w900,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            );
+          },
+        );
+      },
+    );
+
+    controller.dispose();
+  }
+
+  Widget _receiptControls({
+    required BridgePrinter target,
+    required int copies,
+    required TextEditingController controller,
+    required VoidCallback onMinus,
+    required VoidCallback onPlus,
+    required ValueChanged<String> onChanged,
+  }) {
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(13),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          _settingCard('SELECTED PRINTER', target.displayName),
+          const SizedBox(height: 9),
+          _settingCard('PAPER SIZE', 'A4 PORTRAIT'),
+          const SizedBox(height: 9),
+          _settingCard('DOCUMENT MARGINS', '10 MM W68 LAYOUT'),
+          const SizedBox(height: 9),
+          Container(
+            padding: const EdgeInsets.all(11),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(10),
+              border: Border.all(color: const Color(0xFFD8E2DD)),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  'COPIES',
+                  style: TextStyle(
+                    color: Color(0xFF6E7D75),
+                    fontSize: 8,
+                    fontWeight: FontWeight.w900,
+                    letterSpacing: .7,
+                  ),
+                ),
+                const SizedBox(height: 7),
+                Row(
+                  children: [
+                    IconButton.filled(
+                      onPressed: copies > 1 ? onMinus : null,
+                      style: IconButton.styleFrom(
+                        backgroundColor: green,
+                        foregroundColor: gold,
+                      ),
+                      icon: const Icon(Icons.remove),
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: TextField(
+                        controller: controller,
+                        keyboardType: TextInputType.number,
+                        textAlign: TextAlign.center,
+                        onChanged: onChanged,
+                        decoration: const InputDecoration(
+                          isDense: true,
+                          border: OutlineInputBorder(),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    IconButton.filled(
+                      onPressed: copies < 20 ? onPlus : null,
+                      style: IconButton.styleFrom(
+                        backgroundColor: green,
+                        foregroundColor: gold,
+                      ),
+                      icon: const Icon(Icons.add),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 10),
+          const Text(
+            'The preview shows the complete A4 receipt. Multiple pages/copies can be scrolled inside the preview.',
+            style: TextStyle(
+              color: Color(0xFF6E7D75),
+              fontSize: 9,
+              height: 1.4,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _settingCard(String label, String value) {
+    return Container(
+      padding: const EdgeInsets.all(11),
+      decoration: BoxDecoration(
+        color: green,
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: const Color(0x55FFE36E)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            label,
+            style: const TextStyle(
+              color: Color(0xFFBFE4D8),
+              fontSize: 8,
+              fontWeight: FontWeight.w900,
+              letterSpacing: .7,
+            ),
+          ),
+          const SizedBox(height: 3),
+          Text(
+            value,
+            style: const TextStyle(
+              color: gold,
+              fontSize: 11,
+              fontWeight: FontWeight.w900,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<bool> _directPrint(
+    BridgePrinter target,
+    int copies,
+  ) async {
+    final currentJob = job;
+    if (currentJob == null || printing) return false;
 
     setState(() {
       printing = true;
-      selectedPrinterKey = target.key;
       error = null;
-      status = 'Sending invoice ${currentJob.invoiceNo} to ${target.displayName}…';
+      status = 'Printing ${currentJob.invoiceNo} to ${target.displayName}…';
     });
 
     try {
-      final bytes = await ReceiptPdf.build(currentJob, PdfPageFormat.a4);
-      var sent = false;
+      final bytes = await ReceiptPdf.build(
+        currentJob,
+        PdfPageFormat.a4,
+        copies: copies,
+      );
 
-      try {
-        sent = await Printing.directPrintPdf(
-          printer: target.printer,
-          name: 'W68 Invoice ${currentJob.invoiceNo}',
-          format: PdfPageFormat.a4,
-          usePrinterSettings: true,
-          onLayout: (_) async => bytes,
-        );
-      } catch (_) {
-        sent = false;
-      }
+      final sent = await Printing.directPrintPdf(
+        printer: target.printer,
+        name: 'W68 Invoice ${currentJob.invoiceNo}',
+        format: PdfPageFormat.a4,
+        usePrinterSettings: false,
+        onLayout: (_) async => bytes,
+      );
 
-      if (!sent) {
-        sent = await Printing.layoutPdf(
-          name: 'W68 Invoice ${currentJob.invoiceNo}',
-          format: PdfPageFormat.a4,
-          usePrinterSettings: true,
-          onLayout: (_) async => bytes,
-        );
-      }
+      if (!mounted) return sent;
 
-      if (!mounted) return;
       setState(() {
         printing = false;
-        status = sent ? 'Print job sent.' : 'Print was cancelled.';
+        status = sent
+            ? 'Print job sent to ${target.displayName}.'
+            : 'The printer did not accept the W68 print job.';
       });
+
+      if (!sent) {
+        _setError(
+          'Direct printing failed for ${target.displayName}. '
+          'Check that the printer is online and reachable, then scan again.',
+        );
+      }
+
+      return sent;
     } catch (e) {
-      if (!mounted) return;
+      if (!mounted) return false;
       setState(() => printing = false);
-      _setError('Unable to print: $e');
-    }
-  }
-
-  Future<void> _nativePicker() async {
-    final currentJob = job;
-    if (currentJob == null || printing) return;
-
-    try {
-      final picked = await Printing.pickPrinter(
-        context: context,
-        title: 'Choose W68 Printer',
-      );
-      if (picked == null || !mounted) return;
-
-      await _printTo(
-        BridgePrinter(
-          printer: picked,
-          source: 'NATIVE PICKER',
-          reachable: picked.isAvailable,
-        ),
-      );
-    } catch (e) {
-      _setError('Native printer picker is unavailable: $e');
+      _setError('Unable to print directly to ${target.displayName}: $e');
+      return false;
     }
   }
 
   void _setError(String message) {
     if (!mounted) return;
+
     setState(() {
       error = message;
-      status = 'Printer bridge needs attention.';
+      status = 'Printer Bridge needs attention.';
     });
   }
 
@@ -243,6 +598,9 @@ class _PrinterBridgeHomeState extends State<PrinterBridgeHome>
   @override
   Widget build(BuildContext context) {
     final currentJob = job;
+    final target = selectedPrinter;
+    final canPrint =
+        currentJob != null && target != null && !scanning && !printing;
 
     return Scaffold(
       appBar: AppBar(
@@ -254,7 +612,10 @@ class _PrinterBridgeHomeState extends State<PrinterBridgeHome>
           children: [
             Text(
               'W68 PRINTER BRIDGE',
-              style: TextStyle(fontSize: 16, fontWeight: FontWeight.w900),
+              style: TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.w900,
+              ),
             ),
             Text(
               'REAL PRINTER DISCOVERY',
@@ -283,52 +644,13 @@ class _PrinterBridgeHomeState extends State<PrinterBridgeHome>
             children: [
               _jobCard(currentJob),
               const SizedBox(height: 14),
-              Center(
-                child: SizedBox(
-                  width: 270,
-                  height: 270,
-                  child: AnimatedBuilder(
-                    animation: radarController,
-                    builder: (context, child) => CustomPaint(
-                      painter: RadarPainter(
-                        progress: radarController.value,
-                        connectedCount:
-                            printers.where((p) => p.connected).length,
-                        scanning: scanning,
-                      ),
-                      child: Center(
-                        child: Container(
-                          width: 66,
-                          height: 66,
-                          decoration: BoxDecoration(
-                            color: green,
-                            shape: BoxShape.circle,
-                            border: Border.all(color: gold, width: 3),
-                            boxShadow: const [
-                              BoxShadow(
-                                color: Color(0x33D8AD16),
-                                blurRadius: 22,
-                                spreadRadius: 4,
-                              ),
-                            ],
-                          ),
-                          child: const Icon(
-                            Icons.print,
-                            color: gold,
-                            size: 32,
-                          ),
-                        ),
-                      ),
-                    ),
-                  ),
-                ),
-              ),
+              _radar(),
               const SizedBox(height: 10),
               Text(
                 status,
                 textAlign: TextAlign.center,
-                style: const TextStyle(
-                  color: green,
+                style: TextStyle(
+                  color: printers.isEmpty && !scanning ? maroon : green,
                   fontSize: 11,
                   fontWeight: FontWeight.w900,
                 ),
@@ -338,33 +660,14 @@ class _PrinterBridgeHomeState extends State<PrinterBridgeHome>
                 _errorBox(error!),
               ],
               const SizedBox(height: 14),
-              Row(
-                children: [
-                  Expanded(
-                    child: OutlinedButton.icon(
-                      onPressed: scanning ? null : _scanPrinters,
-                      icon: const Icon(Icons.radar),
-                      label: const Text('SCAN AGAIN'),
-                    ),
-                  ),
-                  const SizedBox(width: 10),
-                  Expanded(
-                    child: FilledButton.icon(
-                      onPressed:
-                          currentJob == null || printing ? null : _nativePicker,
-                      style: FilledButton.styleFrom(
-                        backgroundColor: green,
-                        foregroundColor: gold,
-                      ),
-                      icon: const Icon(Icons.print),
-                      label: const Text('NATIVE PICKER'),
-                    ),
-                  ),
-                ],
+              OutlinedButton.icon(
+                onPressed: scanning ? null : _scanPrinters,
+                icon: const Icon(Icons.radar),
+                label: Text(scanning ? 'SCANNING…' : 'SCAN AGAIN'),
               ),
               const SizedBox(height: 18),
               const Text(
-                'PRINTERS',
+                'AVAILABLE PRINTERS',
                 style: TextStyle(
                   color: green,
                   fontSize: 11,
@@ -375,6 +678,43 @@ class _PrinterBridgeHomeState extends State<PrinterBridgeHome>
               const SizedBox(height: 8),
               if (printers.isEmpty) _emptyPrinters(),
               ...printers.map(_printerCard),
+              const SizedBox(height: 14),
+              Container(
+                padding: const EdgeInsets.all(11),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFFFF8DC),
+                  borderRadius: BorderRadius.circular(10),
+                  border: Border.all(color: const Color(0xFFE8D98F)),
+                ),
+                child: const Text(
+                  'RECEIPT FORMAT: A4 PORTRAIT • 10 MM W68 DOCUMENT MARGINS',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    color: green,
+                    fontSize: 9,
+                    fontWeight: FontWeight.w900,
+                  ),
+                ),
+              ),
+              const SizedBox(height: 10),
+              FilledButton.icon(
+                onPressed: canPrint ? _openReceiptDialog : null,
+                style: FilledButton.styleFrom(
+                  backgroundColor: green,
+                  foregroundColor: gold,
+                  minimumSize: const Size.fromHeight(50),
+                ),
+                icon: const Icon(Icons.receipt_long),
+                label: Text(
+                  printers.isEmpty
+                      ? 'NO PRINTER AVAILABLE'
+                      : 'PRINT RECEIPT',
+                  style: const TextStyle(
+                    fontWeight: FontWeight.w900,
+                    letterSpacing: .5,
+                  ),
+                ),
+              ),
             ],
           ),
         ),
@@ -382,147 +722,261 @@ class _PrinterBridgeHomeState extends State<PrinterBridgeHome>
     );
   }
 
-  Widget _jobCard(W68PrintJob? currentJob) => Container(
-        padding: const EdgeInsets.all(14),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(14),
-          border: Border.all(color: const Color(0xFFDCE6E1)),
-        ),
-        child: currentJob == null
-            ? Row(
-                children: [
-                  const Icon(Icons.receipt_long, color: green),
-                  const SizedBox(width: 10),
-                  Expanded(
-                    child: Text(
-                      loadingJob
-                          ? 'Loading W68 invoice…'
-                          : 'Open an invoice in W68 and press PRINT.',
-                      style: const TextStyle(
-                        color: green,
-                        fontWeight: FontWeight.w800,
-                      ),
+  Widget _radar() {
+    const positions = <Alignment>[
+      Alignment(-.64, -.55),
+      Alignment(.66, -.54),
+      Alignment(.72, .52),
+      Alignment(-.60, .58),
+      Alignment(0, -.78),
+      Alignment(.02, .78),
+    ];
+
+    return Center(
+      child: SizedBox(
+        width: 280,
+        height: 280,
+        child: Stack(
+          alignment: Alignment.center,
+          children: [
+            Positioned.fill(
+              child: AnimatedBuilder(
+                animation: radarController,
+                builder: (context, child) => CustomPaint(
+                  painter: RadarPainter(
+                    progress: radarController.value,
+                    printerCount: printers.length,
+                    scanning: scanning,
+                  ),
+                ),
+              ),
+            ),
+            for (var index = 0;
+                index < printers.length.clamp(0, positions.length);
+                index++)
+              Align(
+                alignment: positions[index],
+                child: Container(
+                  width: 38,
+                  height: 38,
+                  decoration: BoxDecoration(
+                    color: printers[index].key == selectedPrinterKey
+                        ? green
+                        : Colors.white,
+                    shape: BoxShape.circle,
+                    border: Border.all(
+                      color: printers[index].key == selectedPrinterKey
+                          ? gold
+                          : green,
+                      width: 2,
                     ),
                   ),
-                ],
-              )
-            : Row(
-                children: [
-                  const Icon(Icons.receipt_long, color: maroon),
-                  const SizedBox(width: 10),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          'INVOICE ${currentJob.invoiceNo}',
-                          style: const TextStyle(
-                            color: green,
-                            fontSize: 14,
-                            fontWeight: FontWeight.w900,
-                          ),
-                        ),
-                        const SizedBox(height: 2),
-                        Text(
-                          '${currentJob.receipt.customerName} • ${currentJob.orderCode}',
-                          style: const TextStyle(
-                            color: Color(0xFF6E7D75),
-                            fontSize: 10,
-                            fontWeight: FontWeight.w700,
-                          ),
-                        ),
-                      ],
-                    ),
+                  child: Icon(
+                    Icons.print,
+                    size: 20,
+                    color: printers[index].key == selectedPrinterKey
+                        ? gold
+                        : green,
                   ),
-                  Text(
-                    currentJob.receipt.netAmount.toStringAsFixed(2),
-                    style: const TextStyle(
-                      color: maroon,
-                      fontWeight: FontWeight.w900,
-                    ),
+                ),
+              ),
+            Container(
+              width: 66,
+              height: 66,
+              decoration: BoxDecoration(
+                color: green,
+                shape: BoxShape.circle,
+                border: Border.all(color: gold, width: 3),
+                boxShadow: const [
+                  BoxShadow(
+                    color: Color(0x33D8AD16),
+                    blurRadius: 22,
+                    spreadRadius: 4,
                   ),
                 ],
               ),
-      );
-
-  Widget _errorBox(String message) => Container(
-        padding: const EdgeInsets.all(12),
-        decoration: BoxDecoration(
-          color: const Color(0xFFFFEEEE),
-          borderRadius: BorderRadius.circular(10),
-          border: Border.all(color: const Color(0xFFE6B8B8)),
+              child: const Icon(
+                Icons.print,
+                color: gold,
+                size: 32,
+              ),
+            ),
+          ],
         ),
-        child: Text(
-          message,
-          style: const TextStyle(
-            color: maroon,
-            fontSize: 10,
-            fontWeight: FontWeight.w700,
+      ),
+    );
+  }
+
+  Widget _jobCard(W68PrintJob? currentJob) {
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: const Color(0xFFDCE6E1)),
+      ),
+      child: currentJob == null
+          ? Row(
+              children: [
+                const Icon(Icons.receipt_long, color: green),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Text(
+                    loadingJob
+                        ? 'Loading W68 invoice…'
+                        : 'Open an invoice in W68 and press PRINT.',
+                    style: const TextStyle(
+                      color: green,
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
+                ),
+              ],
+            )
+          : Row(
+              children: [
+                const Icon(Icons.receipt_long, color: maroon),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'INVOICE ${currentJob.invoiceNo}',
+                        style: const TextStyle(
+                          color: green,
+                          fontSize: 14,
+                          fontWeight: FontWeight.w900,
+                        ),
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        '${currentJob.receipt.customerName} • ${currentJob.orderCode}',
+                        style: const TextStyle(
+                          color: Color(0xFF6E7D75),
+                          fontSize: 10,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                Text(
+                  currentJob.receipt.netAmount.toStringAsFixed(2),
+                  style: const TextStyle(
+                    color: maroon,
+                    fontWeight: FontWeight.w900,
+                  ),
+                ),
+              ],
+            ),
+    );
+  }
+
+  Widget _errorBox(String message) {
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: const Color(0xFFFFEEEE),
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: const Color(0xFFE6B8B8)),
+      ),
+      child: Text(
+        message,
+        style: const TextStyle(
+          color: maroon,
+          fontSize: 10,
+          fontWeight: FontWeight.w700,
+        ),
+      ),
+    );
+  }
+
+  Widget _emptyPrinters() {
+    return Container(
+      padding: const EdgeInsets.all(18),
+      decoration: BoxDecoration(
+        color: const Color(0xFFFFEEEE),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: const Color(0xFFE6B8B8)),
+      ),
+      child: const Column(
+        children: [
+          Icon(Icons.print_disabled, color: maroon, size: 30),
+          SizedBox(height: 7),
+          Text(
+            'NO PRINTER AVAILABLE WITHIN RANGE / NETWORK',
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              color: maroon,
+              fontSize: 11,
+              fontWeight: FontWeight.w900,
+            ),
           ),
-        ),
-      );
-
-  Widget _emptyPrinters() => Container(
-        padding: const EdgeInsets.all(18),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: const Color(0xFFDCE6E1)),
-        ),
-        child: const Text(
-          'No printers found yet. Put this device and printer on the same Wi-Fi and scan again. Vendor-only printers can still appear in the native picker after their driver or print service is installed.',
-          textAlign: TextAlign.center,
-          style: TextStyle(
-            color: Color(0xFF6E7D75),
-            fontSize: 10,
-            height: 1.45,
-            fontWeight: FontWeight.w700,
+          SizedBox(height: 4),
+          Text(
+            'Make sure the printer is powered on and reachable from this device, then tap SCAN AGAIN.',
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              color: Color(0xFF6E7D75),
+              fontSize: 9,
+              height: 1.4,
+              fontWeight: FontWeight.w700,
+            ),
           ),
-        ),
-      );
+        ],
+      ),
+    );
+  }
 
-  Widget _printerCard(BridgePrinter p) {
-    final connected = p.connected;
-    final selected = selectedPrinterKey == p.key;
-    final background = connected ? green : Colors.white;
-    final foreground = connected ? Colors.white : green;
-    final secondary = connected ? gold : const Color(0xFF6E7D75);
+  Widget _printerCard(BridgePrinter printer) {
+    final selected = printer.key == selectedPrinterKey;
 
-    return AnimatedContainer(
-      duration: const Duration(milliseconds: 220),
+    return Container(
       margin: const EdgeInsets.only(bottom: 9),
       decoration: BoxDecoration(
-        color: background,
+        color: selected ? green : Colors.white,
         borderRadius: BorderRadius.circular(13),
         border: Border.all(
-          color: selected
-              ? gold
-              : connected
-                  ? greenDark
-                  : const Color(0xFFDCE6E1),
+          color: selected ? gold : const Color(0xFFDCE6E1),
           width: selected ? 3 : 1,
         ),
       ),
       child: InkWell(
         borderRadius: BorderRadius.circular(13),
-        onTap: job == null || printing ? null : () => _printTo(p),
+        onTap: printing
+            ? null
+            : () {
+                setState(() {
+                  selectedPrinterKey = printer.key;
+                  status = '${printer.displayName} selected.';
+                });
+              },
         child: Padding(
           padding: const EdgeInsets.all(13),
           child: Row(
             children: [
+              Icon(
+                selected
+                    ? Icons.radio_button_checked
+                    : Icons.radio_button_unchecked,
+                color: selected ? gold : green,
+                size: 24,
+              ),
+              const SizedBox(width: 11),
               Container(
-                width: 46,
-                height: 46,
+                width: 42,
+                height: 42,
                 decoration: BoxDecoration(
-                  color:
-                      connected ? const Color(0x1FFFE36E) : const Color(0xFFEAF6F1),
-                  borderRadius: BorderRadius.circular(11),
+                  color: selected
+                      ? const Color(0x1FFFE36E)
+                      : const Color(0xFFEAF6F1),
+                  borderRadius: BorderRadius.circular(10),
                 ),
                 child: Icon(
                   Icons.print,
-                  color: connected ? gold : green,
-                  size: 27,
+                  color: selected ? gold : green,
+                  size: 25,
                 ),
               ),
               const SizedBox(width: 11),
@@ -531,20 +985,18 @@ class _PrinterBridgeHomeState extends State<PrinterBridgeHome>
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      p.displayName,
+                      printer.displayName,
                       style: TextStyle(
-                        color: foreground,
+                        color: selected ? Colors.white : green,
                         fontSize: 12,
                         fontWeight: FontWeight.w900,
                       ),
                     ),
                     const SizedBox(height: 3),
                     Text(
-                      '${p.source} • ${p.printer.location ?? p.printer.model ?? p.printer.url}',
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
+                      '${printer.source} • AVAILABLE',
                       style: TextStyle(
-                        color: secondary,
+                        color: selected ? gold : const Color(0xFF6E7D75),
                         fontSize: 9,
                         fontWeight: FontWeight.w700,
                       ),
@@ -552,29 +1004,15 @@ class _PrinterBridgeHomeState extends State<PrinterBridgeHome>
                   ],
                 ),
               ),
-              const SizedBox(width: 8),
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.end,
-                children: [
-                  Text(
-                    connected ? 'CONNECTED' : 'OFFLINE',
-                    style: TextStyle(
-                      color: connected ? gold : const Color(0xFF9A3A47),
-                      fontSize: 8,
-                      fontWeight: FontWeight.w900,
-                    ),
+              if (printer.isDefault)
+                Text(
+                  'DEFAULT',
+                  style: TextStyle(
+                    color: selected ? gold : green,
+                    fontSize: 8,
+                    fontWeight: FontWeight.w900,
                   ),
-                  if (p.isDefault)
-                    Text(
-                      'DEFAULT',
-                      style: TextStyle(
-                        color: connected ? gold : green,
-                        fontSize: 8,
-                        fontWeight: FontWeight.w900,
-                      ),
-                    ),
-                ],
-              ),
+                ),
             ],
           ),
         ),
@@ -586,12 +1024,12 @@ class _PrinterBridgeHomeState extends State<PrinterBridgeHome>
 class RadarPainter extends CustomPainter {
   const RadarPainter({
     required this.progress,
-    required this.connectedCount,
+    required this.printerCount,
     required this.scanning,
   });
 
   final double progress;
-  final int connectedCount;
+  final int printerCount;
   final bool scanning;
 
   @override
@@ -642,7 +1080,9 @@ class RadarPainter extends CustomPainter {
                 Color(0x33D8AD16),
                 Color(0x99D8AD16),
               ],
-      ).createShader(Rect.fromCircle(center: center, radius: radius));
+      ).createShader(
+        Rect.fromCircle(center: center, radius: radius),
+      );
 
     canvas.save();
     canvas.translate(center.dx, center.dy);
@@ -657,12 +1097,12 @@ class RadarPainter extends CustomPainter {
     );
     canvas.restore();
 
-    // Bright rotating beam so the scan remains visibly animated on iPad.
     final beamAngle = progress * math.pi * 2;
     final beamEnd = Offset(
       center.dx + radius * .92 * math.cos(beamAngle),
       center.dy + radius * .92 * math.sin(beamAngle),
     );
+
     canvas.drawLine(
       center,
       beamEnd,
@@ -672,20 +1112,14 @@ class RadarPainter extends CustomPainter {
         ..strokeCap = StrokeCap.round,
     );
 
-    final count = connectedCount.clamp(0, 6);
-    for (var i = 0; i < count; i++) {
-      final angle = (i + 1) * .92;
-      final distance = radius * (.38 + ((i % 3) * .16));
-      final point = Offset(
-        center.dx + distance * math.cos(angle),
-        center.dy + distance * math.sin(angle),
-      );
-      final color = i == 0 ? gold : green;
-      canvas.drawCircle(point, 4, Paint()..color = color);
+    if (printerCount == 0 && scanning) {
       canvas.drawCircle(
-        point,
-        9,
-        Paint()..color = color.withValues(alpha: .15),
+        center,
+        radius * (.25 + ((progress * .7) % .65)),
+        Paint()
+          ..color = green.withValues(alpha: .22)
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = 2,
       );
     }
   }
@@ -693,6 +1127,6 @@ class RadarPainter extends CustomPainter {
   @override
   bool shouldRepaint(covariant RadarPainter oldDelegate) =>
       oldDelegate.progress != progress ||
-      oldDelegate.connectedCount != connectedCount ||
+      oldDelegate.printerCount != printerCount ||
       oldDelegate.scanning != scanning;
 }

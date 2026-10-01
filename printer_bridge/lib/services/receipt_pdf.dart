@@ -10,8 +10,9 @@ class ReceiptPdf {
 
   static Future<Uint8List> build(
     W68PrintJob job,
-    PdfPageFormat format,
-  ) async {
+    PdfPageFormat format, {
+    int copies = 1,
+  }) async {
     final document = pw.Document();
     final receipt = job.receipt;
     final showDiscount =
@@ -19,10 +20,13 @@ class ReceiptPdf {
     final base = pw.TextStyle(fontSize: 9);
     final bold = pw.TextStyle(fontSize: 9, fontWeight: pw.FontWeight.bold);
 
-    document.addPage(
-      pw.MultiPage(
+    final safeCopies = copies.clamp(1, 20);
+
+    for (var copyIndex = 0; copyIndex < safeCopies; copyIndex++) {
+      document.addPage(
+        pw.MultiPage(
         pageFormat: format,
-        margin: const pw.EdgeInsets.fromLTRB(28, 28, 28, 28),
+        margin: pw.EdgeInsets.all(10 * PdfPageFormat.mm),
         build: (context) => [
           pw.Table(
             columnWidths: const {
@@ -189,8 +193,9 @@ class ReceiptPdf {
             ],
           ),
         ],
-      ),
-    );
+        ),
+      );
+    }
 
     return document.save();
   }

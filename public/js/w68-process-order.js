@@ -6,6 +6,7 @@
     var pageProcessButton = document.querySelector('[data-final-process]');
     var viewPrintButton = document.querySelector('[data-view-print-preview]');
     var invoiceReceiptPrintButton = document.querySelector('[data-print-invoice-receipt]');
+    var printerRadar = document.querySelector('[data-printer-radar]');
     var errorNode = document.querySelector('[data-process-error]');
     var loading = document.querySelector('[data-process-loading]');
     var csrf = document.querySelector('meta[name="csrf-token"]');
@@ -589,15 +590,35 @@
         }, false);
     }
 
+    function setPrinterRadarVisible(visible) {
+        if (!printerRadar) return;
+        printerRadar.hidden = !visible;
+        printerRadar.setAttribute('aria-hidden', visible ? 'false' : 'true');
+        if (body && body.classList) {
+            body.classList.toggle('printer-radar-open', !!visible);
+        }
+    }
+
     function printInvoiceReceipt() {
         if (!invoiceViewMode || !body) return;
-        body.classList.add('w68-invoice-printing');
+
+        // Browsers do not expose printer enumeration/authentication to web pages.
+        // Show a short visual handoff, then let the OS/browser print UI discover
+        // printers and handle any required credentials securely.
+        setPrinterRadarVisible(true);
+
         window.setTimeout(function () {
-            window.print();
-        }, 40);
+            setPrinterRadarVisible(false);
+            body.classList.add('w68-invoice-printing');
+
+            window.setTimeout(function () {
+                window.print();
+            }, 40);
+        }, 900);
     }
 
     window.addEventListener('afterprint', function () {
+        setPrinterRadarVisible(false);
         if (body) body.classList.remove('w68-invoice-printing');
     }, false);
 
@@ -620,12 +641,21 @@
         viewPrintButton.addEventListener('touchend', function (event) {
             event.preventDefault();
             printTouchAt = Date.now();
+            if (viewPrintButton.disabled) return;
+            if (invoiceViewMode) {
+                printInvoiceReceipt();
+                return;
+            }
             openConfirmModal();
         }, false);
         viewPrintButton.addEventListener('click', function (event) {
             if (Date.now() - printTouchAt < 600) return;
             event.preventDefault();
             if (viewPrintButton.disabled) return;
+            if (invoiceViewMode) {
+                printInvoiceReceipt();
+                return;
+            }
             openConfirmModal();
         }, false);
     }
@@ -657,9 +687,9 @@
     refreshSummary();
     refreshDeliverySummary();
 
-    if (invoiceViewMode && autoInvoicePrintPreview && confirmModal) {
+    if (invoiceViewMode && autoInvoicePrintPreview) {
         window.setTimeout(function () {
-            openConfirmModal();
-        }, 80);
+            printInvoiceReceipt();
+        }, 120);
     }
 })();

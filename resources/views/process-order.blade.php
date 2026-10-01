@@ -17,7 +17,7 @@
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>W68 Autoparts | {{ $returnViewMode ? 'View Return' : ($viewMode ? 'View Order' : 'Process Order') }}</title>
     <link rel="icon" href="{{ asset('images/sidebar_logo.png') }}">
-    <link rel="stylesheet" href="{{ asset('css/w68-process-order.css') }}?v=20261001-v112">
+    <link rel="stylesheet" href="{{ asset('css/w68-process-order.css') }}?v=20261001-v113">
     <script src="{{ asset('js/w68-process-order.js') }}?v=20261001-v112" defer></script>
 </head>
 <body
@@ -643,5 +643,28 @@
             </svg>
         </div>
     @endunless
+
+    @if ($invoiceViewMode)
+        <div class="printer-radar-overlay" data-printer-radar hidden aria-hidden="true">
+            <div class="printer-radar-card" role="status" aria-live="polite">
+                <div class="printer-radar-visual" aria-hidden="true">
+                    <span class="printer-radar-ring printer-radar-ring-one"></span>
+                    <span class="printer-radar-ring printer-radar-ring-two"></span>
+                    <span class="printer-radar-axis printer-radar-axis-x"></span>
+                    <span class="printer-radar-axis printer-radar-axis-y"></span>
+                    <span class="printer-radar-sweep"></span>
+                    <span class="printer-radar-device">
+                        <svg viewBox="0 0 24 24" focusable="false" aria-hidden="true">
+                            <path d="M7 7V3h10v4M7 17v4h10v-4M6 9h12a3 3 0 0 1 3 3v4h-4v-3H7v3H3v-4a3 3 0 0 1 3-3Zm2 6h8v4H8z"/>
+                        </svg>
+                    </span>
+                </div>
+                <strong>FINDING PRINTERS</strong>
+                <span>Opening your device printer setup…</span>
+                <small>Select your printer in the system print window. If the printer requires a network/password setup, your device will request it there.</small>
+            </div>
+        </div>
+    @endif
+
 </body>
 </html>

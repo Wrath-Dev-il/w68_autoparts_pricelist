@@ -3276,3 +3276,41 @@ dialog.shipment-modal[open] .shipment-card-head p {
         order: 2;
     }
 }
+
+
+/* =========================================================
+   W68 v138 — Center Shipment modal while preserving iPad fit
+   W68_PROCESS_DELIVERY_CENTER_V138_20261001
+   ========================================================= */
+
+dialog.shipment-modal[open] {
+    align-items: center !important;
+    justify-content: center !important;
+}
+
+dialog.shipment-modal[open] .shipment-card {
+    margin: auto !important;
+}
+
+@media (max-width: 1180px), (pointer: coarse) {
+    dialog.shipment-modal[open] {
+        align-items: center !important;
+        justify-content: center !important;
+    }
+
+    dialog.shipment-modal[open] .shipment-card {
+        width: min(620px, calc(100vw - 16px)) !important;
+        max-width: calc(100vw - 16px) !important;
+        max-height: calc(100dvh - 16px) !important;
+        margin: auto !important;
+    }
+}
+
+@media (max-width: 700px) {
+    dialog.shipment-modal[open] .shipment-card {
+        width: calc(100vw - 12px) !important;
+        max-width: calc(100vw - 12px) !important;
+        max-height: calc(100dvh - 12px) !important;
+        margin: auto !important;
+    }
+}

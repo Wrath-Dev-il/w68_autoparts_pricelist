@@ -35,17 +35,31 @@
             position: absolute;
             left: 50%;
             top: 50%;
-            width: 50%;
-            height: 50%;
-            transform-origin: 0 0;
-            border-radius: 0 100% 0 0;
-            background: conic-gradient(from 270deg at 0 0, rgba(255,227,110,.02), rgba(255,227,110,.48) 58deg, transparent 90deg);
-            animation: scan 1.25s linear infinite;
+            width: 46%;
+            height: 3px;
+            transform-origin: 0 50%;
+            border-radius: 999px;
+            background: linear-gradient(90deg, rgba(255,227,110,.08), rgba(255,227,110,.95));
+            box-shadow: 0 0 14px rgba(255,227,110,.55);
+            animation: scan 1.1s linear infinite;
+            will-change: transform;
+        }
+        .sweep::after {
+            content: "";
+            position: absolute;
+            right: -4px;
+            top: 50%;
+            width: 9px;
+            height: 9px;
+            border-radius: 50%;
+            background: #ffe36e;
+            transform: translateY(-50%);
+            box-shadow: 0 0 12px rgba(255,227,110,.85);
         }
         .printer {
             position: absolute;
-            left: 37%;
-            top: 32%;
+            left: 50%;
+            top: 50%;
             width: 66px;
             height: 66px;
             display: grid;
@@ -79,12 +93,18 @@
         }
         .button.secondary { background: transparent; color: #ffe36e; }
         .expiry { color: #b9d9cd; font-size: 9px; }
-        @keyframes scan { to { transform: rotate(360deg); } }
+        @keyframes scan {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
         @keyframes pulse {
             from { transform: translate(-50%, -50%) scale(.94); }
             to { transform: translate(-50%, -50%) scale(1.05); }
         }
-        @media (prefers-reduced-motion: reduce) { .sweep, .printer { animation: none; } }
+        @media (prefers-reduced-motion: reduce) {
+            .sweep { animation-duration: 2.4s; }
+            .printer { animation-duration: 1.8s; }
+        }
     </style>
 </head>
 <body>
@@ -99,7 +119,8 @@
         </div>
         <h1>OPENING W68 PRINTER BRIDGE</h1>
         <div class="subtitle">INVOICE {{ $invoiceNo ?: 'W68' }}</div>
-        <p>The native bridge discovers real installed and Wi-Fi IPP/AirPrint printers. Printer/network credentials stay on this device and are never sent to W68.</p>
+        <p>The installed W68 Printer Bridge discovers real installed and Wi-Fi IPP/AirPrint printers. Safari itself cannot scan your local printer network. Printer/network credentials stay on this device and are never sent to W68.</p>
+        <p id="ios-note" hidden style="color:#ffe36e;font-weight:800;">On iPad/iPhone, install the updated W68 Printer Bridge first, then tap OPEN W68 PRINTER BRIDGE. The first scan must be allowed to access your Local Network.</p>
         <div class="actions">
             <a class="button" id="open-bridge" href="{{ $deepLink }}">OPEN W68 PRINTER BRIDGE</a>
             <a class="button secondary" href="{{ $fallbackUrl }}">USE BROWSER PRINT</a>
@@ -110,6 +131,22 @@
         (function () {
             var bridge = document.getElementById('open-bridge');
             if (!bridge) return;
+
+            var isIOS =
+                /iPad|iPhone|iPod/.test(navigator.userAgent) ||
+                (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+
+            var note = document.getElementById('ios-note');
+
+            if (isIOS) {
+                if (note) note.hidden = false;
+
+                // Do not automatically navigate Safari to a custom scheme.
+                // If the native app is missing or an old build did not
+                // register w68print://, Safari reports "address is invalid".
+                return;
+            }
+
             window.setTimeout(function () {
                 try { window.location.href = bridge.href; } catch (error) {}
             }, 180);

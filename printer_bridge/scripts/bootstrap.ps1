@@ -26,9 +26,9 @@ Remove-Item $temp -Recurse -Force
 Push-Location $root
 try {
     flutter pub get
+    dart run .\scripts\configure_platforms.dart
     Write-Host ""
-    Write-Host "Flutter runners are ready." -ForegroundColor Green
-    Write-Host "Apply the Android/iOS platform snippets in platform/ before building."
+    Write-Host "Flutter runners are ready and W68 platform settings were applied." -ForegroundColor Green
 } finally {
     Pop-Location
 }

@@ -27,7 +27,7 @@ done
 
 cd "$ROOT"
 flutter pub get
+dart run ./scripts/configure_platforms.dart
 
 echo
-echo "Flutter runners are ready."
-echo "Apply the Android/iOS platform snippets in platform/ before building."
+echo "Flutter runners are ready and W68 platform settings were applied."

@@ -73,7 +73,7 @@ class _PrinterBridgeHomeState extends State<PrinterBridgeHome>
     super.initState();
     radarController = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 1500),
+      duration: const Duration(milliseconds: 1150),
     )..repeat();
 
     _initializeLinks();
@@ -294,6 +294,7 @@ class _PrinterBridgeHomeState extends State<PrinterBridgeHome>
                         progress: radarController.value,
                         connectedCount:
                             printers.where((p) => p.connected).length,
+                        scanning: scanning,
                       ),
                       child: Center(
                         child: Container(
@@ -586,10 +587,12 @@ class RadarPainter extends CustomPainter {
   const RadarPainter({
     required this.progress,
     required this.connectedCount,
+    required this.scanning,
   });
 
   final double progress;
   final int connectedCount;
+  final bool scanning;
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -627,12 +630,18 @@ class RadarPainter extends CustomPainter {
     final sweep = Paint()
       ..shader = SweepGradient(
         startAngle: 0,
-        endAngle: 1.15,
-        colors: const [
-          Color(0x00D8AD16),
-          Color(0x66D8AD16),
-          Color(0xFFD8AD16),
-        ],
+        endAngle: scanning ? 1.35 : .85,
+        colors: scanning
+            ? const [
+                Color(0x00D8AD16),
+                Color(0x66D8AD16),
+                Color(0xFFFFE36E),
+              ]
+            : const [
+                Color(0x00D8AD16),
+                Color(0x33D8AD16),
+                Color(0x99D8AD16),
+              ],
       ).createShader(Rect.fromCircle(center: center, radius: radius));
 
     canvas.save();
@@ -647,6 +656,21 @@ class RadarPainter extends CustomPainter {
       sweep,
     );
     canvas.restore();
+
+    // Bright rotating beam so the scan remains visibly animated on iPad.
+    final beamAngle = progress * math.pi * 2;
+    final beamEnd = Offset(
+      center.dx + radius * .92 * math.cos(beamAngle),
+      center.dy + radius * .92 * math.sin(beamAngle),
+    );
+    canvas.drawLine(
+      center,
+      beamEnd,
+      Paint()
+        ..color = scanning ? gold : gold.withValues(alpha: .65)
+        ..strokeWidth = scanning ? 2.4 : 1.6
+        ..strokeCap = StrokeCap.round,
+    );
 
     final count = connectedCount.clamp(0, 6);
     for (var i = 0; i < count; i++) {
@@ -669,5 +693,6 @@ class RadarPainter extends CustomPainter {
   @override
   bool shouldRepaint(covariant RadarPainter oldDelegate) =>
       oldDelegate.progress != progress ||
-      oldDelegate.connectedCount != connectedCount;
+      oldDelegate.connectedCount != connectedCount ||
+      oldDelegate.scanning != scanning;
 }

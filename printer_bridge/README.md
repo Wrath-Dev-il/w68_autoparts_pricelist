@@ -9,7 +9,7 @@ The bridge receives a short-lived W68 printer job from the Laravel portal.
 It combines two real printer sources:
 
 1. Printers already exposed by the operating system through the Flutter printing layer.
-2. Live Bonjour/mDNS scans for IPP, IPPS, and printer services on the local network.
+2. Native Bonjour/NSD scans for IPP, IPPS, and printer services on the local network. On iOS/iPadOS this uses Apple's Bonjour layer instead of raw multicast sockets.
 
 Discovered network printers are TCP-checked. Reachable printers are shown with the W68 navigation green background (#064e3b) and yellow printer icon (#ffe36e).
 
@@ -66,7 +66,7 @@ Then:
 
 ## Android
 
-Apply platform/android/AndroidManifest.snippet.xml to android/app/src/main/AndroidManifest.xml.
+The bootstrap now applies the Android permissions and w68print:// deep link automatically. You can still compare the generated manifest with platform/android/AndroidManifest.snippet.xml.
 
 Build:
 
@@ -78,11 +78,7 @@ For Play Store:
 
 ## iPhone / iPad
 
-Apply platform/ios/Info.plist.snippet.xml to ios/Runner/Info.plist.
-
-Inside the Runner target in ios/Podfile also add:
-
-    use_frameworks!
+The bootstrap now writes CFBundleURLTypes, NSLocalNetworkUsageDescription, NSBonjourServices, and use_frameworks! automatically. You can still compare the generated files with platform/ios/Info.plist.snippet.xml.
 
 Then on macOS:
 
@@ -92,7 +88,7 @@ Then on macOS:
     cd ..
     flutter build ios --release
 
-The first scan can trigger the iOS/iPadOS Local Network permission prompt. Allow it for Bonjour discovery.
+The first scan triggers the iOS/iPadOS Local Network permission prompt. Allow it for Bonjour discovery. If it was denied before, enable W68 Printer Bridge in Settings > Privacy & Security > Local Network, then scan again.
 
 ## Windows
 
@@ -122,7 +118,7 @@ A production installer should perform the same w68print protocol registration.
 
 This is real discovery, not a simulated list.
 
-AirPrint, IPP, IPPS, and Bonjour printers can normally be found by the Wi-Fi scan.
+AirPrint, IPP, IPPS, and Bonjour printers that are powered on, advertising, and reachable on the same local network can normally be found by the Wi-Fi scan. Powered-off printers, printers on another VLAN/subnet with Bonjour blocked, and proprietary non-Bonjour printers cannot be discovered by a normal local Bonjour scan.
 
 Installed/shared printers exposed by the operating system can be found through system printer enumeration on supported platforms.
 

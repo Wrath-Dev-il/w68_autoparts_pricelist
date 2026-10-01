@@ -1,6 +1,7 @@
+import 'dart:async';
 import 'dart:io';
 
-import 'package:multicast_dns/multicast_dns.dart';
+import 'package:bonsoir/bonsoir.dart';
 import 'package:printing/printing.dart';
 
 class BridgePrinter {
@@ -29,29 +30,38 @@ class BridgePrinter {
 
 class PrinterDiscoveryService {
   static const serviceTypes = <String>[
-    '_ipp._tcp.local',
-    '_ipps._tcp.local',
-    '_printer._tcp.local',
+    '_ipp._tcp',
+    '_ipps._tcp',
+    '_printer._tcp',
   ];
 
   Future<List<BridgePrinter>> discover() async {
     final merged = <String, BridgePrinter>{};
+
     await _discoverSystemPrinters(merged);
-    await _discoverMdnsPrinters(merged);
+
+    await Future.wait(
+      serviceTypes.map(
+        (type) => _discoverBonjourType(merged, type),
+      ),
+    );
 
     final printers = merged.values.toList()
       ..sort((a, b) {
         final aScore = _score(a);
         final bScore = _score(b);
         if (aScore != bScore) return aScore.compareTo(bScore);
-        return a.displayName.toLowerCase().compareTo(b.displayName.toLowerCase());
+        return a.displayName
+            .toLowerCase()
+            .compareTo(b.displayName.toLowerCase());
       });
+
     return printers;
   }
 
-  int _score(BridgePrinter p) {
-    if (p.isDefault && p.connected) return 0;
-    if (p.connected) return 1;
+  int _score(BridgePrinter printer) {
+    if (printer.isDefault && printer.connected) return 0;
+    if (printer.connected) return 1;
     return 2;
   }
 
@@ -73,117 +83,193 @@ class PrinterDiscoveryService {
         );
       }
     } catch (_) {
-      // mDNS discovery and the native picker remain available.
+      // Native Bonjour discovery and the native printer picker remain
+      // available even when this platform does not expose printer enumeration.
     }
   }
 
-  Future<void> _discoverMdnsPrinters(
+  Future<void> _discoverBonjourType(
     Map<String, BridgePrinter> target,
+    String type,
   ) async {
-    final client = MDnsClient();
+    final discovery = BonsoirDiscovery(
+      type: type,
+      printLogs: false,
+    );
+
+    StreamSubscription<BonsoirDiscoveryEvent>? subscription;
+    final resolutions = <Future<void>>[];
+    final additions = <Future<void>>[];
+
     try {
-      await client.start(onError: (_) {});
+      await discovery.initialize();
+      final stream = discovery.eventStream;
+      if (stream == null) return;
 
-      for (final type in serviceTypes) {
-        final ptrs = await client
-            .lookup<PtrResourceRecord>(
-              ResourceRecordQuery.serverPointer(type),
-              timeout: const Duration(milliseconds: 1400),
-            )
-            .toList();
-
-        for (final ptr in ptrs) {
-          final services = await client
-              .lookup<SrvResourceRecord>(
-                ResourceRecordQuery.service(ptr.domainName),
-                timeout: const Duration(milliseconds: 700),
-              )
-              .toList();
-          if (services.isEmpty) continue;
-
-          final service = services.first;
-          final txtRecords = await client
-              .lookup<TxtResourceRecord>(
-                ResourceRecordQuery.text(ptr.domainName),
-                timeout: const Duration(milliseconds: 450),
-              )
-              .toList();
-          final txt = _parseTxt(
-            txtRecords.map((record) => record.text).join('\u0000'),
-          );
-
-          final host = service.target.replaceFirst(RegExp(r'\.$'), '');
-          final path = (txt['rp'] ?? 'ipp/print').replaceFirst(RegExp(r'^/+'), '');
-          final secure = type.startsWith('_ipps');
-          final scheme = secure ? 'ipps' : 'ipp';
-          final url = '$scheme://$host:${service.port}/$path';
-          final reachable = await _isReachable(host, service.port);
-
-          _merge(
-            target,
-            BridgePrinter(
-              printer: Printer(
-                url: url,
-                name: _displayName(ptr.domainName, type),
-                model: txt['ty'] ?? txt['product'],
-                location: txt['note'] ?? 'Wi-Fi / Bonjour',
-                comment: secure ? 'IPP Secure' : 'IPP / AirPrint',
-                isDefault: false,
-                isAvailable: reachable,
+      subscription = stream.listen((event) {
+        if (event is BonsoirDiscoveryServiceFoundEvent) {
+          final service = event.service;
+          if (service != null) {
+            resolutions.add(
+              _resolveQuietly(
+                service,
+                discovery.serviceResolver,
               ),
-              source: 'WI-FI IPP',
-              reachable: reachable,
+            );
+          }
+          return;
+        }
+
+        if (event is BonsoirDiscoveryServiceResolvedEvent) {
+          additions.add(
+            _addResolvedService(
+              target,
+              event.service,
+              type,
             ),
           );
+          return;
         }
+
+        if (event is BonsoirDiscoveryServiceUpdatedEvent) {
+          final service = event.service;
+          if (service != null) {
+            additions.add(
+              _addResolvedService(
+                target,
+                service,
+                type,
+              ),
+            );
+          }
+        }
+      });
+
+      await discovery.start();
+
+      // Give native Bonjour enough time to surface more than the already
+      // connected/default printer on iPadOS.
+      await Future<void>.delayed(const Duration(seconds: 5));
+
+      if (resolutions.isNotEmpty) {
+        await Future.wait(List<Future<void>>.from(resolutions));
       }
+
+      // Resolved events are delivered asynchronously by the native platform.
+      await Future<void>.delayed(const Duration(milliseconds: 700));
     } catch (_) {
-      // Local-network permission can be granted and the user can scan again.
+      // On iOS/iPadOS the first attempt can be interrupted while the Local
+      // Network permission alert is being answered. The user can scan again.
     } finally {
-      client.stop();
+      try {
+        await discovery.stop();
+      } catch (_) {}
+
+      await subscription?.cancel();
+
+      if (additions.isNotEmpty) {
+        await Future.wait(List<Future<void>>.from(additions));
+      }
     }
   }
 
-  void _merge(Map<String, BridgePrinter> target, BridgePrinter candidate) {
+  Future<void> _resolveQuietly(
+    BonsoirService service,
+    ServiceResolver resolver,
+  ) async {
+    try {
+      await service.resolve(resolver);
+    } catch (_) {}
+  }
+
+  Future<void> _addResolvedService(
+    Map<String, BridgePrinter> target,
+    BonsoirService service,
+    String type,
+  ) async {
+    final attributes = <String, String>{
+      for (final entry in service.attributes.entries)
+        entry.key.toLowerCase(): entry.value,
+    };
+
+    final host = _preferredHost(service);
+    if (host.isEmpty || service.port <= 0) return;
+
+    final secure = type == '_ipps._tcp';
+    final scheme = secure ? 'ipps' : 'ipp';
+    final rp = (attributes['rp'] ?? 'ipp/print')
+        .replaceFirst(RegExp(r'^/+'), '');
+
+    final url = Uri(
+      scheme: scheme,
+      host: host,
+      port: service.port,
+      path: '/$rp',
+    ).toString();
+
+    final reachable = await _isReachable(host, service.port);
+
+    _merge(
+      target,
+      BridgePrinter(
+        printer: Printer(
+          url: url,
+          name: service.name,
+          model: attributes['ty'] ?? attributes['product'],
+          location: attributes['note'] ?? 'Wi-Fi / Bonjour',
+          comment: secure ? 'IPP Secure / AirPrint' : 'IPP / AirPrint',
+          isDefault: false,
+          isAvailable: reachable,
+        ),
+        source: 'WI-FI BONJOUR',
+        reachable: reachable,
+      ),
+    );
+  }
+
+  String _preferredHost(BonsoirService service) {
+    final addresses = service.hostAddresses;
+
+    for (final address in addresses) {
+      final value = address.trim();
+      if (value.contains('.') && !value.startsWith('169.254.')) {
+        return value;
+      }
+    }
+
+    final hostname = (service.hostname ?? '').trim();
+    if (hostname.isNotEmpty) {
+      return hostname.replaceFirst(RegExp(r'\.$'), '');
+    }
+
+    for (final address in addresses) {
+      final value = address.trim();
+      if (value.isNotEmpty) return value;
+    }
+
+    return '';
+  }
+
+  void _merge(
+    Map<String, BridgePrinter> target,
+    BridgePrinter candidate,
+  ) {
     if (candidate.key.isEmpty) return;
+
     final existing = target[candidate.key];
     if (existing == null || (!existing.connected && candidate.connected)) {
       target[candidate.key] = candidate;
     }
   }
 
-  Map<String, String> _parseTxt(String raw) {
-    final values = <String, String>{};
-    for (final part in raw.split(RegExp(r'[\x00\r\n]+'))) {
-      final equals = part.indexOf('=');
-      if (equals <= 0) continue;
-      final key = part.substring(0, equals).trim().toLowerCase();
-      final value = part.substring(equals + 1).trim();
-      if (key.isNotEmpty && value.isNotEmpty) values[key] = value;
-    }
-    return values;
-  }
-
-  String _displayName(String domain, String type) {
-    var name = domain;
-    final suffix = '.$type';
-    if (name.toLowerCase().endsWith(suffix.toLowerCase())) {
-      name = name.substring(0, name.length - suffix.length);
-    }
-    return name
-        .replaceAll(r'\032', ' ')
-        .replaceAll(r'\.', '.')
-        .replaceFirst(RegExp(r'\.$'), '')
-        .trim();
-  }
-
   Future<bool> _isReachable(String host, int port) async {
     Socket? socket;
+
     try {
       socket = await Socket.connect(
         host,
         port,
-        timeout: const Duration(milliseconds: 700),
+        timeout: const Duration(milliseconds: 900),
       );
       return true;
     } catch (_) {

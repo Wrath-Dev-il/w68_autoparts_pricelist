@@ -388,8 +388,20 @@
             termsModal.setAttribute('aria-hidden', 'true');
         }
         if (shipmentModal) {
-            shipmentModal.hidden = true;
-            shipmentModal.setAttribute('aria-hidden', 'true');
+            if (window.W68CloseShipmentModal) {
+                window.W68CloseShipmentModal();
+            } else {
+                try {
+                    if (typeof shipmentModal.close === 'function' && shipmentModal.open) {
+                        shipmentModal.close();
+                    } else {
+                        shipmentModal.removeAttribute('open');
+                    }
+                } catch (error) {
+                    shipmentModal.removeAttribute('open');
+                }
+                shipmentModal.setAttribute('aria-hidden', 'true');
+            }
         }
         if (body && body.classList) body.classList.remove('shipment-modal-open');
         if (!viewMode) setTermsChecked(false);
@@ -849,7 +861,14 @@
 
     document.addEventListener('keydown', function (event) {
         if (event.key !== 'Escape') return;
-        if (shipmentModal && !shipmentModal.hidden) {
+        if (
+            shipmentModal &&
+            (
+                shipmentModal.open === true ||
+                shipmentModal.hasAttribute('open') ||
+                shipmentModal.getAttribute('aria-hidden') === 'false'
+            )
+        ) {
             closeShipmentModal();
             return;
         }

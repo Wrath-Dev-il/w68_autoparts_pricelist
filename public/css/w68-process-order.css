@@ -3066,26 +3066,60 @@ body.shipment-modal-open {
 }
 
 
-/* =========================================================
-   W68 v135 — Restore Shipment modal and force reliable open
-   W68_PROCESS_DELIVERY_MODAL_RESTORE_V135_20261001
-   ========================================================= */
-.shipment-modal:not([hidden]) {
-    display: flex !important;
-    visibility: visible !important;
-    opacity: 1 !important;
-    pointer-events: auto !important;
-    z-index: 9999999 !important;
-}
-
-.shipment-modal:not([hidden]) .shipment-card {
-    display: block !important;
-    visibility: visible !important;
-    pointer-events: auto !important;
-}
-
+/* W68 v135 button hardening retained under v136. */
 .order-delivery-button {
     pointer-events: auto !important;
     position: relative !important;
     z-index: 20 !important;
+}
+
+
+/* =========================================================
+   W68 v136 — iPad/Safari native top-layer Shipment dialog
+   W68_PROCESS_DELIVERY_DIALOG_V136_20261001
+   ========================================================= */
+dialog.shipment-modal {
+    width: 100vw !important;
+    max-width: none !important;
+    height: 100vh !important;
+    height: 100dvh !important;
+    max-height: none !important;
+    margin: 0 !important;
+    padding: 16px !important;
+    border: 0 !important;
+    background: transparent !important;
+    color: inherit;
+    overflow: hidden !important;
+    box-sizing: border-box !important;
+}
+
+dialog.shipment-modal[open] {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+    pointer-events: auto !important;
+}
+
+dialog.shipment-modal::backdrop {
+    background: rgba(8, 30, 21, .62);
+    backdrop-filter: blur(2px);
+    -webkit-backdrop-filter: blur(2px);
+}
+
+dialog.shipment-modal[open] > .shipment-backdrop {
+    display: none !important;
+}
+
+dialog.shipment-modal[open] .shipment-card {
+    position: relative !important;
+    z-index: 1 !important;
+    pointer-events: auto !important;
+}
+
+@media (max-width: 900px), (pointer: coarse) {
+    dialog.shipment-modal {
+        padding: 8px !important;
+    }
 }

@@ -17,8 +17,8 @@
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>W68 Autoparts | {{ $returnViewMode ? 'View Return' : ($viewMode ? 'View Order' : 'Process Order') }}</title>
     <link rel="icon" href="{{ asset('images/sidebar_logo.png') }}">
-    <link rel="stylesheet" href="{{ asset('css/w68-process-order.css') }}?v=20261001-v135">
-    <script src="{{ asset('js/w68-process-order.js') }}?v=20261001-v135" defer></script>
+    <link rel="stylesheet" href="{{ asset('css/w68-process-order.css') }}?v=20261001-v136">
+    <script src="{{ asset('js/w68-process-order.js') }}?v=20261001-v136" defer></script>
 </head>
 <body
     data-process-url="{{ $viewMode ? '' : route('home.orders.process') }}"
@@ -537,7 +537,7 @@
     </div>
 
     @unless($viewMode)
-        <div class="shipment-modal" data-shipment-modal hidden aria-hidden="true">
+        <dialog class="shipment-modal" data-shipment-modal aria-hidden="true">
             <button type="button" class="order-modal-backdrop shipment-backdrop" data-shipment-cancel aria-label="Close Shipment selection" onclick="return window.W68CloseShipmentModal ? window.W68CloseShipmentModal(event) : false;"></button>
             <section class="shipment-card" role="dialog" aria-modal="true" aria-labelledby="shipment-title">
                 <div class="shipment-card-head">
@@ -611,7 +611,7 @@
                     <button type="button" class="shipment-save" data-shipment-save disabled onclick="return window.W68SaveShipment ? window.W68SaveShipment(event) : false;">SET SHIPMENT</button>
                 </div>
             </section>
-        </div>
+        </dialog>
 
         <div class="terms-agreement-modal" data-terms-modal hidden aria-hidden="true">
             <button type="button" class="order-modal-backdrop terms-backdrop" data-terms-cancel aria-label="Cancel terms and agreement"></button>
@@ -754,15 +754,26 @@
                 if (!box) return false;
 
                 draft = readCommitted();
-
-                box.hidden = false;
-                box.removeAttribute('hidden');
                 box.setAttribute('aria-hidden', 'false');
+
+                // W68_PROCESS_DELIVERY_DIALOG_V136_20261001
+                // Safari/iPad places showModal() dialogs in the browser top layer,
+                // above the existing Process Order confirmation modal.
+                try {
+                    if (typeof box.showModal === 'function') {
+                        if (!box.open) box.showModal();
+                    } else {
+                        box.setAttribute('open', '');
+                    }
+                } catch (error) {
+                    box.setAttribute('open', '');
+                }
+
+                // Older Safari fallback.
                 box.style.setProperty('display', 'flex', 'important');
                 box.style.setProperty('visibility', 'visible', 'important');
                 box.style.setProperty('opacity', '1', 'important');
                 box.style.setProperty('pointer-events', 'auto', 'important');
-                box.style.setProperty('z-index', '9999999', 'important');
 
                 if (document.body && document.body.classList) {
                     document.body.classList.add('shipment-modal-open');
@@ -788,14 +799,21 @@
                 var box = modal();
                 if (!box) return false;
 
-                box.hidden = true;
-                box.setAttribute('hidden', '');
+                try {
+                    if (typeof box.close === 'function' && box.open) {
+                        box.close();
+                    } else {
+                        box.removeAttribute('open');
+                    }
+                } catch (error) {
+                    box.removeAttribute('open');
+                }
+
                 box.setAttribute('aria-hidden', 'true');
                 box.style.removeProperty('display');
                 box.style.removeProperty('visibility');
                 box.style.removeProperty('opacity');
                 box.style.removeProperty('pointer-events');
-                box.style.removeProperty('z-index');
 
                 if (document.body && document.body.classList) {
                     document.body.classList.remove('shipment-modal-open');
@@ -820,6 +838,14 @@
                 paintDraft();
                 return false;
             };
+
+            var shipmentDialog = modal();
+            if (shipmentDialog) {
+                shipmentDialog.addEventListener('cancel', function (event) {
+                    event.preventDefault();
+                    window.W68CloseShipmentModal(event);
+                }, false);
+            }
 
             window.W68SaveShipment = function (event) {
                 stop(event);

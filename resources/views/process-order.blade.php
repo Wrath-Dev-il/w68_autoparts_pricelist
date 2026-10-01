@@ -185,17 +185,12 @@
                     @if ($viewMode)
                         <a class="process-back-button" href="{{ $backToOrdersUrl }}">BACK TO ORDERS</a>
                         @if ($invoiceViewMode)
-                            <form
-                                class="process-print-bridge-form"
-                                method="POST"
-                                action="{{ route('orders.invoice.bridge', ['order' => $viewOrder['id'], 'salesOrder' => $viewOrder['sales_order_id']]) }}"
+                            <a
+                                class="process-final-button process-preview-button process-print-link"
+                                href="{{ route('orders.invoice.print', ['order' => $viewOrder['id'], 'salesOrder' => $viewOrder['sales_order_id']]) }}"
                                 target="_blank"
-                            >
-                                @csrf
-                                <button type="submit" class="process-final-button process-preview-button process-print-link">
-                                    PRINT RECEIVED ITEMS
-                                </button>
-                            </form>
+                                rel="noopener"
+                            >PRINT RECEIVED ITEMS</a>
                         @else
                             <button type="button" class="process-final-button process-preview-button" data-view-print-preview @disabled($items->isEmpty())>
                                 VIEW PRINT PREVIEW

@@ -114,18 +114,46 @@
             position: absolute;
             left: 50%;
             top: 50%;
-            width: 50%;
-            height: 50%;
-            transform-origin: 0 0;
-            border-radius: 0 100% 0 0;
-            background: conic-gradient(from 270deg at 0 0, rgba(170,230,255,.02), rgba(187,236,255,.45) 58deg, transparent 90deg);
-            animation: sweep 1.25s linear infinite;
+            width: 46%;
+            height: 4px;
+            border-radius: 999px;
+            transform-origin: 0 50%;
+            background: linear-gradient(90deg, rgba(255,255,255,.10), rgba(255,255,255,.95));
+            box-shadow: 0 0 14px rgba(218,245,255,.80);
+            animation: sweep 1.05s linear infinite;
+            will-change: transform;
         }
+        .sweep::after {
+            content: "";
+            position: absolute;
+            right: -5px;
+            top: 50%;
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background: #fff;
+            transform: translateY(-50%);
+            box-shadow: 0 0 16px rgba(255,255,255,.95);
+        }
+
+        .scan-ring {
+            position: absolute;
+            left: 50%;
+            top: 50%;
+            width: 72px;
+            height: 72px;
+            border: 2px solid rgba(255,255,255,.55);
+            border-radius: 50%;
+            transform: translate(-50%, -50%);
+            animation: scan-ring 1.35s ease-out infinite;
+        }
+        .scan-ring.r2 { animation-delay: .45s; }
+        .scan-ring.r3 { animation-delay: .90s; }
 
         .printer-dot {
             position: absolute;
-            left: 34%;
-            top: 32%;
+            left: 50%;
+            top: 50%;
             width: 66px;
             height: 66px;
             display: grid;
@@ -164,7 +192,14 @@
             font-weight: 800;
         }
 
-        @keyframes sweep { to { transform: rotate(360deg); } }
+        @keyframes sweep {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+        @keyframes scan-ring {
+            0% { opacity: .75; transform: translate(-50%, -50%) scale(.55); }
+            100% { opacity: 0; transform: translate(-50%, -50%) scale(2.7); }
+        }
         @keyframes pulse {
             from { transform: translate(-50%, -50%) scale(.94); }
             to { transform: translate(-50%, -50%) scale(1.04); }
@@ -264,7 +299,9 @@
         }
 
         @media (prefers-reduced-motion: reduce) {
-            .sweep, .printer-dot { animation: none; }
+            .sweep { animation-duration: 2.2s; }
+            .printer-dot { animation-duration: 1.8s; }
+            .scan-ring { animation-duration: 2.4s; }
         }
     </style>
 </head>
@@ -274,15 +311,18 @@
             <div class="radar" aria-hidden="true">
                 <span class="axis-x"></span>
                 <span class="axis-y"></span>
+                <span class="scan-ring r1"></span>
+                <span class="scan-ring r2"></span>
+                <span class="scan-ring r3"></span>
                 <span class="sweep"></span>
                 <span class="printer-dot">
                     <svg viewBox="0 0 24 24"><path d="M7 7V3h10v4M7 17v4h10v-4M6 9h12a3 3 0 0 1 3 3v4h-4v-3H7v3H3v-4a3 3 0 0 1 3-3Zm2 6h8v4H8z"/></svg>
                 </span>
             </div>
-            <strong>FINDING PRINTERS</strong>
-            <span>Opening your device printer setup…</span>
-            <small>Printer selection, AirPrint/Windows configuration, and any network or printer password are handled securely by your device.</small>
-            <button type="button" class="open-printer" id="open-printer">OPEN PRINTER</button>
+            <strong>FINDING AVAILABLE PRINTERS</strong>
+            <span id="printer-status">Preparing your device printer list…</span>
+            <small>No app is required. Your iPad/iPhone will use AirPrint; computers will use the printers installed in the operating system. W68 does not ask customers to configure printer passwords.</small>
+            <button type="button" class="open-printer" id="open-printer">SHOW AVAILABLE PRINTERS</button>
             <a class="back-link" href="{{ $ordersUrl }}">BACK TO INVOICED</a>
         </div>
     </section>
@@ -426,14 +466,31 @@
     <script>
         (function () {
             var button = document.getElementById('open-printer');
+            var status = document.getElementById('printer-status');
             var attempted = false;
+            var isIOS =
+                /iPad|iPhone|iPod/.test(navigator.userAgent) ||
+                (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+
+            function setReadyText() {
+                if (!status) return;
+                status.textContent = isIOS
+                    ? 'AirPrint will now show the printers available to this iPad/iPhone.'
+                    : 'Your device will now show its available system printers.';
+            }
 
             function openPrinter() {
                 if (attempted && document.visibilityState === 'hidden') return;
                 attempted = true;
+                setReadyText();
+
                 try {
                     window.print();
                 } catch (error) {
+                    attempted = false;
+                    if (status) {
+                        status.textContent = 'Tap SHOW AVAILABLE PRINTERS to continue.';
+                    }
                     console.error('Unable to open native print dialog:', error);
                 }
             }
@@ -446,13 +503,15 @@
                 }, { passive: false });
             }
 
-            // The PRINT link opens this standalone page directly. Chrome/Edge
-            // normally allow window.print() on a dedicated print document.
-            // The OPEN PRINTER button remains as a direct-tap fallback for Safari.
+            // Give the customer enough time to visibly see the radar sweep,
+            // then open the operating-system printer UI. No native W68 app,
+            // custom URL scheme, or customer setup is required.
             window.addEventListener('load', function () {
-                window.setTimeout(openPrinter, 450);
+                window.setTimeout(openPrinter, 1400);
             }, false);
         })();
     </script>
 </body>
 </html>
+
+{{-- W68_ZERO_INSTALL_PRINT_V119_20261001 --}}

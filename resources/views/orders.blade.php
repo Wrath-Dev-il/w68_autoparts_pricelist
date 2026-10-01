@@ -174,15 +174,12 @@
                         class="view-order-button"
                         href="{{ route('orders.view', ['order' => $invoice['order_id'], 'sales_order' => $invoice['sales_order_id']]) }}"
                     >VIEW</a>
-                    <form
-                        class="invoice-bridge-form"
-                        method="POST"
-                        action="{{ route('orders.invoice.bridge', ['order' => $invoice['order_id'], 'salesOrder' => $invoice['sales_order_id']]) }}"
+                    <a
+                        class="invoice-print-button"
+                        href="{{ route('orders.invoice.print', ['order' => $invoice['order_id'], 'salesOrder' => $invoice['sales_order_id']]) }}"
                         target="_blank"
-                    >
-                        @csrf
-                        <button class="invoice-print-button" type="submit">PRINT</button>
-                    </form>
+                        rel="noopener"
+                    >PRINT</a>
                 </div>
             </article>
         @empty

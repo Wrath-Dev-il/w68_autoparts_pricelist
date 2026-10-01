@@ -1390,7 +1390,7 @@ a.view-order-button:visited {
 .unserved-product-layout {
     padding: 14px;
     display: grid;
-    grid-template-columns: 180px minmax(0, 1fr) 92px;
+    grid-template-columns: 180px minmax(0, 1fr);
     gap: 15px;
     align-items: stretch;
 }
@@ -1517,33 +1517,13 @@ a.view-order-button:visited {
     color: var(--maroon);
 }
 
-.unserved-view-button {
-    width: 92px;
-    min-height: 48px;
-    align-self: center;
-    display: inline-grid;
-    place-items: center;
-    border-radius: 9px;
-    background: var(--maroon);
-    color: #ffe357;
-    text-decoration: none;
-    font-size: 10px;
-    font-weight: 1000;
-    letter-spacing: .6px;
-    touch-action: manipulation;
-}
-
-.unserved-view-button:hover {
-    background: var(--maroon-dark);
-}
-
 @media (min-width: 621px) and (max-width: 1100px) {
     .invoice-summary-main {
         grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
     }
 
     .unserved-product-layout {
-        grid-template-columns: 145px minmax(0, 1fr) 78px;
+        grid-template-columns: 145px minmax(0, 1fr);
         gap: 11px;
     }
 
@@ -1554,10 +1534,6 @@ a.view-order-button:visited {
     .unserved-detail-line {
         grid-template-columns: 96px minmax(0, 1fr);
         gap: 7px;
-    }
-
-    .unserved-view-button {
-        width: 78px;
     }
 }
 
@@ -1583,15 +1559,10 @@ a.view-order-button:visited {
         grid-template-columns: 88px minmax(0, 1fr);
         gap: 5px;
     }
-
-    .unserved-view-button {
-        grid-column: 1 / -1;
-        width: 100%;
-        min-height: 43px;
-    }
-
-    .unserved-order-date-row {
+.unserved-order-date-row {
         grid-template-columns: 1fr;
         gap: 5px;
     }
 }
+
+/* W68_ORDERS_UNSERVED_NO_VIEW_V111_20261001 */

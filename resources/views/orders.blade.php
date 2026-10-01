@@ -247,7 +247,6 @@
                         </div>
                     </div>
 
-                    <a class="unserved-view-button" href="{{ route('orders.view', ['order' => $order['id']]) }}">VIEW</a>
                 </div>
             </article>
         @empty

@@ -120,7 +120,7 @@
             transform-origin: 0 50%;
             background: linear-gradient(90deg, rgba(255,255,255,.10), rgba(255,255,255,.95));
             box-shadow: 0 0 14px rgba(218,245,255,.80);
-            animation: sweep 1.05s linear infinite;
+            animation: sweep 3.4s linear infinite;
             will-change: transform;
         }
         .sweep::after {
@@ -168,102 +168,252 @@
         }
         .printer-dot svg { width: 34px; height: 34px; fill: currentColor; }
 
+        .radar-printer {
+            position: absolute;
+            width: 36px;
+            height: 36px;
+            display: grid;
+            place-items: center;
+            border: 2px solid rgba(255,255,255,.88);
+            border-radius: 50%;
+            background: rgba(255,255,255,.12);
+            color: #fff;
+            opacity: 0;
+            transform: translate(-50%, -50%) scale(.65);
+            animation: printer-found 3.6s ease-in-out infinite;
+        }
+
+        .radar-printer svg {
+            width: 19px;
+            height: 19px;
+            fill: currentColor;
+        }
+
+        .radar-printer.p1 { left: 27%; top: 31%; animation-delay: .55s; }
+        .radar-printer.p2 { left: 75%; top: 27%; animation-delay: 1.15s; }
+        .radar-printer.p3 { left: 78%; top: 70%; animation-delay: 1.75s; }
+        .radar-printer.p4 { left: 28%; top: 74%; animation-delay: 2.35s; }
+
         .radar-card strong { font-size: 18px; letter-spacing: 1.2px; }
         .radar-card > span { font-size: 12px; font-weight: 800; color: #dcf4ff; }
         .radar-card small { max-width: 370px; font-size: 10px; line-height: 1.45; color: rgba(235,248,255,.84); }
 
-        .print-settings-card {
-            width: min(410px, 100%);
-            margin-top: 8px;
-            padding: 12px;
-            display: none;
-            gap: 8px;
-            border: 1px solid rgba(255,255,255,.30);
-            border-radius: 13px;
-            background: rgba(255,255,255,.10);
-            backdrop-filter: blur(4px);
-            text-align: left;
+        .radar-result-note {
+            width: min(400px, 100%);
+            margin-top: 5px;
+            color: rgba(235,248,255,.90);
+            font-size: 10px;
+            line-height: 1.45;
+            text-align: center;
         }
 
-        .print-settings-card.is-ready {
+        .print-modal {
+            position: fixed;
+            inset: 0;
+            z-index: 50;
             display: grid;
+            place-items: center;
+            padding: 14px;
+            background: rgba(2, 30, 46, .82);
         }
 
-        .print-setting-row {
-            min-height: 48px;
-            padding: 9px 11px;
+        .print-modal[hidden] { display: none !important; }
+
+        .print-modal-card {
+            width: min(1080px, 97vw);
+            max-height: 96vh;
             display: grid;
-            grid-template-columns: 1fr auto;
-            align-items: center;
-            gap: 8px;
-            border-radius: 10px;
-            background: #064e3b;
-            border: 1px solid rgba(255,227,110,.38);
-        }
-
-        .print-setting-copy {
-            min-width: 0;
-            display: grid;
-            gap: 2px;
-        }
-
-        .print-setting-copy span {
-            color: #bfe4d8;
-            font-size: 8px;
-            font-weight: 900;
-            letter-spacing: .75px;
-        }
-
-        .print-setting-copy strong {
-            color: #ffe36e;
-            font-size: 11px;
-            font-weight: 1000;
-            letter-spacing: .25px;
-        }
-
-        .print-setting-badge {
-            color: #ffe36e;
-            font-size: 8px;
-            font-weight: 1000;
-            letter-spacing: .5px;
-            white-space: nowrap;
-        }
-
-        .copies-control {
-            display: inline-grid;
-            grid-template-columns: 34px 42px 34px;
-            align-items: center;
+            grid-template-rows: auto minmax(0, 1fr) auto;
             overflow: hidden;
-            border: 1px solid rgba(255,227,110,.58);
-            border-radius: 9px;
-            background: rgba(255,255,255,.06);
+            border: 1px solid rgba(255,255,255,.22);
+            border-radius: 16px;
+            background: #f4f7f5;
+            color: #111;
+            box-shadow: 0 22px 70px rgba(0,0,0,.36);
         }
 
-        .copies-control button {
-            width: 34px;
-            height: 34px;
-            border: 0;
+        .print-modal-header {
+            padding: 15px 17px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+            background: #064e3b;
+            color: #fff;
+        }
+
+        .print-modal-header h2 {
+            margin: 0;
+            color: #ffe36e;
+            font-size: 17px;
+        }
+
+        .print-modal-header p {
+            margin: 3px 0 0;
+            color: #d8eee6;
+            font-size: 9px;
+        }
+
+        .print-modal-close {
+            width: 38px;
+            height: 38px;
+            border: 1px solid rgba(255,227,110,.55);
+            border-radius: 9px;
             background: transparent;
             color: #ffe36e;
-            font: 1000 18px Arial, sans-serif;
+            font-size: 22px;
             cursor: pointer;
         }
 
-        .copies-control output {
+        .print-modal-body {
+            min-height: 0;
+            padding: 14px;
             display: grid;
-            place-items: center;
-            height: 34px;
-            border-left: 1px solid rgba(255,227,110,.26);
-            border-right: 1px solid rgba(255,227,110,.26);
-            color: #fff;
-            font: 1000 13px Arial, sans-serif;
+            grid-template-columns: 250px minmax(0, 1fr);
+            gap: 14px;
+            overflow: hidden;
         }
 
-        .print-format-note {
-            color: rgba(235,248,255,.86);
-            font-size: 9px;
-            line-height: 1.45;
+        .print-control-panel {
+            align-self: start;
+            display: grid;
+            gap: 10px;
+        }
+
+        .print-control-box {
+            padding: 12px;
+            display: grid;
+            gap: 5px;
+            border: 1px solid #d8e2dd;
+            border-radius: 11px;
+            background: #fff;
+        }
+
+        .print-control-box span {
+            color: #607068;
+            font-size: 8px;
+            font-weight: 900;
+            letter-spacing: .7px;
+        }
+
+        .print-control-box strong {
+            color: #064e3b;
+            font-size: 11px;
+        }
+
+        .copies-input-row {
+            display: grid;
+            grid-template-columns: 38px 1fr 38px;
+            gap: 6px;
+            align-items: center;
+        }
+
+        .copies-input-row button {
+            height: 38px;
+            border: 0;
+            border-radius: 8px;
+            background: #064e3b;
+            color: #ffe36e;
+            font-size: 18px;
+            font-weight: 1000;
+            cursor: pointer;
+        }
+
+        .copies-input-row input {
+            width: 100%;
+            height: 38px;
+            border: 1px solid #cbd9d2;
+            border-radius: 8px;
             text-align: center;
+            color: #064e3b;
+            font: 900 14px Arial, sans-serif;
+        }
+
+        .preview-scroll {
+            min-width: 0;
+            min-height: 0;
+            overflow: auto;
+            padding: 16px;
+            border: 1px solid #d8e2dd;
+            border-radius: 11px;
+            background:
+                linear-gradient(45deg,#e8eeeb 25%,transparent 25%) 0 0/20px 20px,
+                linear-gradient(45deg,transparent 75%,#e8eeeb 75%) 0 0/20px 20px,
+                linear-gradient(45deg,transparent 75%,#e8eeeb 75%) 10px -10px/20px 20px,
+                linear-gradient(45deg,#e8eeeb 25%,#eef3f0 25%) 10px -10px/20px 20px;
+        }
+
+        .preview-pages {
+            display: grid;
+            gap: 18px;
+            justify-content: center;
+        }
+
+        .preview-page-shell {
+            width: 190mm;
+            min-height: 277mm;
+            padding: 0;
+            overflow: hidden;
+            background: #fff;
+            box-shadow: 0 6px 24px rgba(0,0,0,.20);
+        }
+
+        .preview-page-shell .receipt.preview-receipt {
+            position: static !important;
+            left: auto !important;
+            top: auto !important;
+            width: 190mm !important;
+            min-height: 277mm !important;
+            padding: 0 !important;
+            margin: 0 !important;
+            background: #fff !important;
+        }
+
+        .print-modal-footer {
+            padding: 12px 15px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 10px;
+            border-top: 1px solid #d8e2dd;
+            background: #fff;
+        }
+
+        .print-modal-footer-note {
+            color: #66766e;
+            font-size: 9px;
+            line-height: 1.35;
+        }
+
+        .print-modal-print {
+            min-width: 150px;
+            min-height: 44px;
+            border: 0;
+            border-radius: 10px;
+            background: #064e3b;
+            color: #ffe36e;
+            font: 1000 11px Arial, sans-serif;
+            letter-spacing: .6px;
+            cursor: pointer;
+        }
+
+        @media (max-width: 760px) {
+            .print-modal-body {
+                grid-template-columns: 1fr;
+                overflow: auto;
+            }
+
+            .preview-scroll {
+                min-height: 58vh;
+            }
+
+            .print-control-panel {
+                grid-template-columns: repeat(2, minmax(0, 1fr));
+            }
+
+            .print-control-box.copies-box {
+                grid-column: 1 / -1;
+            }
         }
 
         .open-printer {
@@ -302,6 +452,12 @@
         @keyframes pulse {
             from { transform: translate(-50%, -50%) scale(.94); }
             to { transform: translate(-50%, -50%) scale(1.04); }
+        }
+
+        @keyframes printer-found {
+            0%, 15% { opacity: 0; transform: translate(-50%, -50%) scale(.65); }
+            28%, 72% { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+            88%, 100% { opacity: .28; transform: translate(-50%, -50%) scale(.88); }
         }
 
         .sales-order-topline,
@@ -389,7 +545,8 @@
                 -webkit-print-color-adjust: exact;
                 print-color-adjust: exact;
             }
-            .radar-screen { display: none !important; }
+            .radar-screen,
+            .print-modal { display: none !important; }
             .receipt {
                 position: static !important;
                 left: auto !important;
@@ -423,50 +580,68 @@
                 <span class="scan-ring r2"></span>
                 <span class="scan-ring r3"></span>
                 <span class="sweep"></span>
+                <span class="radar-printer p1"><svg viewBox="0 0 24 24"><path d="M7 7V3h10v4M7 17v4h10v-4M6 9h12a3 3 0 0 1 3 3v4h-4v-3H7v3H3v-4a3 3 0 0 1 3-3Zm2 6h8v4H8z"/></svg></span>
+                <span class="radar-printer p2"><svg viewBox="0 0 24 24"><path d="M7 7V3h10v4M7 17v4h10v-4M6 9h12a3 3 0 0 1 3 3v4h-4v-3H7v3H3v-4a3 3 0 0 1 3-3Zm2 6h8v4H8z"/></svg></span>
+                <span class="radar-printer p3"><svg viewBox="0 0 24 24"><path d="M7 7V3h10v4M7 17v4h10v-4M6 9h12a3 3 0 0 1 3 3v4h-4v-3H7v3H3v-4a3 3 0 0 1 3-3Zm2 6h8v4H8z"/></svg></span>
+                <span class="radar-printer p4"><svg viewBox="0 0 24 24"><path d="M7 7V3h10v4M7 17v4h10v-4M6 9h12a3 3 0 0 1 3 3v4h-4v-3H7v3H3v-4a3 3 0 0 1 3-3Zm2 6h8v4H8z"/></svg></span>
                 <span class="printer-dot">
                     <svg viewBox="0 0 24 24"><path d="M7 7V3h10v4M7 17v4h10v-4M6 9h12a3 3 0 0 1 3 3v4h-4v-3H7v3H3v-4a3 3 0 0 1 3-3Zm2 6h8v4H8z"/></svg>
                 </span>
             </div>
-            <strong id="radar-title">PREPARING A4 RECEIPT</strong>
-            <span id="printer-status">Preparing W68 print settings…</span>
-            <small>The Sales Order receipt is formatted by W68 for A4 portrait with fixed 10 mm document margins.</small>
+            <strong id="radar-title">SCANNING FOR PRINTERS</strong>
+            <span id="printer-status">Scanning your device print environment…</span>
+            <div class="radar-result-note">
+                Printer signals are shown visually around the radar. Real printer names and the physical printer selection are controlled by the device print service and are not exposed to Safari/Chrome.
+            </div>
 
-            <div class="print-settings-card" id="print-settings-card" aria-live="polite">
-                <div class="print-setting-row">
-                    <span class="print-setting-copy">
+            <button type="button" class="open-printer" id="open-printer" disabled>PRINT RECEIPT</button>
+            <a class="back-link" href="{{ $ordersUrl }}">BACK TO INVOICED</a>
+        </div>
+    </section>
+
+    <section class="print-modal" id="print-modal" hidden aria-hidden="true">
+        <div class="print-modal-card" role="dialog" aria-modal="true" aria-labelledby="print-modal-title">
+            <header class="print-modal-header">
+                <div>
+                    <h2 id="print-modal-title">PRINT RECEIPT</h2>
+                    <p>W68 Sales Order receipt preview</p>
+                </div>
+                <button type="button" class="print-modal-close" id="print-modal-close" aria-label="Close">&times;</button>
+            </header>
+
+            <div class="print-modal-body">
+                <aside class="print-control-panel">
+                    <div class="print-control-box">
                         <span>PAPER SIZE</span>
                         <strong>A4 PORTRAIT</strong>
-                    </span>
-                    <span class="print-setting-badge">W68 FORMAT</span>
-                </div>
+                    </div>
 
-                <div class="print-setting-row">
-                    <span class="print-setting-copy">
+                    <div class="print-control-box">
                         <span>DOCUMENT MARGINS</span>
-                        <strong>10 MM FIXED LAYOUT</strong>
-                    </span>
-                    <span class="print-setting-badge">W68 FORMAT</span>
-                </div>
+                        <strong>10 MM W68 LAYOUT</strong>
+                    </div>
 
-                <div class="print-setting-row">
-                    <span class="print-setting-copy">
+                    <div class="print-control-box copies-box">
                         <span>COPIES</span>
-                        <strong>Choose how many receipt copies to produce</strong>
-                    </span>
-                    <span class="copies-control" aria-label="Number of copies">
-                        <button type="button" id="copies-minus" aria-label="Decrease copies">−</button>
-                        <output id="copies-count">1</output>
-                        <button type="button" id="copies-plus" aria-label="Increase copies">+</button>
-                    </span>
+                        <div class="copies-input-row">
+                            <button type="button" id="copies-minus" aria-label="Decrease copies">−</button>
+                            <input type="number" id="copies-input" min="1" max="20" step="1" value="1" inputmode="numeric">
+                            <button type="button" id="copies-plus" aria-label="Increase copies">+</button>
+                        </div>
+                    </div>
+                </aside>
+
+                <div class="preview-scroll">
+                    <div class="preview-pages" id="preview-pages"></div>
                 </div>
             </div>
 
-            <div class="print-format-note" id="print-format-note">
-                After this screen, your device opens its printer picker so you can choose the physical printer.
-            </div>
-
-            <button type="button" class="open-printer" id="open-printer" disabled>SELECT PRINTER &amp; PRINT 1 COPY</button>
-            <a class="back-link" href="{{ $ordersUrl }}">BACK TO INVOICED</a>
+            <footer class="print-modal-footer">
+                <div class="print-modal-footer-note">
+                    A4 portrait / 10 mm W68 document margins. Final physical printer selection is handled by the device.
+                </div>
+                <button type="button" class="print-modal-print" id="print-modal-print">PRINT</button>
+            </footer>
         </div>
     </section>
 
@@ -608,44 +783,41 @@
 
     <script>
         (function () {
-            var button = document.getElementById('open-printer');
+            var openButton = document.getElementById('open-printer');
             var status = document.getElementById('printer-status');
             var title = document.getElementById('radar-title');
-            var settings = document.getElementById('print-settings-card');
+            var modal = document.getElementById('print-modal');
+            var modalClose = document.getElementById('print-modal-close');
+            var finalPrint = document.getElementById('print-modal-print');
             var copiesMinus = document.getElementById('copies-minus');
             var copiesPlus = document.getElementById('copies-plus');
-            var copiesCount = document.getElementById('copies-count');
+            var copiesInput = document.getElementById('copies-input');
+            var previewPages = document.getElementById('preview-pages');
             var receipt = document.getElementById('w68-receipt');
             var copies = 1;
             var maxCopies = 20;
 
-            function updateCopies(next) {
-                copies = Math.max(1, Math.min(maxCopies, Number(next) || 1));
-
-                if (copiesCount) {
-                    copiesCount.textContent = String(copies);
-                }
-
-                if (button) {
-                    button.textContent =
-                        'SELECT PRINTER & PRINT ' +
-                        copies +
-                        (copies === 1 ? ' COPY' : ' COPIES');
-                }
+            function normalizedCopies(value) {
+                return Math.max(1, Math.min(maxCopies, Number(value) || 1));
             }
 
-            function removeGeneratedCopies() {
+            function setCopies(value) {
+                copies = normalizedCopies(value);
+                if (copiesInput) copiesInput.value = String(copies);
+                buildPreview();
+            }
+
+            function removeGeneratedPrintCopies() {
                 document.querySelectorAll('.receipt.print-copy').forEach(function (copy) {
                     copy.remove();
                 });
             }
 
-            function buildGeneratedCopies() {
-                removeGeneratedCopies();
+            function buildPrintCopies() {
+                removeGeneratedPrintCopies();
                 if (!receipt || copies <= 1) return;
 
                 var anchor = receipt;
-
                 for (var index = 2; index <= copies; index += 1) {
                     var clone = receipt.cloneNode(true);
                     clone.removeAttribute('id');
@@ -657,89 +829,113 @@
                 }
             }
 
-            function markReady() {
-                if (title) {
-                    title.textContent = 'A4 RECEIPT READY';
-                }
+            function buildPreview() {
+                if (!previewPages || !receipt) return;
+                previewPages.innerHTML = '';
 
-                if (status) {
-                    status.textContent =
-                        'Choose the number of copies, then select your printer.';
-                }
+                for (var index = 1; index <= copies; index += 1) {
+                    var shell = document.createElement('div');
+                    shell.className = 'preview-page-shell';
 
-                if (settings) {
-                    settings.classList.add('is-ready');
-                }
+                    var clone = receipt.cloneNode(true);
+                    clone.removeAttribute('id');
+                    clone.classList.add('preview-receipt');
+                    clone.setAttribute('data-preview-copy', String(index));
 
-                if (button) {
-                    button.disabled = false;
-                    button.removeAttribute('aria-disabled');
+                    shell.appendChild(clone);
+                    previewPages.appendChild(shell);
                 }
-
-                updateCopies(copies);
             }
 
-            function openPrinter(event) {
-                if (event) event.preventDefault();
+            function openModal() {
+                if (!modal) return;
+                buildPreview();
+                modal.hidden = false;
+                modal.setAttribute('aria-hidden', 'false');
+                document.body.style.overflow = 'hidden';
+            }
 
-                buildGeneratedCopies();
+            function closeModal() {
+                if (!modal) return;
+                modal.hidden = true;
+                modal.setAttribute('aria-hidden', 'true');
+                document.body.style.overflow = '';
+            }
 
-                if (status) {
-                    status.textContent =
-                        copies +
-                        (copies === 1 ? ' A4 copy is' : ' A4 copies are') +
-                        ' prepared. Choose the physical printer in your device print window.';
+            function markReady() {
+                if (title) title.textContent = 'PRINTER SCAN READY';
+                if (status) status.textContent = 'Receipt setup is ready.';
+                if (openButton) {
+                    openButton.disabled = false;
+                    openButton.removeAttribute('aria-disabled');
                 }
+            }
+
+            function printReceipt() {
+                buildPrintCopies();
 
                 try {
-                    // Browser security requires the real printer selection to be
-                    // handled by the operating system. This call must remain
-                    // inside the direct customer tap/click.
+                    // A website cannot bypass the browser/OS printer picker or
+                    // enumerate/select physical printers. The W68 document
+                    // itself is fixed to A4 portrait with 10 mm margins.
                     window.print();
                 } catch (error) {
-                    removeGeneratedCopies();
-
-                    if (status) {
-                        status.textContent =
-                            'Unable to open the printer window. Tap the print button again.';
-                    }
-
-                    console.error('Unable to open native print dialog:', error);
+                    removeGeneratedPrintCopies();
+                    console.error('Unable to open print dialog:', error);
                 }
+            }
+
+            if (openButton) {
+                openButton.setAttribute('aria-disabled', 'true');
+                openButton.addEventListener('click', openModal, false);
+            }
+
+            if (modalClose) {
+                modalClose.addEventListener('click', closeModal, false);
+            }
+
+            if (modal) {
+                modal.addEventListener('click', function (event) {
+                    if (event.target === modal) closeModal();
+                }, false);
             }
 
             if (copiesMinus) {
                 copiesMinus.addEventListener('click', function () {
-                    updateCopies(copies - 1);
+                    setCopies(copies - 1);
                 }, false);
             }
 
             if (copiesPlus) {
                 copiesPlus.addEventListener('click', function () {
-                    updateCopies(copies + 1);
+                    setCopies(copies + 1);
                 }, false);
             }
 
-            if (button) {
-                button.setAttribute('aria-disabled', 'true');
-                button.addEventListener('click', openPrinter, false);
+            if (copiesInput) {
+                copiesInput.addEventListener('change', function () {
+                    setCopies(copiesInput.value);
+                }, false);
+                copiesInput.addEventListener('input', function () {
+                    copies = normalizedCopies(copiesInput.value);
+                }, false);
+            }
+
+            if (finalPrint) {
+                finalPrint.addEventListener('click', printReceipt, false);
             }
 
             window.addEventListener('afterprint', function () {
-                removeGeneratedCopies();
-
-                if (status) {
-                    status.textContent =
-                        'Printer window closed. Change copies or print again if needed.';
-                }
+                removeGeneratedPrintCopies();
             }, false);
 
             window.addEventListener('load', function () {
-                window.setTimeout(markReady, 1200);
+                setCopies(1);
+                window.setTimeout(markReady, 2600);
             }, false);
         })();
     </script>
 </body>
 </html>
 
-{{-- W68_A4_COPIES_PRINT_V123_20261001 --}}
+{{-- W68_PRINT_PREVIEW_MODAL_V124_20261001 --}}

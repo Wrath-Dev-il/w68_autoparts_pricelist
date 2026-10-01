@@ -3067,69 +3067,25 @@ body.shipment-modal-open {
 
 
 /* =========================================================
-   W68 v134 — Native Process Order delivery selector
-   W68_PROCESS_DELIVERY_SELECT_V134_20261001
+   W68 v135 — Restore Shipment modal and force reliable open
+   W68_PROCESS_DELIVERY_MODAL_RESTORE_V135_20261001
    ========================================================= */
-.order-delivery-select-wrap {
-    min-width: 230px;
-    display: grid;
-    gap: 5px;
+.shipment-modal:not([hidden]) {
+    display: flex !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+    pointer-events: auto !important;
+    z-index: 9999999 !important;
 }
 
-.order-delivery-select {
-    width: 100%;
-    min-height: 42px;
-    padding: 8px 34px 8px 12px;
-    border: 2px solid var(--w68-dark);
-    border-radius: 9px;
-    background-color: var(--w68-dark);
-    color: #fff;
-    font: 1000 10px/1.2 Arial, Helvetica, sans-serif;
-    letter-spacing: .04em;
-    cursor: pointer;
-    touch-action: manipulation;
+.shipment-modal:not([hidden]) .shipment-card {
+    display: block !important;
+    visibility: visible !important;
+    pointer-events: auto !important;
 }
 
-.order-delivery-zone.is-set .order-delivery-select {
-    border-color: var(--w68-green);
-    background-color: var(--w68-green);
-}
-
-.order-delivery-select optgroup,
-.order-delivery-select option {
-    background: #fff;
-    color: #17382a;
-    font-weight: 800;
-}
-
-.order-delivery-empty {
-    color: #a43a2a;
-    font-size: 9px;
-    font-weight: 800;
-    line-height: 1.35;
-}
-
-.sr-only {
-    position: absolute !important;
-    width: 1px !important;
-    height: 1px !important;
-    padding: 0 !important;
-    margin: -1px !important;
-    overflow: hidden !important;
-    clip: rect(0, 0, 0, 0) !important;
-    white-space: nowrap !important;
-    border: 0 !important;
-}
-
-@media (max-width: 620px), (pointer: coarse) {
-    .order-delivery-select-wrap {
-        width: 100%;
-        min-width: 0;
-    }
-
-    .order-delivery-select {
-        width: 100%;
-        min-height: 46px;
-        font-size: 11px;
-    }
+.order-delivery-button {
+    pointer-events: auto !important;
+    position: relative !important;
+    z-index: 20 !important;
 }

@@ -17,8 +17,8 @@
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>W68 Autoparts | {{ $returnViewMode ? 'View Return' : ($viewMode ? 'View Order' : 'Process Order') }}</title>
     <link rel="icon" href="{{ asset('images/sidebar_logo.png') }}">
-    <link rel="stylesheet" href="{{ asset('css/w68-process-order.css') }}?v=20261001-v134">
-    <script src="{{ asset('js/w68-process-order.js') }}?v=20261001-v134" defer></script>
+    <link rel="stylesheet" href="{{ asset('css/w68-process-order.css') }}?v=20261001-v135">
+    <script src="{{ asset('js/w68-process-order.js') }}?v=20261001-v135" defer></script>
 </head>
 <body
     data-process-url="{{ $viewMode ? '' : route('home.orders.process') }}"
@@ -495,17 +495,7 @@
                     @endif
                 </footer>
             @else
-                @php
-                    $rushShipments = $shipments->filter(
-                        fn ($shipment) => mb_strtolower(trim((string) ($shipment['type'] ?? ''))) === 'rush'
-                    )->values();
-                    $regularShipments = $shipments->filter(
-                        fn ($shipment) => mb_strtolower(trim((string) ($shipment['type'] ?? ''))) === 'regular'
-                    )->values();
-                @endphp
-
-                {{-- W68_PROCESS_DELIVERY_SELECT_V134_20261001
-                     Native select avoids the second stacked modal on iPad/Safari. --}}
+                {{-- W68 v107: choose the forwarder directly; its type tells the customer Rush/Regular. --}}
                 <div class="order-delivery-zone" data-delivery-zone>
                     <div class="order-delivery-copy">
                         <div class="order-delivery-heading-row">
@@ -514,48 +504,17 @@
                         <strong data-delivery-summary>NOT SET</strong>
                         <small data-delivery-detail>Choose a Shipment under RUSH or REGULAR.</small>
                     </div>
-
-                    <div class="order-delivery-select-wrap">
-                        <label class="sr-only" for="w68-delivery-select">Set delivery option</label>
-                        <select
-                            id="w68-delivery-select"
-                            class="order-delivery-select"
-                            data-delivery-select
-                            aria-label="Set delivery option"
-                        >
-                            <option value="">SET DELIVERY OPTION</option>
-
-                            @if ($rushShipments->isNotEmpty())
-                                <optgroup label="RUSH">
-                                    @foreach ($rushShipments as $shipment)
-                                        <option
-                                            value="{{ (int) ($shipment['id'] ?? 0) }}"
-                                            data-shipment-id="{{ (int) ($shipment['id'] ?? 0) }}"
-                                            data-shipment-name="{{ (string) ($shipment['name'] ?? '') }}"
-                                            data-shipment-type="rush"
-                                        >{{ (string) ($shipment['name'] ?? 'Shipment') }}</option>
-                                    @endforeach
-                                </optgroup>
-                            @endif
-
-                            @if ($regularShipments->isNotEmpty())
-                                <optgroup label="REGULAR">
-                                    @foreach ($regularShipments as $shipment)
-                                        <option
-                                            value="{{ (int) ($shipment['id'] ?? 0) }}"
-                                            data-shipment-id="{{ (int) ($shipment['id'] ?? 0) }}"
-                                            data-shipment-name="{{ (string) ($shipment['name'] ?? '') }}"
-                                            data-shipment-type="regular"
-                                        >{{ (string) ($shipment['name'] ?? 'Shipment') }}</option>
-                                    @endforeach
-                                </optgroup>
-                            @endif
-                        </select>
-
-                        @if ($rushShipments->isEmpty() && $regularShipments->isEmpty())
-                            <small class="order-delivery-empty">No Rush or Regular Shipments are available in W68 Masterlist.</small>
-                        @endif
-                    </div>
+                    <input type="hidden" data-delivery-selected-id value="">
+                    <input type="hidden" data-delivery-selected-type value="">
+                    <input type="hidden" data-delivery-selected-name value="">
+                    <button
+                        type="button"
+                        class="order-delivery-button"
+                        data-delivery-open
+                        onclick="return window.W68OpenShipmentModal ? window.W68OpenShipmentModal(event) : false;"
+                    >
+                        SET DELIVERY OPTION
+                    </button>
                 </div>
 
                 <div class="order-terms-zone" data-terms-zone>
@@ -578,6 +537,82 @@
     </div>
 
     @unless($viewMode)
+        <div class="shipment-modal" data-shipment-modal hidden aria-hidden="true">
+            <button type="button" class="order-modal-backdrop shipment-backdrop" data-shipment-cancel aria-label="Close Shipment selection" onclick="return window.W68CloseShipmentModal ? window.W68CloseShipmentModal(event) : false;"></button>
+            <section class="shipment-card" role="dialog" aria-modal="true" aria-labelledby="shipment-title">
+                <div class="shipment-card-head">
+                    <div>
+                        <span class="shipment-kicker">DELIVERY OPTION</span>
+                        <h2 id="shipment-title">Choose Shipment</h2>
+                        <p>Choose the forwarder you want to use from the <strong>RUSH</strong> or <strong>REGULAR</strong> group.</p>
+                    </div>
+                    <button type="button" class="shipment-x" data-shipment-cancel aria-label="Close Shipment selection" onclick="return window.W68CloseShipmentModal ? window.W68CloseShipmentModal(event) : false;">
+                        <span aria-hidden="true">&#10005;</span>
+                    </button>
+                </div>
+
+                @php
+                    $rushShipments = $shipments->filter(fn ($shipment) => mb_strtolower(trim((string) ($shipment['type'] ?? ''))) === 'rush')->values();
+                    $regularShipments = $shipments->filter(fn ($shipment) => mb_strtolower(trim((string) ($shipment['type'] ?? ''))) === 'regular')->values();
+                @endphp
+
+                <div class="shipment-picker">
+                    <span class="shipment-picker-label">CHOOSE FORWARDER / SHIPMENT</span>
+                    <div class="shipment-options" data-shipment-options>
+                        @if ($rushShipments->isNotEmpty())
+                            <section class="shipment-group shipment-group-rush" aria-label="Rush shipments">
+                                <h3>RUSH</h3>
+                                <div class="shipment-group-list">
+                                    @foreach ($rushShipments as $shipment)
+                                        <button
+                                            type="button"
+                                            class="shipment-option"
+                                            data-shipment-forwarder
+                                            data-shipment-id="{{ (int) ($shipment['id'] ?? 0) }}"
+                                            data-shipment-name="{{ (string) ($shipment['name'] ?? '') }}"
+                                            data-shipment-forwarder-type="rush"
+                                            onclick="return window.W68ChooseShipment ? window.W68ChooseShipment(event, this) : false;"
+                                        >
+                                            <span>{{ (string) ($shipment['name'] ?? 'Shipment') }}</span>
+                                        </button>
+                                    @endforeach
+                                </div>
+                            </section>
+                        @endif
+
+                        @if ($regularShipments->isNotEmpty())
+                            <section class="shipment-group shipment-group-regular" aria-label="Regular shipments">
+                                <h3>REGULAR</h3>
+                                <div class="shipment-group-list">
+                                    @foreach ($regularShipments as $shipment)
+                                        <button
+                                            type="button"
+                                            class="shipment-option"
+                                            data-shipment-forwarder
+                                            data-shipment-id="{{ (int) ($shipment['id'] ?? 0) }}"
+                                            data-shipment-name="{{ (string) ($shipment['name'] ?? '') }}"
+                                            data-shipment-forwarder-type="regular"
+                                            onclick="return window.W68ChooseShipment ? window.W68ChooseShipment(event, this) : false;"
+                                        >
+                                            <span>{{ (string) ($shipment['name'] ?? 'Shipment') }}</span>
+                                        </button>
+                                    @endforeach
+                                </div>
+                            </section>
+                        @endif
+                    </div>
+                    <div class="shipment-empty" data-shipment-empty>
+                        No Rush or Regular Shipments are available in W68 Masterlist.
+                    </div>
+                </div>
+
+                <div class="shipment-actions">
+                    <button type="button" class="shipment-cancel" data-shipment-cancel onclick="return window.W68CloseShipmentModal ? window.W68CloseShipmentModal(event) : false;">CANCEL</button>
+                    <button type="button" class="shipment-save" data-shipment-save disabled onclick="return window.W68SaveShipment ? window.W68SaveShipment(event) : false;">SET SHIPMENT</button>
+                </div>
+            </section>
+        </div>
+
         <div class="terms-agreement-modal" data-terms-modal hidden aria-hidden="true">
             <button type="button" class="order-modal-backdrop terms-backdrop" data-terms-cancel aria-label="Cancel terms and agreement"></button>
             <section class="terms-agreement-card" role="dialog" aria-modal="true" aria-labelledby="terms-title">
@@ -656,6 +691,185 @@
             </div>
         </div>
     @endif
+
+    <script>
+        // W68_PROCESS_DELIVERY_MODAL_RESTORE_V135_20261001
+        // This controller lives in the Blade page so SET DELIVERY OPTION can
+        // still open/save on Safari/iPad even if the external JS handler fails.
+        (function () {
+            var draft = { id: 0, type: '', name: '' };
+
+            function stop(event) {
+                if (!event) return;
+                if (event.preventDefault) event.preventDefault();
+                if (event.stopPropagation) event.stopPropagation();
+            }
+
+            function modal() {
+                return document.querySelector('[data-shipment-modal]');
+            }
+
+            function saveButton() {
+                return document.querySelector('[data-shipment-save]');
+            }
+
+            function selectedField(name) {
+                return document.querySelector('[data-delivery-selected-' + name + ']');
+            }
+
+            function readCommitted() {
+                var idNode = selectedField('id');
+                var typeNode = selectedField('type');
+                var nameNode = selectedField('name');
+
+                return {
+                    id: parseInt(idNode ? idNode.value : '0', 10) || 0,
+                    type: typeNode ? String(typeNode.value || '').toLowerCase() : '',
+                    name: nameNode ? String(nameNode.value || '').trim() : ''
+                };
+            }
+
+            function paintDraft() {
+                var options = document.querySelectorAll('[data-shipment-forwarder]');
+
+                for (var i = 0; i < options.length; i++) {
+                    var optionId = parseInt(options[i].getAttribute('data-shipment-id') || '0', 10) || 0;
+                    options[i].classList.toggle('is-selected', draft.id > 0 && optionId === draft.id);
+                }
+
+                var save = saveButton();
+                if (save) {
+                    save.disabled = !(
+                        draft.id > 0 &&
+                        (draft.type === 'rush' || draft.type === 'regular') &&
+                        draft.name !== ''
+                    );
+                }
+            }
+
+            window.W68OpenShipmentModal = function (event) {
+                stop(event);
+
+                var box = modal();
+                if (!box) return false;
+
+                draft = readCommitted();
+
+                box.hidden = false;
+                box.removeAttribute('hidden');
+                box.setAttribute('aria-hidden', 'false');
+                box.style.setProperty('display', 'flex', 'important');
+                box.style.setProperty('visibility', 'visible', 'important');
+                box.style.setProperty('opacity', '1', 'important');
+                box.style.setProperty('pointer-events', 'auto', 'important');
+                box.style.setProperty('z-index', '9999999', 'important');
+
+                if (document.body && document.body.classList) {
+                    document.body.classList.add('shipment-modal-open');
+                }
+
+                paintDraft();
+
+                window.setTimeout(function () {
+                    var target =
+                        box.querySelector('.shipment-option.is-selected') ||
+                        box.querySelector('.shipment-option:not([hidden])') ||
+                        box.querySelector('.shipment-x');
+
+                    if (target && target.focus) target.focus();
+                }, 0);
+
+                return false;
+            };
+
+            window.W68CloseShipmentModal = function (event) {
+                stop(event);
+
+                var box = modal();
+                if (!box) return false;
+
+                box.hidden = true;
+                box.setAttribute('hidden', '');
+                box.setAttribute('aria-hidden', 'true');
+                box.style.removeProperty('display');
+                box.style.removeProperty('visibility');
+                box.style.removeProperty('opacity');
+                box.style.removeProperty('pointer-events');
+                box.style.removeProperty('z-index');
+
+                if (document.body && document.body.classList) {
+                    document.body.classList.remove('shipment-modal-open');
+                }
+
+                return false;
+            };
+
+            window.W68ChooseShipment = function (event, option) {
+                stop(event);
+                if (!option) return false;
+
+                var type = String(option.getAttribute('data-shipment-forwarder-type') || '').toLowerCase();
+                var id = parseInt(option.getAttribute('data-shipment-id') || '0', 10) || 0;
+                var name = String(option.getAttribute('data-shipment-name') || '').trim();
+
+                if (id < 1 || (type !== 'rush' && type !== 'regular') || !name) {
+                    return false;
+                }
+
+                draft = { id: id, type: type, name: name };
+                paintDraft();
+                return false;
+            };
+
+            window.W68SaveShipment = function (event) {
+                stop(event);
+
+                if (
+                    draft.id < 1 ||
+                    (draft.type !== 'rush' && draft.type !== 'regular') ||
+                    !draft.name
+                ) {
+                    return false;
+                }
+
+                var idNode = selectedField('id');
+                var typeNode = selectedField('type');
+                var nameNode = selectedField('name');
+
+                if (idNode) idNode.value = String(draft.id);
+                if (typeNode) typeNode.value = draft.type;
+                if (nameNode) nameNode.value = draft.name;
+
+                var zone = document.querySelector('[data-delivery-zone]');
+                var summary = document.querySelector('[data-delivery-summary]');
+                var detail = document.querySelector('[data-delivery-detail]');
+
+                if (zone && zone.classList) zone.classList.add('is-set');
+                if (summary) {
+                    summary.textContent =
+                        (draft.type === 'rush' ? 'RUSH' : 'REGULAR') +
+                        ' - ' + draft.name;
+                }
+                if (detail) {
+                    detail.textContent =
+                        'Shipment selected. Tap SET DELIVERY OPTION to change it.';
+                }
+
+                try {
+                    document.dispatchEvent(new CustomEvent('w68:delivery-selected', {
+                        detail: {
+                            id: draft.id,
+                            type: draft.type,
+                            name: draft.name
+                        }
+                    }));
+                } catch (error) {}
+
+                window.W68CloseShipmentModal(event);
+                return false;
+            };
+        })();
+    </script>
 
 </body>
 </html>

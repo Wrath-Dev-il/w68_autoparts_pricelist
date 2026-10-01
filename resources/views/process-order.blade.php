@@ -17,7 +17,7 @@
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>W68 Autoparts | {{ $returnViewMode ? 'View Return' : ($viewMode ? 'View Order' : 'Process Order') }}</title>
     <link rel="icon" href="{{ asset('images/sidebar_logo.png') }}">
-    <link rel="stylesheet" href="{{ asset('css/w68-process-order.css') }}?v=20261001-v114">
+    <link rel="stylesheet" href="{{ asset('css/w68-process-order.css') }}?v=20261001-v115">
     <script src="{{ asset('js/w68-process-order.js') }}?v=20261001-v112" defer></script>
 </head>
 <body
@@ -662,6 +662,9 @@
                 <strong>FINDING PRINTERS</strong>
                 <span>Opening your device printer setup…</span>
                 <small>Select your printer in the system print window. If the printer requires a network/password setup, your device will request it there.</small>
+                <button type="button" class="printer-radar-open-button" data-printer-radar-open>
+                    OPEN PRINTER
+                </button>
             </div>
         </div>
     @endif

@@ -7,6 +7,7 @@
     var viewPrintButton = document.querySelector('[data-view-print-preview]');
     var invoiceReceiptPrintButton = document.querySelector('[data-print-invoice-receipt]');
     var printerRadar = document.querySelector('[data-printer-radar]');
+    var printerRadarOpenButton = document.querySelector('[data-printer-radar-open]');
     var errorNode = document.querySelector('[data-process-error]');
     var loading = document.querySelector('[data-process-loading]');
     var csrf = document.querySelector('meta[name="csrf-token"]');
@@ -607,28 +608,114 @@
         }
     }
 
-    function printInvoiceReceipt() {
-        if (!invoiceViewMode || !body) return;
+    var invoicePrintInProgress = false;
+    var invoicePrintStarted = false;
+    var invoicePrintFallbackTimer = null;
 
-        // Browsers do not expose printer enumeration/authentication to web pages.
-        // Show a short visual handoff, then let the OS/browser print UI discover
-        // printers and handle any required credentials securely.
-        setPrinterRadarVisible(true);
+    function prepareInvoiceReceiptForPrint() {
+        if (!invoiceViewMode || !body) return false;
 
-        window.setTimeout(function () {
-            setPrinterRadarVisible(false);
-            body.classList.add('w68-invoice-printing');
+        // The receipt lives inside the old modal container, but the modal must
+        // never be visible on screen. Explicitly remove the HTML hidden state so
+        // print media can render the receipt, while V114/V115 screen CSS keeps
+        // the container invisible to the user.
+        if (confirmModal) {
+            confirmModal.hidden = false;
+            confirmModal.setAttribute('aria-hidden', 'true');
+        }
 
-            window.setTimeout(function () {
-                window.print();
-            }, 40);
-        }, 900);
+        body.classList.add('w68-invoice-printing');
+        return true;
     }
 
-    window.addEventListener('afterprint', function () {
+    function cleanupInvoicePrint() {
+        invoicePrintInProgress = false;
+        invoicePrintStarted = false;
+
+        if (invoicePrintFallbackTimer) {
+            window.clearTimeout(invoicePrintFallbackTimer);
+            invoicePrintFallbackTimer = null;
+        }
+
         setPrinterRadarVisible(false);
-        if (body) body.classList.remove('w68-invoice-printing');
+
+        if (body) {
+            body.classList.remove('w68-invoice-printing');
+        }
+
+        if (confirmModal) {
+            confirmModal.hidden = true;
+            confirmModal.setAttribute('aria-hidden', 'true');
+        }
+    }
+
+    function invokeNativeInvoicePrint() {
+        if (!prepareInvoiceReceiptForPrint()) return;
+
+        invoicePrintInProgress = true;
+        invoicePrintStarted = false;
+        setPrinterRadarVisible(true);
+
+        // Force layout while still inside the trusted click/touch event. Do not
+        // put window.print() behind setTimeout/rAF; Safari/iPadOS and some Chrome
+        // configurations can drop the user activation and silently ignore it.
+        if (printerRadar) {
+            void printerRadar.offsetWidth;
+        }
+
+        try {
+            window.print();
+        } catch (error) {
+            console.error('Native invoice print failed:', error);
+            invoicePrintInProgress = false;
+            if (printerRadarOpenButton) {
+                printerRadarOpenButton.hidden = false;
+            }
+        }
+
+        // If beforeprint did not fire, keep the radar visible and reveal a
+        // direct-tap fallback. This handles automatic ?print=1 navigation where
+        // there is no transferable browser user gesture after page navigation.
+        if (!invoicePrintStarted) {
+            invoicePrintFallbackTimer = window.setTimeout(function () {
+                if (!invoicePrintStarted && printerRadarOpenButton) {
+                    printerRadarOpenButton.hidden = false;
+                }
+            }, 700);
+        }
+    }
+
+    function printInvoiceReceipt() {
+        if (!invoiceViewMode || !body || invoicePrintInProgress) return;
+        if (printerRadarOpenButton) printerRadarOpenButton.hidden = true;
+        invokeNativeInvoicePrint();
+    }
+
+    window.addEventListener('beforeprint', function () {
+        if (!invoiceViewMode) return;
+        invoicePrintStarted = true;
+        if (printerRadarOpenButton) printerRadarOpenButton.hidden = true;
+        setPrinterRadarVisible(false);
     }, false);
+
+    window.addEventListener('afterprint', function () {
+        if (!invoiceViewMode) return;
+        cleanupInvoicePrint();
+    }, false);
+
+    if (printerRadarOpenButton) {
+        printerRadarOpenButton.hidden = true;
+        printerRadarOpenButton.addEventListener('click', function (event) {
+            event.preventDefault();
+            invoicePrintInProgress = false;
+            invokeNativeInvoicePrint();
+        }, false);
+        printerRadarOpenButton.addEventListener('touchend', function (event) {
+            event.preventDefault();
+            invoicePrintInProgress = false;
+            invokeNativeInvoicePrint();
+        }, { passive: false });
+    }
 
     if (invoiceReceiptPrintButton) {
         var receiptPrintTouchAt = 0;
@@ -696,8 +783,6 @@
     refreshDeliverySummary();
 
     if (invoiceViewMode && autoInvoicePrintPreview) {
-        window.setTimeout(function () {
-            printInvoiceReceipt();
-        }, 120);
+        printInvoiceReceipt();
     }
 })();

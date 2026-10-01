@@ -237,13 +237,11 @@ class _PrinterBridgeHomeState extends State<PrinterBridgeHome>
             }
 
             return Dialog(
-              insetPadding: const EdgeInsets.all(12),
+              insetPadding: const EdgeInsets.all(18),
               child: ConstrainedBox(
-                constraints: const BoxConstraints(
-                  maxWidth: 1050,
-                  maxHeight: 850,
-                ),
+                constraints: const BoxConstraints(maxWidth: 470),
                 child: Column(
+                  mainAxisSize: MainAxisSize.min,
                   children: [
                     Container(
                       padding: const EdgeInsets.fromLTRB(16, 12, 10, 12),
@@ -284,63 +282,16 @@ class _PrinterBridgeHomeState extends State<PrinterBridgeHome>
                         ],
                       ),
                     ),
-                    Expanded(
-                      child: LayoutBuilder(
-                        builder: (context, constraints) {
-                          final compact = constraints.maxWidth < 720;
-
-                          final controls = _receiptControls(
-                            target: target,
-                            copies: copies,
-                            controller: controller,
-                            onMinus: () => updateCopies(copies - 1),
-                            onPlus: () => updateCopies(copies + 1),
-                            onChanged: (value) {
-                              final parsed = int.tryParse(value) ?? 1;
-                              updateCopies(parsed);
-                            },
-                          );
-
-                          final preview = Container(
-                            color: const Color(0xFFE8EEEB),
-                            padding: const EdgeInsets.all(8),
-                            child: PdfPreview(
-                              key: ValueKey<int>(copies),
-                              build: (_) => ReceiptPdf.build(
-                                currentJob,
-                                PdfPageFormat.a4,
-                                copies: copies,
-                              ),
-                              initialPageFormat: PdfPageFormat.a4,
-                              canChangePageFormat: false,
-                              canChangeOrientation: false,
-                              canDebug: false,
-                              allowPrinting: false,
-                              allowSharing: false,
-                              pdfFileName:
-                                  'W68-Invoice-${currentJob.invoiceNo}.pdf',
-                            ),
-                          );
-
-                          if (compact) {
-                            return Column(
-                              children: [
-                                controls,
-                                const Divider(height: 1),
-                                Expanded(child: preview),
-                              ],
-                            );
-                          }
-
-                          return Row(
-                            children: [
-                              SizedBox(width: 270, child: controls),
-                              const VerticalDivider(width: 1),
-                              Expanded(child: preview),
-                            ],
-                          );
-                        },
-                      ),
+                    _receiptControls(
+                      target: target,
+                      copies: copies,
+                      controller: controller,
+                      onMinus: () => updateCopies(copies - 1),
+                      onPlus: () => updateCopies(copies + 1),
+                      onChanged: (value) {
+                        final parsed = int.tryParse(value) ?? 1;
+                        updateCopies(parsed);
+                      },
                     ),
                     Container(
                       padding: const EdgeInsets.all(12),
@@ -479,7 +430,7 @@ class _PrinterBridgeHomeState extends State<PrinterBridgeHome>
           ),
           const SizedBox(height: 10),
           const Text(
-            'The preview shows the complete A4 receipt. Multiple pages/copies can be scrolled inside the preview.',
+            'W68 prints directly to the selected printer using A4 portrait and the fixed 10 mm document margins.',
             style: TextStyle(
               color: Color(0xFF6E7D75),
               fontSize: 9,

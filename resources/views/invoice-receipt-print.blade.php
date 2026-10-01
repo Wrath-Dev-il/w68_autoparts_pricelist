@@ -208,6 +208,7 @@
         }
 
         .print-modal {
+            display: none !important;
             position: fixed;
             inset: 0;
             z-index: 50;
@@ -783,159 +784,63 @@
 
     <script>
         (function () {
-            var openButton = document.getElementById('open-printer');
+            var button = document.getElementById('open-printer');
             var status = document.getElementById('printer-status');
             var title = document.getElementById('radar-title');
-            var modal = document.getElementById('print-modal');
-            var modalClose = document.getElementById('print-modal-close');
-            var finalPrint = document.getElementById('print-modal-print');
-            var copiesMinus = document.getElementById('copies-minus');
-            var copiesPlus = document.getElementById('copies-plus');
-            var copiesInput = document.getElementById('copies-input');
-            var previewPages = document.getElementById('preview-pages');
-            var receipt = document.getElementById('w68-receipt');
-            var copies = 1;
-            var maxCopies = 20;
-
-            function normalizedCopies(value) {
-                return Math.max(1, Math.min(maxCopies, Number(value) || 1));
-            }
-
-            function setCopies(value) {
-                copies = normalizedCopies(value);
-                if (copiesInput) copiesInput.value = String(copies);
-                buildPreview();
-            }
-
-            function removeGeneratedPrintCopies() {
-                document.querySelectorAll('.receipt.print-copy').forEach(function (copy) {
-                    copy.remove();
-                });
-            }
-
-            function buildPrintCopies() {
-                removeGeneratedPrintCopies();
-                if (!receipt || copies <= 1) return;
-
-                var anchor = receipt;
-                for (var index = 2; index <= copies; index += 1) {
-                    var clone = receipt.cloneNode(true);
-                    clone.removeAttribute('id');
-                    clone.classList.add('print-copy');
-                    clone.setAttribute('data-copy-number', String(index));
-                    clone.setAttribute('aria-hidden', 'true');
-                    anchor.insertAdjacentElement('afterend', clone);
-                    anchor = clone;
-                }
-            }
-
-            function buildPreview() {
-                if (!previewPages || !receipt) return;
-                previewPages.innerHTML = '';
-
-                for (var index = 1; index <= copies; index += 1) {
-                    var shell = document.createElement('div');
-                    shell.className = 'preview-page-shell';
-
-                    var clone = receipt.cloneNode(true);
-                    clone.removeAttribute('id');
-                    clone.classList.add('preview-receipt');
-                    clone.setAttribute('data-preview-copy', String(index));
-
-                    shell.appendChild(clone);
-                    previewPages.appendChild(shell);
-                }
-            }
-
-            function openModal() {
-                if (!modal) return;
-                buildPreview();
-                modal.hidden = false;
-                modal.setAttribute('aria-hidden', 'false');
-                document.body.style.overflow = 'hidden';
-            }
-
-            function closeModal() {
-                if (!modal) return;
-                modal.hidden = true;
-                modal.setAttribute('aria-hidden', 'true');
-                document.body.style.overflow = '';
-            }
 
             function markReady() {
-                if (title) title.textContent = 'PRINTER SCAN READY';
-                if (status) status.textContent = 'Receipt setup is ready.';
-                if (openButton) {
-                    openButton.disabled = false;
-                    openButton.removeAttribute('aria-disabled');
+                if (title) title.textContent = 'A4 RECEIPT READY';
+
+                if (status) {
+                    status.textContent =
+                        'A4 portrait • 10 mm W68 document margins. Press PRINT RECEIPT to open your computer printer.';
+                }
+
+                if (button) {
+                    button.disabled = false;
+                    button.removeAttribute('aria-disabled');
+                    button.textContent = 'PRINT RECEIPT';
                 }
             }
 
-            function printReceipt() {
-                buildPrintCopies();
+            function openPrinter(event) {
+                if (event) event.preventDefault();
+
+                if (status) {
+                    status.textContent =
+                        'Opening your computer browser/system printer…';
+                }
 
                 try {
-                    // A website cannot bypass the browser/OS printer picker or
-                    // enumerate/select physical printers. The W68 document
-                    // itself is fixed to A4 portrait with 10 mm margins.
                     window.print();
                 } catch (error) {
-                    removeGeneratedPrintCopies();
-                    console.error('Unable to open print dialog:', error);
+                    if (status) {
+                        status.textContent =
+                            'Unable to open the printer. Tap PRINT RECEIPT again.';
+                    }
+
+                    console.error('Unable to open browser print dialog:', error);
                 }
             }
 
-            if (openButton) {
-                openButton.setAttribute('aria-disabled', 'true');
-                openButton.addEventListener('click', openModal, false);
-            }
-
-            if (modalClose) {
-                modalClose.addEventListener('click', closeModal, false);
-            }
-
-            if (modal) {
-                modal.addEventListener('click', function (event) {
-                    if (event.target === modal) closeModal();
-                }, false);
-            }
-
-            if (copiesMinus) {
-                copiesMinus.addEventListener('click', function () {
-                    setCopies(copies - 1);
-                }, false);
-            }
-
-            if (copiesPlus) {
-                copiesPlus.addEventListener('click', function () {
-                    setCopies(copies + 1);
-                }, false);
-            }
-
-            if (copiesInput) {
-                copiesInput.addEventListener('change', function () {
-                    setCopies(copiesInput.value);
-                }, false);
-                copiesInput.addEventListener('input', function () {
-                    copies = normalizedCopies(copiesInput.value);
-                }, false);
-            }
-
-            if (finalPrint) {
-                finalPrint.addEventListener('click', printReceipt, false);
+            if (button) {
+                button.setAttribute('aria-disabled', 'true');
+                button.addEventListener('click', openPrinter, false);
             }
 
             window.addEventListener('afterprint', function () {
-                removeGeneratedPrintCopies();
+                if (status) {
+                    status.textContent =
+                        'Printer window closed. Press PRINT RECEIPT to print again.';
+                }
             }, false);
 
             window.addEventListener('load', function () {
-                setCopies(1);
-                window.setTimeout(markReady, 2600);
+                window.setTimeout(markReady, 900);
             }, false);
         })();
     </script>
 </body>
 </html>
 
-{{-- W68_PRINT_PREVIEW_MODAL_V124_20261001 --}}
+{{-- W68_DESKTOP_DIRECT_BROWSER_PRINT_V127_20261001 --}}

@@ -111,8 +111,8 @@
         }
 
         .button[aria-disabled="true"] {
-            opacity: .5;
-            cursor: not-allowed;
+            opacity: 1;
+            cursor: pointer;
         }
 
         .expiry { color: #b9d9cd; font-size: 9px; }
@@ -294,15 +294,13 @@
                 var url = installerUrl();
 
                 if (install) {
-                    install.href = url || 'javascript:void(0)';
-                    install.setAttribute('aria-disabled', url ? 'false' : 'true');
+                    install.href = url || '#';
+                    install.setAttribute('aria-disabled', 'false');
                 }
 
                 if (installError) {
-                    installError.hidden = !!url;
-                    installError.textContent = url
-                        ? ''
-                        : 'The W68 Printer Bridge installer for this device has not been published yet. The INSTALL button is disabled so you are not sent to a broken page.';
+                    installError.hidden = true;
+                    installError.textContent = '';
                 }
 
                 modal.hidden = false;
@@ -325,7 +323,13 @@
 
                     if (!url) {
                         event.preventDefault();
-                        showInstallModal();
+
+                        if (installError) {
+                            installError.hidden = false;
+                            installError.textContent =
+                                'W68 Printer Bridge for iPad is not published in TestFlight/App Store yet. A real Apple installer link must be added before iPadOS can install it.';
+                        }
+
                         return;
                     }
 
@@ -367,4 +371,4 @@
 </body>
 </html>
 
-{{-- W68_HYBRID_PRINT_V126_20261001 --}}
+{{-- W68_HYBRID_PRINT_V127_20261001 --}}

@@ -117,6 +117,12 @@ Route::middleware(['portal.access', 'auth'])->group(function () {
         ->whereNumber('return')
         ->name('orders.return.view');
 
+    // W68_PORTAL_STANDALONE_INVOICE_PRINT_V116_20261001
+    Route::get('/orders/{order}/invoice/{salesOrder}/print', [CustomerOrderController::class, 'printInvoice'])
+        ->whereNumber('order')
+        ->whereNumber('salesOrder')
+        ->name('orders.invoice.print');
+
     Route::post('/home/orders/process', [CustomerOrderController::class, 'processSelectedCart'])
         ->name('home.orders.process');
 

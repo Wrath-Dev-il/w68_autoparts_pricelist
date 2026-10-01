@@ -184,9 +184,18 @@
                 <div class="process-actions {{ $viewMode ? 'process-view-actions' : '' }}">
                     @if ($viewMode)
                         <a class="process-back-button" href="{{ $backToOrdersUrl }}">BACK TO ORDERS</a>
-                        <button type="button" class="process-final-button process-preview-button" data-view-print-preview @disabled($items->isEmpty())>
-                            {{ $invoiceViewMode ? 'PRINT RECEIVED ITEMS' : 'VIEW PRINT PREVIEW' }}
-                        </button>
+                        @if ($invoiceViewMode)
+                            <a
+                                class="process-final-button process-preview-button process-print-link"
+                                href="{{ route('orders.invoice.print', ['order' => $viewOrder['id'], 'salesOrder' => $viewOrder['sales_order_id']]) }}"
+                                target="_blank"
+                                rel="noopener"
+                            >PRINT RECEIVED ITEMS</a>
+                        @else
+                            <button type="button" class="process-final-button process-preview-button" data-view-print-preview @disabled($items->isEmpty())>
+                                VIEW PRINT PREVIEW
+                            </button>
+                        @endif
                     @else
                         <a class="process-back-button" href="{{ route('home') }}">GO BACK TO HOME</a>
                         <button type="button" class="process-final-button" data-final-process @disabled($items->isEmpty())>

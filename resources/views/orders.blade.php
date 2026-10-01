@@ -176,7 +176,9 @@
                     >VIEW</a>
                     <a
                         class="invoice-print-button"
-                        href="{{ route('orders.view', ['order' => $invoice['order_id'], 'sales_order' => $invoice['sales_order_id'], 'print' => 1]) }}"
+                        href="{{ route('orders.invoice.print', ['order' => $invoice['order_id'], 'salesOrder' => $invoice['sales_order_id']]) }}"
+                        target="_blank"
+                        rel="noopener"
                     >PRINT</a>
                 </div>
             </article>

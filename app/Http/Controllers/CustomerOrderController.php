@@ -275,6 +275,115 @@ class CustomerOrderController extends Controller
         ]);
     }
 
+    /**
+     * Standalone customer invoice receipt.
+     *
+     * This route deliberately does NOT use process-order.blade.php. The receipt
+     * is a plain print document so there is no custom preview modal between the
+     * user's PRINT click and the browser / operating-system printer dialog.
+     */
+    public function printInvoice(Request $request, int $order, int $salesOrder): View|RedirectResponse
+    {
+        $account = Auth::user();
+
+        if (!$account || (int) ($account->account_type ?? 0) !== 5) {
+            Auth::logout();
+            $request->session()->invalidate();
+            $request->session()->regenerateToken();
+
+            return redirect()->route('login');
+        }
+
+        [, $loginId, $customerId] = $this->identity($request);
+        $this->ensureOrderTables();
+
+        $orderData = $this->portalOrders($loginId, $customerId)
+            ->first(fn (array $row): bool => (int) ($row['id'] ?? 0) === $order);
+
+        abort_unless($orderData, 404, 'Order not found.');
+
+        $invoice = DB::connection('sales_order')
+            ->table('sales_orders')
+            ->where('id', $salesOrder)
+            ->where('sales_note_id', (int) ($orderData['sales_note_id'] ?? 0))
+            ->whereNotNull('invoice_numbers')
+            ->whereRaw("TRIM(COALESCE(invoice_numbers, '')) <> ''")
+            ->first([
+                'id',
+                'sales_note_id',
+                'customer_id',
+                'customer_name',
+                'invoice_numbers',
+                'terms',
+                'total_amount',
+                'status',
+                'created_at',
+                'updated_at',
+            ]);
+
+        abort_unless($invoice, 404, 'Invoice not found for this W68 order.');
+
+        $salesNote = DB::connection('sales_order')
+            ->table('sales_notes')
+            ->where('id', (int) $invoice->sales_note_id)
+            ->first([
+                'id',
+                'sales_number',
+                'customer_id',
+                'customer_name',
+                'order_date',
+                'salesman',
+                'prepared_by',
+                'packed_by',
+                'checked_by',
+                'is_rush',
+            ]);
+
+        $printCustomerId = (int) ($invoice->customer_id ?? $salesNote->customer_id ?? 0);
+        $printCustomer = $printCustomerId > 0
+            ? DB::connection('masterlist')
+                ->table('customers')
+                ->where('id', $printCustomerId)
+                ->first(['id', 'name', 'address', 'tin', 'terms'])
+            : null;
+
+        $items = $this->invoiceItemsForView((int) $invoice->id);
+        abort_if($items->isEmpty(), 404, 'This invoice has no received items to print.');
+
+        $totalItems = (int) $items->sum(fn (array $item): int => (int) $item['qty']);
+        $invoiceAmount = round((float) $items->sum('printSubtotal'), 2);
+        $additionalLess = round((float) $items->sum('additionalLess'), 2);
+        $calculatedNet = round(max(0, $invoiceAmount - $additionalLess), 2);
+        $invoiceTotal = round((float) ($invoice->total_amount ?? 0), 2);
+        $netAmount = $invoiceTotal > 0 ? $invoiceTotal : $calculatedNet;
+        $invoiceDate = substr((string) ($invoice->created_at ?: $invoice->updated_at), 0, 10);
+
+        $invoiceReceipt = [
+            'invoice_no' => trim((string) ($invoice->invoice_numbers ?? '')),
+            'customer_name' => trim((string) ($printCustomer->name ?? $invoice->customer_name ?? $salesNote->customer_name ?? '')),
+            'customer_address' => trim((string) ($printCustomer->address ?? '')),
+            'customer_tin' => trim((string) ($printCustomer->tin ?? '')),
+            'sales_number' => trim((string) ($salesNote->sales_number ?? $orderData['sales_number'] ?? '')),
+            'date' => $invoiceDate,
+            'terms' => trim((string) ($invoice->terms ?? $printCustomer->terms ?? '')),
+            'salesman' => trim((string) ($salesNote->salesman ?? '')),
+            'rush_text' => !empty($salesNote->is_rush) ? 'RUSH' : '',
+            'prepared_by' => trim((string) ($salesNote->prepared_by ?? '')),
+            'packed_by' => trim((string) ($salesNote->packed_by ?? '')),
+            'checked_by' => trim((string) ($salesNote->checked_by ?? '')),
+            'invoice_amount' => $invoiceAmount,
+            'additional_less' => $additionalLess,
+            'net_amount' => $netAmount,
+        ];
+
+        return view('invoice-receipt-print', [
+            'items' => $items,
+            'totalItems' => $totalItems,
+            'invoiceReceipt' => $invoiceReceipt,
+            'ordersUrl' => route('orders') . '#invoiced',
+        ]);
+    }
+
     public function viewReturn(Request $request, int $order, int $return): View|RedirectResponse
     {
         $account = Auth::user();

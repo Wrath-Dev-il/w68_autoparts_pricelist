@@ -446,13 +446,17 @@ class CustomerNotificationController extends Controller
                 continue;
             }
 
+            // W68_SOA_EXACT_LEAD_UNIT_V132_20261001
+            // Use exactly the unit selected in Customer Master SOA(AUTO).
+            // There is intentionally no default "days" behavior.
             $sendAt = match ($leadUnit) {
                 'minutes' => $dueAt->copy()->subMinutes($leadValue),
+                'days' => $dueAt->copy()->subDays($leadValue),
                 'months' => $dueAt->copy()->subMonthsNoOverflow($leadValue),
-                default => $dueAt->copy()->subDays($leadValue),
+                default => null,
             };
 
-            if (!$now->betweenIncluded($sendAt, $dueAt)) {
+            if (!$sendAt || !$now->betweenIncluded($sendAt, $dueAt)) {
                 continue;
             }
 

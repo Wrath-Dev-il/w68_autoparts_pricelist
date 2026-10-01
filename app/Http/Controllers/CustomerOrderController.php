@@ -341,12 +341,13 @@ class CustomerOrderController extends Controller
 
         return view('printer-bridge-launch', [
             'deepLink' => $deepLink,
-            'fallbackUrl' => route('orders.invoice.print', [
-                'order' => $order,
-                'salesOrder' => $salesOrder,
-            ]),
             'invoiceNo' => (string) ($payload['receipt']['invoice_no'] ?? ''),
             'expiresAt' => $expiresAt,
+            'installUrls' => [
+                'ios' => trim((string) config('printer_bridge.install.ios', '')),
+                'android' => trim((string) config('printer_bridge.install.android', '')),
+                'windows' => trim((string) config('printer_bridge.install.windows', '')),
+            ],
         ]);
     }
 

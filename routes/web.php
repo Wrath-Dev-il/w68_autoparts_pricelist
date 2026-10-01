@@ -123,12 +123,7 @@ Route::middleware(['portal.access', 'auth'])->group(function () {
         ->whereNumber('return')
         ->name('orders.return.view');
 
-    // W68_PORTAL_STANDALONE_INVOICE_PRINT_V116_20261001
-    Route::get('/orders/{order}/invoice/{salesOrder}/print', [CustomerOrderController::class, 'printInvoice'])
-        ->whereNumber('order')
-        ->whereNumber('salesOrder')
-        ->name('orders.invoice.print');
-
+    // W68_PRINTER_BRIDGE_REQUIRED_V125_20261001
     Route::post('/orders/{order}/invoice/{salesOrder}/printer-bridge', [CustomerOrderController::class, 'launchPrinterBridge'])
         ->whereNumber('order')
         ->whereNumber('salesOrder')

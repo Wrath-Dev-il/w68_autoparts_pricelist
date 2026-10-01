@@ -714,7 +714,10 @@ class CustomerOrderController extends Controller
         $grossTotal = round((float) $lines->sum(fn ($line) => $line['original_unit_price'] * $line['quantity']), 2);
         $netTotal = round((float) $lines->sum('total_price'), 2);
         $totalDiscount = round(max(0, $grossTotal - $netTotal), 2);
-        $preparedBy = $this->accountDisplayName($account);
+
+        // W68_PORTAL_PREPARED_BY_BLANK_V130_20261001
+        // Customer portal orders must not write the customer's/account name
+        // into Sales Note PREPARED BY. W68 staff may fill this later.
         $salesNoteItemsHaveProductCode = Schema::connection('sales_order')->hasColumn('sales_note_items', 'product_code');
 
         $created = DB::connection('sales_order')->transaction(function () use (
@@ -725,7 +728,6 @@ class CustomerOrderController extends Controller
             $grossTotal,
             $totalDiscount,
             $netTotal,
-            $preparedBy,
             $salesNoteItemsHaveProductCode,
             $deliveryOption,
             $shipmentRemark
@@ -740,7 +742,7 @@ class CustomerOrderController extends Controller
                 'customer_name' => (string) $customer->name,
                 'order_date' => $now->toDateString(),
                 'salesman' => null,
-                'prepared_by' => $preparedBy,
+                'prepared_by' => null,
                 'checked_by' => null,
                 'packed_by' => null,
                 'is_rush' => $deliveryOption === 'rush' ? 1 : 0,

@@ -31,9 +31,11 @@
     var deliverySummary = document.querySelector('[data-delivery-summary]');
     var deliveryDetail = document.querySelector('[data-delivery-detail]');
     var shipmentModal = document.querySelector('[data-shipment-modal]');
+    var deliveryOpenButton = document.querySelector('[data-delivery-open]');
     var shipmentSave = document.querySelector('[data-shipment-save]');
     var shipmentEmpty = document.querySelector('[data-shipment-empty]');
     var shipmentOptions = Array.prototype.slice.call(document.querySelectorAll('[data-shipment-forwarder]'));
+    var shipmentCancelButtons = Array.prototype.slice.call(document.querySelectorAll('[data-shipment-cancel]'));
 
     var selectedDeliveryType = '';
     var selectedShipmentId = 0;
@@ -297,14 +299,24 @@
 
         shipmentModal.hidden = false;
         shipmentModal.setAttribute('aria-hidden', 'false');
+        if (body && body.classList) body.classList.add('shipment-modal-open');
         renderShipmentOptions();
         syncProcessViewport();
+
+        window.setTimeout(function () {
+            var firstSelected = shipmentModal.querySelector('.shipment-option.is-selected');
+            var firstAvailable = shipmentModal.querySelector('.shipment-option:not([hidden])');
+            var focusTarget = firstSelected || firstAvailable || shipmentModal.querySelector('[data-shipment-cancel]');
+            if (focusTarget && focusTarget.focus) focusTarget.focus();
+        }, 0);
     }
 
     function closeShipmentModal() {
         if (!shipmentModal) return;
         shipmentModal.hidden = true;
         shipmentModal.setAttribute('aria-hidden', 'true');
+        if (body && body.classList) body.classList.remove('shipment-modal-open');
+        if (deliveryOpenButton && deliveryOpenButton.focus) deliveryOpenButton.focus();
     }
 
     function saveShipmentSelection() {
@@ -347,6 +359,7 @@
             shipmentModal.hidden = true;
             shipmentModal.setAttribute('aria-hidden', 'true');
         }
+        if (body && body.classList) body.classList.remove('shipment-modal-open');
         if (!viewMode) setTermsChecked(false);
         clearConfirmError();
     }
@@ -517,6 +530,55 @@
         });
     }
 
+    // W68_PROCESS_DELIVERY_TAP_FIX_V133_20261001
+    // iPad/Safari can be unreliable when a button inside one fixed modal opens
+    // another fixed modal through only a delegated document click. Bind the
+    // delivery controls directly, while still keeping the delegated fallback.
+    function bindProcessTap(node, handler) {
+        if (!node || typeof handler !== 'function') return;
+
+        var lastTouchAt = 0;
+
+        node.addEventListener('touchend', function (event) {
+            lastTouchAt = Date.now();
+            event.preventDefault();
+            event.stopPropagation();
+            handler(event);
+        }, { passive: false });
+
+        node.addEventListener('click', function (event) {
+            if (Date.now() - lastTouchAt < 650) {
+                event.preventDefault();
+                event.stopPropagation();
+                return;
+            }
+
+            event.preventDefault();
+            event.stopPropagation();
+            handler(event);
+        }, false);
+    }
+
+    bindProcessTap(deliveryOpenButton, function () {
+        openShipmentModal();
+    });
+
+    shipmentOptions.forEach(function (option) {
+        bindProcessTap(option, function () {
+            chooseShipment(option);
+        });
+    });
+
+    bindProcessTap(shipmentSave, function () {
+        if (!shipmentSave.disabled) saveShipmentSelection();
+    });
+
+    shipmentCancelButtons.forEach(function (button) {
+        bindProcessTap(button, function () {
+            closeShipmentModal();
+        });
+    });
+
     document.addEventListener('click', function (event) {
         var remove = closestFrom(event.target, '[data-remove-selected]');
         if (remove) {
@@ -535,33 +597,8 @@
             return;
         }
 
-        var deliveryOpen = closestFrom(event.target, '[data-delivery-open]');
-        if (deliveryOpen) {
-            event.preventDefault();
-            openShipmentModal();
-            return;
-        }
-
-        var shipmentCancel = closestFrom(event.target, '[data-shipment-cancel]');
-        if (shipmentCancel) {
-            event.preventDefault();
-            closeShipmentModal();
-            return;
-        }
-
-        var shipmentForwarder = closestFrom(event.target, '[data-shipment-forwarder]');
-        if (shipmentForwarder) {
-            event.preventDefault();
-            chooseShipment(shipmentForwarder);
-            return;
-        }
-
-        var shipmentSaveButton = closestFrom(event.target, '[data-shipment-save]');
-        if (shipmentSaveButton) {
-            event.preventDefault();
-            if (!shipmentSaveButton.disabled) saveShipmentSelection();
-            return;
-        }
+        // Delivery controls are bound directly above for reliable iPad/Safari
+        // touch behavior. Do not run them again through delegated click logic.
 
         var termsCancel = closestFrom(event.target, '[data-terms-cancel]');
         if (termsCancel) {

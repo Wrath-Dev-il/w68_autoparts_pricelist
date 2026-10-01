@@ -17,8 +17,8 @@
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>W68 Autoparts | {{ $returnViewMode ? 'View Return' : ($viewMode ? 'View Order' : 'Process Order') }}</title>
     <link rel="icon" href="{{ asset('images/sidebar_logo.png') }}">
-    <link rel="stylesheet" href="{{ asset('css/w68-process-order.css') }}?v=20261001-v115">
-    <script src="{{ asset('js/w68-process-order.js') }}?v=20261001-v129" defer></script>
+    <link rel="stylesheet" href="{{ asset('css/w68-process-order.css') }}?v=20261001-v133">
+    <script src="{{ asset('js/w68-process-order.js') }}?v=20261001-v133" defer></script>
 </head>
 <body
     data-process-url="{{ $viewMode ? '' : route('home.orders.process') }}"
@@ -215,7 +215,9 @@
                     <span class="order-confirm-kicker">PRINT PREVIEW</span>
                     <h2 id="order-confirm-title">{{ $viewMode ? ($orderCode ?: ($returnViewMode ? 'Return' : 'Order')) : 'Order Confirmation' }}</h2>
                 </div>
-                <button type="button" class="order-confirm-x" data-order-confirm-close aria-label="Close">Ã—</button>
+                <button type="button" class="order-confirm-x" data-order-confirm-close aria-label="Close">
+                    <span aria-hidden="true">&#10005;</span>
+                </button>
             </header>
 
             @if ($invoiceViewMode && $invoiceReceipt)
@@ -437,7 +439,7 @@
             <div class="order-print-preview">
                 <div class="order-print-head">
                     <strong>W68 Autoparts &amp; Service Center</strong>
-                    <span>48 Timothy ST. Multinational Village ParaÃ±aque City</span>
+                    <span>48 Timothy ST. Multinational Village Para&ntilde;aque City</span>
                     <span>Tel No. 8553-9092 / 8829-0480 &nbsp; MOBILE: 0917-3239-605 &nbsp; VIBER: 0949-8818-468</span>
                 </div>
 
@@ -536,7 +538,9 @@
                         <h2 id="shipment-title">Choose Shipment</h2>
                         <p>Choose the forwarder you want to use from the <strong>RUSH</strong> or <strong>REGULAR</strong> group.</p>
                     </div>
-                    <button type="button" class="shipment-x" data-shipment-cancel aria-label="Close Shipment selection">&times;</button>
+                    <button type="button" class="shipment-x" data-shipment-cancel aria-label="Close Shipment selection">
+                        <span aria-hidden="true">&#10005;</span>
+                    </button>
                 </div>
 
                 @php

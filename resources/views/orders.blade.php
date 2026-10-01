@@ -99,14 +99,14 @@
         <button type="button" data-orders-tab="invoiced">
             <span>2</span> INVOICED <b>{{ ($invoices ?? collect())->count() }}</b>
         </button>
-        <button type="button" data-orders-tab="bills">
-            <span>3</span> BILLS <b>{{ $billsReceiptCount ?? 0 }}</b>
-        </button>
         <button type="button" data-orders-tab="unserved">
-            <span>4</span> UNSERVED ITEMS <b>{{ $unservedItemsCount ?? 0 }}</b>
+            <span>3</span> UNSERVED ITEMS <b>{{ $unservedItemsCount ?? 0 }}</b>
         </button>
         <button type="button" data-orders-tab="cancelled">
-            <span>5</span> CANCELLED <b>{{ ($cancelled ?? collect())->count() }}</b>
+            <span>4</span> CANCELLED <b>{{ ($cancelled ?? collect())->count() }}</b>
+        </button>
+        <button type="button" data-orders-tab="bills">
+            <span>5</span> BILLS <b>{{ $billsReceiptCount ?? 0 }}</b>
         </button>
     </nav>
 
@@ -199,84 +199,6 @@
         @endforelse
     </section>
 
-
-    {{-- W68_ORDERS_BILLS_V121_20261001 --}}
-    <section class="orders-tab-panel bills-panel" data-orders-panel="bills" hidden>
-        <div class="orders-section-heading">
-            <div><span>PAYMENT SCHEDULE</span><h2>Bills</h2></div>
-            <p>The dashboard count is the number of invoice receipts due this month plus next month. Amounts are shown here only for reference and are not added into the dashboard count.</p>
-        </div>
-
-        <label class="orders-search-bar">
-            <span>SEARCH</span>
-            <input type="search" data-orders-search-input placeholder="Search order ID, invoice no., invoiced date, due date or amount" autocomplete="off">
-        </label>
-        <div class="orders-search-empty" data-orders-search-empty hidden>No matching bills.</div>
-
-        <section class="bills-month-section bills-current-section">
-            <header class="bills-section-header">
-                <div>
-                    <span>DUE THIS MONTH</span>
-                    <h3>Current Bills</h3>
-                </div>
-                <b>{{ ($currentBills ?? collect())->count() }} RECEIPT{{ ($currentBills ?? collect())->count() === 1 ? '' : 'S' }}</b>
-            </header>
-
-            @forelse (($currentBills ?? collect()) as $bill)
-                <article class="order-summary-card received-card bill-summary-card current-bill-card" data-order-search-record>
-                    <span class="orders-search-index" aria-hidden="true">{{ $bill['item_search'] ?? '' }} {{ $bill['sales_number'] ?? '' }} {{ $bill['terms'] ?? '' }}</span>
-                    <div class="order-summary-main bill-summary-main">
-                        <div><span>ORDER ID</span><strong>{{ $bill['order_code'] ?: '—' }}</strong></div>
-                        <div><span>INVOICE NO.</span><strong>{{ $bill['invoice_no'] ?: '—' }}</strong></div>
-                        <div><span>INVOICED DATE</span><strong>{{ $bill['invoiced_date'] ?: '—' }}</strong></div>
-                        <div class="bill-due-cell"><span>DUE DATE</span><strong>{{ $bill['due_date'] ?: '—' }}</strong></div>
-                        <div><span>TOTAL AMOUNT</span><strong>{{ number_format((float) ($bill['total_amount'] ?? 0), 2) }}</strong></div>
-                    </div>
-                    <a
-                        class="view-order-button bill-view-button"
-                        href="{{ route('orders.view', ['order' => $bill['order_id'], 'sales_order' => $bill['sales_order_id']]) }}"
-                    >VIEW</a>
-                </article>
-            @empty
-                <div class="bills-empty">
-                    <strong>No current bills.</strong>
-                    <span>No invoice receipt is due this month.</span>
-                </div>
-            @endforelse
-        </section>
-
-        <section class="bills-month-section bills-upcoming-section">
-            <header class="bills-section-header">
-                <div>
-                    <span>DUE NEXT MONTH</span>
-                    <h3>Upcoming Bills</h3>
-                </div>
-                <b>{{ ($upcomingBills ?? collect())->count() }} RECEIPT{{ ($upcomingBills ?? collect())->count() === 1 ? '' : 'S' }}</b>
-            </header>
-
-            @forelse (($upcomingBills ?? collect()) as $bill)
-                <article class="order-summary-card bill-summary-card upcoming-bill-card" data-order-search-record>
-                    <span class="orders-search-index" aria-hidden="true">{{ $bill['item_search'] ?? '' }} {{ $bill['sales_number'] ?? '' }} {{ $bill['terms'] ?? '' }}</span>
-                    <div class="order-summary-main bill-summary-main">
-                        <div><span>ORDER ID</span><strong>{{ $bill['order_code'] ?: '—' }}</strong></div>
-                        <div><span>INVOICE NO.</span><strong>{{ $bill['invoice_no'] ?: '—' }}</strong></div>
-                        <div><span>INVOICED DATE</span><strong>{{ $bill['invoiced_date'] ?: '—' }}</strong></div>
-                        <div class="bill-due-cell"><span>DUE DATE</span><strong>{{ $bill['due_date'] ?: '—' }}</strong></div>
-                        <div><span>TOTAL AMOUNT</span><strong>{{ number_format((float) ($bill['total_amount'] ?? 0), 2) }}</strong></div>
-                    </div>
-                    <a
-                        class="view-order-button bill-view-button"
-                        href="{{ route('orders.view', ['order' => $bill['order_id'], 'sales_order' => $bill['sales_order_id']]) }}"
-                    >VIEW</a>
-                </article>
-            @empty
-                <div class="bills-empty">
-                    <strong>No upcoming bills.</strong>
-                    <span>No invoice receipt is due next month.</span>
-                </div>
-            @endforelse
-        </section>
-    </section>
 
     <section class="orders-tab-panel" data-orders-panel="unserved" hidden>
         <div class="orders-section-heading">
@@ -382,6 +304,85 @@
         @empty
             <div class="orders-empty"><strong>No cancelled orders.</strong><span>Orders with portal_status = CANCELLED in w68_portal_orders will appear here.</span></div>
         @endforelse
+    </section>
+
+
+    {{-- W68_ORDERS_BILLS_V123_20261001 --}}
+    <section class="orders-tab-panel bills-panel" data-orders-panel="bills" hidden>
+        <div class="orders-section-heading">
+            <div><span>PAYMENT SCHEDULE</span><h2>Bills</h2></div>
+            <p>The dashboard count is the number of invoice receipts due this month plus next month. Amounts are shown here only for reference and are not added into the dashboard count.</p>
+        </div>
+
+        <label class="orders-search-bar">
+            <span>SEARCH</span>
+            <input type="search" data-orders-search-input placeholder="Search order ID, invoice no., invoiced date, due date or amount" autocomplete="off">
+        </label>
+        <div class="orders-search-empty" data-orders-search-empty hidden>No matching bills.</div>
+
+        <section class="bills-month-section bills-current-section">
+            <header class="bills-section-header">
+                <div>
+                    <span>DUE THIS MONTH</span>
+                    <h3>Current Bills</h3>
+                </div>
+                <b>{{ ($currentBills ?? collect())->count() }} RECEIPT{{ ($currentBills ?? collect())->count() === 1 ? '' : 'S' }}</b>
+            </header>
+
+            @forelse (($currentBills ?? collect()) as $bill)
+                <article class="order-summary-card received-card bill-summary-card current-bill-card" data-order-search-record>
+                    <span class="orders-search-index" aria-hidden="true">{{ $bill['item_search'] ?? '' }} {{ $bill['sales_number'] ?? '' }} {{ $bill['terms'] ?? '' }}</span>
+                    <div class="order-summary-main bill-summary-main">
+                        <div><span>ORDER ID</span><strong>{{ $bill['order_code'] ?: '—' }}</strong></div>
+                        <div><span>INVOICE NO.</span><strong>{{ $bill['invoice_no'] ?: '—' }}</strong></div>
+                        <div><span>INVOICED DATE</span><strong>{{ $bill['invoiced_date'] ?: '—' }}</strong></div>
+                        <div class="bill-due-cell"><span>DUE DATE</span><strong>{{ $bill['due_date'] ?: '—' }}</strong></div>
+                        <div><span>TOTAL AMOUNT</span><strong>{{ number_format((float) ($bill['total_amount'] ?? 0), 2) }}</strong></div>
+                    </div>
+                    <a
+                        class="view-order-button bill-view-button"
+                        href="{{ route('orders.view', ['order' => $bill['order_id'], 'sales_order' => $bill['sales_order_id']]) }}"
+                    >VIEW</a>
+                </article>
+            @empty
+                <div class="bills-empty">
+                    <strong>No current bills.</strong>
+                    <span>No invoice receipt is due this month.</span>
+                </div>
+            @endforelse
+        </section>
+
+        <section class="bills-month-section bills-upcoming-section">
+            <header class="bills-section-header">
+                <div>
+                    <span>DUE NEXT MONTH</span>
+                    <h3>Upcoming Bills</h3>
+                </div>
+                <b>{{ ($upcomingBills ?? collect())->count() }} RECEIPT{{ ($upcomingBills ?? collect())->count() === 1 ? '' : 'S' }}</b>
+            </header>
+
+            @forelse (($upcomingBills ?? collect()) as $bill)
+                <article class="order-summary-card bill-summary-card upcoming-bill-card" data-order-search-record>
+                    <span class="orders-search-index" aria-hidden="true">{{ $bill['item_search'] ?? '' }} {{ $bill['sales_number'] ?? '' }} {{ $bill['terms'] ?? '' }}</span>
+                    <div class="order-summary-main bill-summary-main">
+                        <div><span>ORDER ID</span><strong>{{ $bill['order_code'] ?: '—' }}</strong></div>
+                        <div><span>INVOICE NO.</span><strong>{{ $bill['invoice_no'] ?: '—' }}</strong></div>
+                        <div><span>INVOICED DATE</span><strong>{{ $bill['invoiced_date'] ?: '—' }}</strong></div>
+                        <div class="bill-due-cell"><span>DUE DATE</span><strong>{{ $bill['due_date'] ?: '—' }}</strong></div>
+                        <div><span>TOTAL AMOUNT</span><strong>{{ number_format((float) ($bill['total_amount'] ?? 0), 2) }}</strong></div>
+                    </div>
+                    <a
+                        class="view-order-button bill-view-button"
+                        href="{{ route('orders.view', ['order' => $bill['order_id'], 'sales_order' => $bill['sales_order_id']]) }}"
+                    >VIEW</a>
+                </article>
+            @empty
+                <div class="bills-empty">
+                    <strong>No upcoming bills.</strong>
+                    <span>No invoice receipt is due next month.</span>
+                </div>
+            @endforelse
+        </section>
     </section>
 
 </main>

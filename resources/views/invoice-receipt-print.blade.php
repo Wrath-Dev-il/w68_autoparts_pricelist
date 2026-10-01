@@ -172,68 +172,98 @@
         .radar-card > span { font-size: 12px; font-weight: 800; color: #dcf4ff; }
         .radar-card small { max-width: 370px; font-size: 10px; line-height: 1.45; color: rgba(235,248,255,.84); }
 
-        .printer-ready-card {
-            width: min(390px, 100%);
-            margin-top: 7px;
-            padding: 12px 14px;
+        .print-settings-card {
+            width: min(410px, 100%);
+            margin-top: 8px;
+            padding: 12px;
             display: none;
-            grid-template-columns: 44px minmax(0, 1fr) auto;
-            align-items: center;
-            gap: 11px;
-            border: 1px solid #ffe36e;
-            border-radius: 12px;
-            background: #064e3b;
-            color: #fff;
+            gap: 8px;
+            border: 1px solid rgba(255,255,255,.30);
+            border-radius: 13px;
+            background: rgba(255,255,255,.10);
+            backdrop-filter: blur(4px);
             text-align: left;
-            box-shadow: 0 8px 26px rgba(0,0,0,.14);
         }
 
-        .printer-ready-card.is-ready {
+        .print-settings-card.is-ready {
             display: grid;
         }
 
-        .printer-ready-icon {
-            width: 44px;
-            height: 44px;
+        .print-setting-row {
+            min-height: 48px;
+            padding: 9px 11px;
             display: grid;
-            place-items: center;
+            grid-template-columns: 1fr auto;
+            align-items: center;
+            gap: 8px;
             border-radius: 10px;
-            background: rgba(255,227,110,.12);
-            color: #ffe36e;
+            background: #064e3b;
+            border: 1px solid rgba(255,227,110,.38);
         }
 
-        .printer-ready-icon svg {
-            width: 27px;
-            height: 27px;
-            fill: currentColor;
-        }
-
-        .printer-ready-copy {
+        .print-setting-copy {
             min-width: 0;
             display: grid;
             gap: 2px;
         }
 
-        .printer-ready-copy strong {
+        .print-setting-copy span {
+            color: #bfe4d8;
+            font-size: 8px;
+            font-weight: 900;
+            letter-spacing: .75px;
+        }
+
+        .print-setting-copy strong {
             color: #ffe36e;
             font-size: 11px;
             font-weight: 1000;
-            letter-spacing: .35px;
+            letter-spacing: .25px;
         }
 
-        .printer-ready-copy span {
-            color: #fff;
-            font-size: 9px;
-            font-weight: 800;
-            line-height: 1.35;
-        }
-
-        .printer-ready-badge {
+        .print-setting-badge {
             color: #ffe36e;
             font-size: 8px;
             font-weight: 1000;
-            letter-spacing: .7px;
+            letter-spacing: .5px;
             white-space: nowrap;
+        }
+
+        .copies-control {
+            display: inline-grid;
+            grid-template-columns: 34px 42px 34px;
+            align-items: center;
+            overflow: hidden;
+            border: 1px solid rgba(255,227,110,.58);
+            border-radius: 9px;
+            background: rgba(255,255,255,.06);
+        }
+
+        .copies-control button {
+            width: 34px;
+            height: 34px;
+            border: 0;
+            background: transparent;
+            color: #ffe36e;
+            font: 1000 18px Arial, sans-serif;
+            cursor: pointer;
+        }
+
+        .copies-control output {
+            display: grid;
+            place-items: center;
+            height: 34px;
+            border-left: 1px solid rgba(255,227,110,.26);
+            border-right: 1px solid rgba(255,227,110,.26);
+            color: #fff;
+            font: 1000 13px Arial, sans-serif;
+        }
+
+        .print-format-note {
+            color: rgba(235,248,255,.86);
+            font-size: 9px;
+            line-height: 1.45;
+            text-align: center;
         }
 
         .open-printer {
@@ -353,17 +383,26 @@
         .financial-value { text-align: right; white-space: nowrap; }
 
         @media print {
-            @page { size: A4 portrait; margin: 1cm; }
-            html, body { background: #fff !important; }
+            @page { size: A4 portrait; margin: 10mm; }
+            html, body {
+                background: #fff !important;
+                -webkit-print-color-adjust: exact;
+                print-color-adjust: exact;
+            }
             .radar-screen { display: none !important; }
             .receipt {
                 position: static !important;
                 left: auto !important;
                 top: auto !important;
                 width: 100% !important;
+                max-width: 190mm !important;
                 padding: 0 !important;
-                margin: 0 !important;
+                margin: 0 auto !important;
                 display: block !important;
+            }
+            .receipt.print-copy {
+                break-before: page;
+                page-break-before: always;
             }
         }
 
@@ -388,22 +427,45 @@
                     <svg viewBox="0 0 24 24"><path d="M7 7V3h10v4M7 17v4h10v-4M6 9h12a3 3 0 0 1 3 3v4h-4v-3H7v3H3v-4a3 3 0 0 1 3-3Zm2 6h8v4H8z"/></svg>
                 </span>
             </div>
-            <strong id="radar-title">PREPARING PRINTERS</strong>
-            <span id="printer-status">Checking your device printing service…</span>
-            <small>No app is required. On iPad/iPhone, AirPrint shows the printers the device can use. On computers, the operating system shows installed/available printers.</small>
+            <strong id="radar-title">PREPARING A4 RECEIPT</strong>
+            <span id="printer-status">Preparing W68 print settings…</span>
+            <small>The Sales Order receipt is formatted by W68 for A4 portrait with fixed 10 mm document margins.</small>
 
-            <div class="printer-ready-card" id="printer-ready-card" aria-live="polite">
-                <span class="printer-ready-icon" aria-hidden="true">
-                    <svg viewBox="0 0 24 24"><path d="M7 7V3h10v4M7 17v4h10v-4M6 9h12a3 3 0 0 1 3 3v4h-4v-3H7v3H3v-4a3 3 0 0 1 3-3Zm2 6h8v4H8z"/></svg>
-                </span>
-                <span class="printer-ready-copy">
-                    <strong>AIRPRINT / SYSTEM PRINTERS</strong>
-                    <span id="printer-ready-detail">Ready to open your device printer list.</span>
-                </span>
-                <span class="printer-ready-badge">READY</span>
+            <div class="print-settings-card" id="print-settings-card" aria-live="polite">
+                <div class="print-setting-row">
+                    <span class="print-setting-copy">
+                        <span>PAPER SIZE</span>
+                        <strong>A4 PORTRAIT</strong>
+                    </span>
+                    <span class="print-setting-badge">W68 FORMAT</span>
+                </div>
+
+                <div class="print-setting-row">
+                    <span class="print-setting-copy">
+                        <span>DOCUMENT MARGINS</span>
+                        <strong>10 MM FIXED LAYOUT</strong>
+                    </span>
+                    <span class="print-setting-badge">W68 FORMAT</span>
+                </div>
+
+                <div class="print-setting-row">
+                    <span class="print-setting-copy">
+                        <span>COPIES</span>
+                        <strong>Choose how many receipt copies to produce</strong>
+                    </span>
+                    <span class="copies-control" aria-label="Number of copies">
+                        <button type="button" id="copies-minus" aria-label="Decrease copies">−</button>
+                        <output id="copies-count">1</output>
+                        <button type="button" id="copies-plus" aria-label="Increase copies">+</button>
+                    </span>
+                </div>
             </div>
 
-            <button type="button" class="open-printer" id="open-printer" disabled>CHOOSE PRINTER</button>
+            <div class="print-format-note" id="print-format-note">
+                After this screen, your device opens its printer picker so you can choose the physical printer.
+            </div>
+
+            <button type="button" class="open-printer" id="open-printer" disabled>SELECT PRINTER &amp; PRINT 1 COPY</button>
             <a class="back-link" href="{{ $ordersUrl }}">BACK TO INVOICED</a>
         </div>
     </section>
@@ -549,76 +611,135 @@
             var button = document.getElementById('open-printer');
             var status = document.getElementById('printer-status');
             var title = document.getElementById('radar-title');
-            var readyCard = document.getElementById('printer-ready-card');
-            var readyDetail = document.getElementById('printer-ready-detail');
-            var isIOS =
-                /iPad|iPhone|iPod/.test(navigator.userAgent) ||
-                (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+            var settings = document.getElementById('print-settings-card');
+            var copiesMinus = document.getElementById('copies-minus');
+            var copiesPlus = document.getElementById('copies-plus');
+            var copiesCount = document.getElementById('copies-count');
+            var receipt = document.getElementById('w68-receipt');
+            var copies = 1;
+            var maxCopies = 20;
+
+            function updateCopies(next) {
+                copies = Math.max(1, Math.min(maxCopies, Number(next) || 1));
+
+                if (copiesCount) {
+                    copiesCount.textContent = String(copies);
+                }
+
+                if (button) {
+                    button.textContent =
+                        'SELECT PRINTER & PRINT ' +
+                        copies +
+                        (copies === 1 ? ' COPY' : ' COPIES');
+                }
+            }
+
+            function removeGeneratedCopies() {
+                document.querySelectorAll('.receipt.print-copy').forEach(function (copy) {
+                    copy.remove();
+                });
+            }
+
+            function buildGeneratedCopies() {
+                removeGeneratedCopies();
+                if (!receipt || copies <= 1) return;
+
+                var anchor = receipt;
+
+                for (var index = 2; index <= copies; index += 1) {
+                    var clone = receipt.cloneNode(true);
+                    clone.removeAttribute('id');
+                    clone.classList.add('print-copy');
+                    clone.setAttribute('data-copy-number', String(index));
+                    clone.setAttribute('aria-hidden', 'true');
+                    anchor.insertAdjacentElement('afterend', clone);
+                    anchor = clone;
+                }
+            }
 
             function markReady() {
-                if (title) title.textContent = 'PRINTER SERVICE READY';
+                if (title) {
+                    title.textContent = 'A4 RECEIPT READY';
+                }
 
                 if (status) {
-                    status.textContent = isIOS
-                        ? 'Tap CHOOSE PRINTER to open the AirPrint printer list.'
-                        : 'Tap CHOOSE PRINTER to open your system printer list.';
+                    status.textContent =
+                        'Choose the number of copies, then select your printer.';
                 }
 
-                if (readyDetail) {
-                    readyDetail.textContent = isIOS
-                        ? 'AirPrint will list the printers this iPad/iPhone can currently use.'
-                        : 'Your operating system will list the printers currently available to this device.';
+                if (settings) {
+                    settings.classList.add('is-ready');
                 }
-
-                if (readyCard) readyCard.classList.add('is-ready');
 
                 if (button) {
                     button.disabled = false;
                     button.removeAttribute('aria-disabled');
                 }
+
+                updateCopies(copies);
             }
 
             function openPrinter(event) {
                 if (event) event.preventDefault();
 
-                // This must remain inside the direct user click/tap. Safari and
-                // Chrome intentionally block automatic printing that happens
-                // after a timer or page navigation.
+                buildGeneratedCopies();
+
+                if (status) {
+                    status.textContent =
+                        copies +
+                        (copies === 1 ? ' A4 copy is' : ' A4 copies are') +
+                        ' prepared. Choose the physical printer in your device print window.';
+                }
+
                 try {
+                    // Browser security requires the real printer selection to be
+                    // handled by the operating system. This call must remain
+                    // inside the direct customer tap/click.
                     window.print();
                 } catch (error) {
+                    removeGeneratedCopies();
+
                     if (status) {
-                        status.textContent = 'Unable to open the printer list. Tap CHOOSE PRINTER again.';
+                        status.textContent =
+                            'Unable to open the printer window. Tap the print button again.';
                     }
+
                     console.error('Unable to open native print dialog:', error);
                 }
             }
 
+            if (copiesMinus) {
+                copiesMinus.addEventListener('click', function () {
+                    updateCopies(copies - 1);
+                }, false);
+            }
+
+            if (copiesPlus) {
+                copiesPlus.addEventListener('click', function () {
+                    updateCopies(copies + 1);
+                }, false);
+            }
+
             if (button) {
                 button.setAttribute('aria-disabled', 'true');
-
                 button.addEventListener('click', openPrinter, false);
-                button.addEventListener('touchend', function (event) {
-                    event.preventDefault();
-                    openPrinter(event);
-                }, { passive: false });
             }
 
             window.addEventListener('afterprint', function () {
+                removeGeneratedCopies();
+
                 if (status) {
-                    status.textContent = 'Printer window closed. Tap CHOOSE PRINTER to print again.';
+                    status.textContent =
+                        'Printer window closed. Change copies or print again if needed.';
                 }
             }, false);
 
-            // Radar is visual preparation only. Browser security does not expose
-            // real printer names to page JavaScript. The real list is shown by
-            // AirPrint / Windows / macOS after the customer taps CHOOSE PRINTER.
             window.addEventListener('load', function () {
-                window.setTimeout(markReady, 1400);
+                window.setTimeout(markReady, 1200);
             }, false);
         })();
     </script>
 </body>
 </html>
 
-{{-- W68_ZERO_INSTALL_PRINT_V120_20261001 --}}
+{{-- W68_A4_COPIES_PRINT_V123_20261001 --}}

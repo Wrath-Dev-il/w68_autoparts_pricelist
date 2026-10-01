@@ -276,6 +276,106 @@ class CustomerOrderController extends Controller
     }
 
     /**
+     * Create a short-lived native printer-bridge job for exactly one invoice.
+     * The raw token is never stored; only its SHA-256 hash is persisted.
+     */
+    public function launchPrinterBridge(Request $request, int $order, int $salesOrder): View|RedirectResponse
+    {
+        $account = Auth::user();
+
+        if (!$account || (int) ($account->account_type ?? 0) !== 5) {
+            Auth::logout();
+            $request->session()->invalidate();
+            $request->session()->regenerateToken();
+
+            return redirect()->route('login');
+        }
+
+        [, $loginId, $customerId] = $this->identity($request);
+        $this->ensureOrderTables();
+        $this->ensurePrinterBridgeJobsTable();
+
+        $payload = $this->printerBridgeInvoicePayload($order, $salesOrder, $loginId, $customerId);
+
+        $rawToken = bin2hex(random_bytes(32));
+        $expiresAt = now()->addMinutes(10);
+
+        DB::connection('sales_order')
+            ->table('w68_printer_bridge_jobs')
+            ->where('expires_at', '<', now())
+            ->delete();
+
+        DB::connection('sales_order')
+            ->table('w68_printer_bridge_jobs')
+            ->insert([
+                'token_hash' => hash('sha256', $rawToken),
+                'login_id' => $loginId,
+                'customer_id' => $customerId,
+                'portal_order_id' => $order,
+                'sales_order_id' => $salesOrder,
+                'payload_json' => json_encode(
+                    $payload,
+                    JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR
+                ),
+                'expires_at' => $expiresAt,
+                'last_accessed_at' => null,
+                'access_count' => 0,
+                'created_at' => now(),
+                'updated_at' => now(),
+            ]);
+
+        $jobUrl = route('printer-bridge.job', ['token' => $rawToken]);
+        $deepLink = 'w68print://job?url=' . rawurlencode($jobUrl);
+
+        return view('printer-bridge-launch', [
+            'deepLink' => $deepLink,
+            'fallbackUrl' => route('orders.invoice.print', [
+                'order' => $order,
+                'salesOrder' => $salesOrder,
+            ]),
+            'invoiceNo' => (string) ($payload['receipt']['invoice_no'] ?? ''),
+            'expiresAt' => $expiresAt,
+        ]);
+    }
+
+    /**
+     * Token-authenticated payload consumed by the native W68 Printer Bridge.
+     */
+    public function printerBridgeJob(string $token): JsonResponse
+    {
+        $this->ensurePrinterBridgeJobsTable();
+
+        $row = DB::connection('sales_order')
+            ->table('w68_printer_bridge_jobs')
+            ->where('token_hash', hash('sha256', $token))
+            ->where('expires_at', '>', now())
+            ->first();
+
+        abort_unless($row, 404, 'Printer job is invalid or expired.');
+
+        $payload = json_decode((string) ($row->payload_json ?? ''), true);
+        abort_unless(is_array($payload), 410, 'Printer job payload is unavailable.');
+
+        DB::connection('sales_order')
+            ->table('w68_printer_bridge_jobs')
+            ->where('id', (int) $row->id)
+            ->update([
+                'last_accessed_at' => now(),
+                'access_count' => DB::raw('access_count + 1'),
+                'updated_at' => now(),
+            ]);
+
+        $payload['job'] = array_merge((array) ($payload['job'] ?? []), [
+            'expires_at' => (string) $row->expires_at,
+        ]);
+
+        return response()
+            ->json($payload)
+            ->header('Cache-Control', 'no-store, no-cache, must-revalidate, private')
+            ->header('Pragma', 'no-cache');
+    }
+
+    /**
      * Standalone customer invoice receipt.
      *
      * This route deliberately does NOT use process-order.blade.php. The receipt
@@ -1060,6 +1160,127 @@ class CustomerOrderController extends Controller
             })
             ->filter()
             ->values();
+    }
+
+    /**
+     * Build the printer payload after enforcing logged-in portal ownership.
+     */
+    private function printerBridgeInvoicePayload(
+        int $order,
+        int $salesOrder,
+        int $loginId,
+        int $customerId
+    ): array {
+        $orderData = $this->portalOrders($loginId, $customerId)
+            ->first(fn (array $row): bool => (int) ($row['id'] ?? 0) === $order);
+
+        abort_unless($orderData, 404, 'Order not found.');
+
+        $invoice = DB::connection('sales_order')
+            ->table('sales_orders')
+            ->where('id', $salesOrder)
+            ->where('sales_note_id', (int) ($orderData['sales_note_id'] ?? 0))
+            ->whereNotNull('invoice_numbers')
+            ->whereRaw("TRIM(COALESCE(invoice_numbers, '')) <> ''")
+            ->first([
+                'id',
+                'sales_note_id',
+                'customer_id',
+                'customer_name',
+                'invoice_numbers',
+                'terms',
+                'total_amount',
+                'status',
+                'created_at',
+                'updated_at',
+            ]);
+
+        abort_unless($invoice, 404, 'Invoice not found for this W68 order.');
+
+        $salesNote = DB::connection('sales_order')
+            ->table('sales_notes')
+            ->where('id', (int) $invoice->sales_note_id)
+            ->first([
+                'id',
+                'sales_number',
+                'customer_id',
+                'customer_name',
+                'order_date',
+                'salesman',
+                'prepared_by',
+                'packed_by',
+                'checked_by',
+                'is_rush',
+            ]);
+
+        $printCustomerId = (int) ($invoice->customer_id ?? $salesNote->customer_id ?? 0);
+        $printCustomer = $printCustomerId > 0
+            ? DB::connection('masterlist')
+                ->table('customers')
+                ->where('id', $printCustomerId)
+                ->first(['id', 'name', 'address', 'tin', 'terms'])
+            : null;
+
+        $items = $this->invoiceItemsForView((int) $invoice->id);
+        abort_if($items->isEmpty(), 404, 'This invoice has no received items to print.');
+
+        $totalItems = (int) $items->sum(fn (array $item): int => (int) $item['qty']);
+        $invoiceAmount = round((float) $items->sum('printSubtotal'), 2);
+        $additionalLess = round((float) $items->sum('additionalLess'), 2);
+        $calculatedNet = round(max(0, $invoiceAmount - $additionalLess), 2);
+        $invoiceTotal = round((float) ($invoice->total_amount ?? 0), 2);
+        $netAmount = $invoiceTotal > 0 ? $invoiceTotal : $calculatedNet;
+        $invoiceDate = substr((string) ($invoice->created_at ?: $invoice->updated_at), 0, 10);
+
+        return [
+            'version' => 1,
+            'job' => [
+                'portal_order_id' => $order,
+                'order_code' => (string) ($orderData['order_code'] ?? ''),
+                'sales_order_id' => (int) $invoice->id,
+                'sales_note_id' => (int) $invoice->sales_note_id,
+                'customer_id' => $customerId,
+            ],
+            'receipt' => [
+                'invoice_no' => trim((string) ($invoice->invoice_numbers ?? '')),
+                'customer_name' => trim((string) ($printCustomer->name ?? $invoice->customer_name ?? $salesNote->customer_name ?? '')),
+                'customer_address' => trim((string) ($printCustomer->address ?? '')),
+                'customer_tin' => trim((string) ($printCustomer->tin ?? '')),
+                'sales_number' => trim((string) ($salesNote->sales_number ?? $orderData['sales_number'] ?? '')),
+                'date' => $invoiceDate,
+                'terms' => trim((string) ($invoice->terms ?? $printCustomer->terms ?? '')),
+                'salesman' => trim((string) ($salesNote->salesman ?? '')),
+                'rush_text' => !empty($salesNote->is_rush) ? 'RUSH' : '',
+                'prepared_by' => trim((string) ($salesNote->prepared_by ?? '')),
+                'packed_by' => trim((string) ($salesNote->packed_by ?? '')),
+                'checked_by' => trim((string) ($salesNote->checked_by ?? '')),
+                'invoice_amount' => $invoiceAmount,
+                'additional_less' => $additionalLess,
+                'net_amount' => $netAmount,
+                'total_qty' => $totalItems,
+            ],
+            'items' => $items->map(function (array $item): array {
+                return [
+                    'product_id' => (int) ($item['id'] ?? 0),
+                    'product_code' => (string) ($item['productCode'] ?? ''),
+                    'price_code' => (string) ($item['priceCode'] ?? ''),
+                    'part_number' => (string) ($item['partNumber'] ?? ''),
+                    'description' => (string) ($item['description'] ?? ''),
+                    'application' => (string) ($item['application'] ?? ''),
+                    'position' => (string) ($item['position'] ?? ''),
+                    'brand' => (string) ($item['brand'] ?? ''),
+                    'oum' => (string) ($item['oum'] ?? ''),
+                    'qty' => (float) ($item['qty'] ?? 0),
+                    'additional_qty' => (float) ($item['additionalQty'] ?? 0),
+                    'unit_price' => (float) ($item['price'] ?? 0),
+                    'discount_percent' => (float) ($item['discountPercent'] ?? 0),
+                    'additional_discount_percent' => (float) ($item['additionalDiscountPercent'] ?? 0),
+                    'print_subtotal' => (float) ($item['printSubtotal'] ?? 0),
+                    'additional_less' => (float) ($item['additionalLess'] ?? 0),
+                    'net_total' => (float) ($item['lineTotal'] ?? 0),
+                ];
+            })->values()->all(),
+        ];
     }
 
     /**
@@ -1898,6 +2119,33 @@ class CustomerOrderController extends Controller
             503,
             'W68 cart storage is not installed in core4_sales_order yet.'
         );
+    }
+
+    private function ensurePrinterBridgeJobsTable(): void
+    {
+        if (Schema::connection('sales_order')->hasTable('w68_printer_bridge_jobs')) {
+            return;
+        }
+
+        try {
+            Schema::connection('sales_order')->create('w68_printer_bridge_jobs', function ($table): void {
+                $table->bigIncrements('id');
+                $table->char('token_hash', 64)->unique();
+                $table->unsignedBigInteger('login_id')->index();
+                $table->unsignedBigInteger('customer_id')->index();
+                $table->unsignedBigInteger('portal_order_id')->index();
+                $table->unsignedBigInteger('sales_order_id')->index();
+                $table->longText('payload_json');
+                $table->dateTime('expires_at')->index();
+                $table->dateTime('last_accessed_at')->nullable();
+                $table->unsignedInteger('access_count')->default(0);
+                $table->timestamps();
+            });
+        } catch (Throwable $exception) {
+            if (!Schema::connection('sales_order')->hasTable('w68_printer_bridge_jobs')) {
+                throw $exception;
+            }
+        }
     }
 
     private function normalizeBrand(string $brand): string

@@ -3006,3 +3006,17 @@ body.printer-radar-open {
 .printer-radar-open-button:active {
     transform: scale(.98);
 }
+
+
+/* W68_PRINTER_BRIDGE_V117_20261001 */
+.process-print-bridge-form {
+    margin: 0;
+    display: flex;
+}
+
+.process-print-bridge-form .process-print-link {
+    width: 100%;
+    min-width: 210px;
+    border: 0;
+    cursor: pointer;
+}

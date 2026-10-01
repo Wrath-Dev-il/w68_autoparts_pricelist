@@ -34,6 +34,12 @@ Route::get('/authorized-access/{token}', AuthorizedAccessController::class)
     ->where('token', '[A-Fa-f0-9]{64}')
     ->name('authorized-access');
 
+// W68_PRINTER_BRIDGE_V117_20261001
+Route::get('/printer-bridge/jobs/{token}', [CustomerOrderController::class, 'printerBridgeJob'])
+    ->where('token', '[A-Fa-f0-9]{64}')
+    ->middleware('throttle:60,1')
+    ->name('printer-bridge.job');
+
 /*
 |--------------------------------------------------------------------------
 | Account Type 5 Customer Home
@@ -122,6 +128,11 @@ Route::middleware(['portal.access', 'auth'])->group(function () {
         ->whereNumber('order')
         ->whereNumber('salesOrder')
         ->name('orders.invoice.print');
+
+    Route::post('/orders/{order}/invoice/{salesOrder}/printer-bridge', [CustomerOrderController::class, 'launchPrinterBridge'])
+        ->whereNumber('order')
+        ->whereNumber('salesOrder')
+        ->name('orders.invoice.bridge');
 
     Route::post('/home/orders/process', [CustomerOrderController::class, 'processSelectedCart'])
         ->name('home.orders.process');

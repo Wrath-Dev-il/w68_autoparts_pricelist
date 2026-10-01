@@ -1,0 +1,22 @@
+<!-- Add these keys inside the top-level dict in ios/Runner/Info.plist. -->
+<key>CFBundleURLTypes</key>
+<array>
+    <dict>
+        <key>CFBundleURLName</key>
+        <string>com.w68autoparts.printerbridge</string>
+        <key>CFBundleURLSchemes</key>
+        <array>
+            <string>w68print</string>
+        </array>
+    </dict>
+</array>
+
+<key>NSLocalNetworkUsageDescription</key>
+<string>W68 Printer Bridge scans your local network for printers you choose to use.</string>
+
+<key>NSBonjourServices</key>
+<array>
+    <string>_ipp._tcp</string>
+    <string>_ipps._tcp</string>
+    <string>_printer._tcp</string>
+</array>

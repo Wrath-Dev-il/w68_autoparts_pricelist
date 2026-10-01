@@ -318,6 +318,14 @@
     }
 
     function openConfirmModal() {
+        // W68_PORTAL_NO_INVOICE_PREVIEW_V114_20261001
+        // Invoice printing must never show the custom receipt preview.
+        // Redirect every invoice caller straight to the native print flow.
+        if (invoiceViewMode) {
+            printInvoiceReceipt();
+            return;
+        }
+
         if (!confirmModal || !getCards().length) return;
         clearConfirmError();
         if (!viewMode) setTermsChecked(false);

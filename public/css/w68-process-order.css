@@ -2953,3 +2953,26 @@ body.printer-radar-open {
         display: none !important;
     }
 }
+
+
+/* =========================================================
+   W68 v114 - invoice preview modal is forbidden on screen
+   W68_PORTAL_NO_INVOICE_PREVIEW_V114_20261001
+   ========================================================= */
+@media screen {
+    body[data-invoice-view-mode="1"] .order-confirm-modal {
+        display: none !important;
+        visibility: hidden !important;
+        opacity: 0 !important;
+        pointer-events: none !important;
+    }
+}
+
+@media print {
+    body[data-invoice-view-mode="1"].w68-invoice-printing .order-confirm-modal {
+        display: block !important;
+        visibility: visible !important;
+        opacity: 1 !important;
+        pointer-events: auto !important;
+    }
+}

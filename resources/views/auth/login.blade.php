@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>W68 Special Store</title>
-<link rel="stylesheet" href="{{ asset('css/w68-login.css') }}?v=20261002-final-clean-v11">
+<link rel="stylesheet" href="{{ asset('css/w68-login.css') }}?v=20261002-final-clean-v12">
 <script>
 (function () {
     var ua = navigator.userAgent || '';
@@ -19,7 +19,7 @@
     }
 })();
 </script>
-<style id="w68-auth-final-clean-v11">
+<style id="w68-auth-final-clean-v12">
 :root{
     --w68-green:#13300f;
     --w68-maroon:#890001;
@@ -38,7 +38,7 @@ body{
 }
 .auth-stage{
     min-height:100vh!important;
-    min-height:100dvh!important;
+    min-height:100vh!important;
     background:#fff!important;
 }
 .auth-panel[hidden]{display:none!important}
@@ -305,10 +305,11 @@ html.w68-handheld .auth-stage{
 
 html.w68-handheld .auth-shell{
     position:relative!important;
-    width:min(620px,calc(100vw - 16px))!important;
-    aspect-ratio:360 / 421!important;
-    min-height:0!important;
-    max-height:none!important;
+    width:calc(100vw - 16px)!important;
+    max-width:620px!important;
+    height:calc(100vh - 16px)!important;
+    max-height:725px!important;
+    min-height:560px!important;
     margin:auto!important;
     padding:0!important;
     display:block!important;
@@ -345,7 +346,7 @@ html.w68-handheld .auth-form-column{
     z-index:2!important;
     width:100%!important;
     height:100%!important;
-    min-height:0!important;
+    min-height:100%!important;
     max-width:none!important;
     margin:0!important;
     padding:10px 18px 14px!important;
@@ -638,6 +639,28 @@ html.w68-handheld[data-auth-mode="register"] .register-form-box .auth-field labe
     }
 }
 
+/* W68_OLD_SAFARI_HANDHELD_HEIGHT_FIX_20261002_V12 */
+html.w68-handheld .auth-shell{
+    height:calc(100vh - 16px)!important;
+    max-height:725px!important;
+    min-height:560px!important;
+}
+
+@media (max-width:430px){
+    html.w68-handheld .auth-stage{
+        align-items:flex-start!important;
+        padding:7px!important;
+    }
+
+    html.w68-handheld .auth-shell{
+        width:calc(100vw - 14px)!important;
+        max-width:none!important;
+        height:calc(100vh - 14px)!important;
+        max-height:none!important;
+        min-height:540px!important;
+    }
+}
+
 /* OTP stays functional and above the auth page. */
 .otp-modal{
     position:fixed!important;
@@ -645,7 +668,7 @@ html.w68-handheld[data-auth-mode="register"] .register-form-box .auth-field labe
     z-index:2147483000!important;
 }
 </style>
-<script src="{{ asset('js/w68-auth.js') }}?v=20261002-final-clean-v11" defer></script>
+<script src="{{ asset('js/w68-auth.js') }}?v=20261002-final-clean-v12" defer></script>
 </head>
 <body>
 @php

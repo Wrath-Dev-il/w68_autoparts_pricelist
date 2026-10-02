@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>W68 Special Store</title>
-<link rel="stylesheet" href="{{ asset('css/w68-login.css') }}?v=20261002-canva-v5">
+<link rel="stylesheet" href="{{ asset('css/w68-login.css') }}?v=20261002-canva-v6">
 <script>
 (function () {
     var ua = navigator.userAgent || '';
@@ -574,23 +574,29 @@ html.w68-handheld[data-auth-mode="register"] .register-form-box .auth-field{
     }
 }
 
-/* W68_DESKTOP_CART_AND_LOGIN_BOLD_20261002_V5 */
-.desktop-cart-symbol{display:none}
-html:not(.w68-handheld) .auth-brand-line .brand-cart-icon{display:none!important}
-html:not(.w68-handheld) .auth-brand-line .desktop-cart-symbol{
+/* W68_DESKTOP_CART_GREEN_20261002_V6 */
+html:not(.w68-handheld) .auth-brand-line .brand-cart-icon{
     display:inline-block!important;
+    width:23px!important;
+    height:23px!important;
     margin-left:3px!important;
-    font-size:28px!important;
-    line-height:1!important;
+    color:#13300f!important;
+    flex:0 0 23px!important;
     transform:translateY(1px)!important;
+}
+html:not(.w68-handheld) .auth-brand-line .brand-cart-icon path{
+    stroke:#13300f!important;
+    stroke-width:2.35!important;
+}
+html:not(.w68-handheld) .auth-brand-line .brand-cart-icon circle{
+    fill:#13300f!important;
 }
 html:not(.w68-handheld)[data-auth-mode="login"] .auth-title{
     font-weight:900!important;
 }
-html.w68-handheld .desktop-cart-symbol{display:none!important}
 
 </style>
-<script src="{{ asset('js/w68-auth.js') }}?v=20261002-canva-v5" defer></script>
+<script src="{{ asset('js/w68-auth.js') }}?v=20261002-canva-v6" defer></script>
 </head>
 <body>
 @php
@@ -612,7 +618,6 @@ html.w68-handheld .desktop-cart-symbol{display:none!important}
                 <img class="auth-logo" src="{{ asset('images/sidebar_logo.png') }}" alt="W68">
                 <div class="auth-brand-line">
                     <span>W68 SPECIAL STORE</span>
-                    <span class="desktop-cart-symbol" aria-hidden="true">🛒</span>
                     <svg class="brand-cart-icon" viewBox="0 0 24 24" aria-hidden="true">
                         <path d="M3 4h2l2.2 10.2a2 2 0 0 0 2 1.6h7.7a2 2 0 0 0 1.9-1.4L21 7H7" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
                         <circle cx="10" cy="19" r="1.3" fill="currentColor"/>

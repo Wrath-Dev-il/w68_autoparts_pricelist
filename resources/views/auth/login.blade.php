@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>W68 Special Store</title>
-<link rel="stylesheet" href="{{ asset('css/w68-login.css') }}?v=20261002-canva-v9">
+<link rel="stylesheet" href="{{ asset('css/w68-login.css') }}?v=20261002-canva-v10">
 <script>
 (function () {
     var ua = navigator.userAgent || '';
@@ -1025,8 +1025,42 @@ html.w68-handheld[data-auth-mode="register"] .register-form-box .auth-actions{
     }
 }
 
+
+/* W68_HANDHELD_SINGLE_BACKGROUND_20261002_V10 */
+html.w68-handheld .auth-shell{
+    background-color:#fff!important;
+    background-image:url("{{ asset('images/Shopping Cart of Automotive Parts.png') }}")!important;
+    background-repeat:no-repeat!important;
+    background-position:center center!important;
+    background-size:cover!important;
+}
+
+html.w68-handheld .auth-art-panel,
+html.w68-handheld .auth-art-panel::before,
+html.w68-handheld .auth-art-panel::after,
+html.w68-handheld .auth-art{
+    display:none!important;
+    content:none!important;
+    visibility:hidden!important;
+    width:0!important;
+    height:0!important;
+    min-width:0!important;
+    min-height:0!important;
+    margin:0!important;
+    padding:0!important;
+    border:0!important;
+}
+
+/* Keep the form completely transparent over the one-piece background. */
+html.w68-handheld .auth-form-column,
+html.w68-handheld .auth-panel,
+html.w68-handheld .auth-form-box{
+    background:transparent!important;
+    background-image:none!important;
+}
+
 </style>
-<script src="{{ asset('js/w68-auth.js') }}?v=20261002-canva-v9" defer></script>
+<script src="{{ asset('js/w68-auth.js') }}?v=20261002-canva-v10" defer></script>
 </head>
 <body>
 @php

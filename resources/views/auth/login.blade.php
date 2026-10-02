@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>W68 Special Store</title>
-<link rel="stylesheet" href="{{ asset('css/w68-login.css') }}?v=20261002-final-clean-v13">
+<link rel="stylesheet" href="{{ asset('css/w68-login.css') }}?v=20261002-final-clean-v14">
 <script>
 (function () {
     var ua = navigator.userAgent || '';
@@ -17,9 +17,41 @@
     if (isHandheld) {
         document.documentElement.classList.add('w68-handheld');
     }
+
+    function fitW68HandheldCard() {
+        if (!document.documentElement.classList.contains('w68-handheld')) {
+            return;
+        }
+
+        var shell = document.querySelector('.auth-shell');
+        if (!shell) {
+            return;
+        }
+
+        var viewportWidth = window.innerWidth || document.documentElement.clientWidth || 360;
+        var viewportHeight = window.innerHeight || document.documentElement.clientHeight || 640;
+        var margin = 14;
+        var maxWidth = Math.min(Math.max(240, viewportWidth - margin), 620);
+        var maxHeight = Math.min(Math.max(320, viewportHeight - margin), 725);
+        var ratio = 360 / 421;
+        var width = Math.min(maxWidth, maxHeight * ratio);
+        var height = width / ratio;
+
+        shell.style.setProperty('width', Math.floor(width) + 'px', 'important');
+        shell.style.setProperty('height', Math.floor(height) + 'px', 'important');
+        shell.style.setProperty('min-height', '0', 'important');
+        shell.style.setProperty('max-height', 'none', 'important');
+    }
+
+    window.w68FitHandheldCard = fitW68HandheldCard;
+    document.addEventListener('DOMContentLoaded', fitW68HandheldCard);
+    window.addEventListener('resize', fitW68HandheldCard);
+    window.addEventListener('orientationchange', function () {
+        window.setTimeout(fitW68HandheldCard, 120);
+    });
 })();
 </script>
-<style id="w68-auth-final-clean-v13">
+<style id="w68-auth-final-clean-v14">
 :root{
     --w68-green:#13300f;
     --w68-maroon:#890001;
@@ -305,11 +337,11 @@ html.w68-handheld .auth-stage{
 
 html.w68-handheld .auth-shell{
     position:relative!important;
-    width:96%!important;
-    max-width:620px!important;
-    height:725px!important;
-    max-height:92vh!important;
-    min-height:560px!important;
+    width:360px!important;
+    max-width:96vw!important;
+    height:421px!important;
+    max-height:96vh!important;
+    min-height:0!important;
     margin:auto!important;
     padding:0!important;
     display:block!important;
@@ -639,27 +671,21 @@ html.w68-handheld[data-auth-mode="register"] .register-form-box .auth-field labe
     }
 }
 
-/* W68_OLD_SAFARI_HANDHELD_HEIGHT_FIX_20261002_V13 */
+/* W68_FULL_HANDHELD_CARD_FIT_20261002_V14
+   JS sets exact pixel width/height from the visible viewport so the entire card
+   remains visible on old iPad Safari, tablets and phones in either orientation. */
 html.w68-handheld .auth-shell{
-    width:96%!important;
-    max-width:620px!important;
-    height:725px!important;
-    max-height:92vh!important;
-    min-height:560px!important;
+    width:360px!important;
+    height:421px!important;
+    max-width:96vw!important;
+    max-height:96vh!important;
+    min-height:0!important;
 }
 
 @media (max-width:430px){
     html.w68-handheld .auth-stage{
-        align-items:flex-start!important;
+        align-items:center!important;
         padding:7px!important;
-    }
-
-    html.w68-handheld .auth-shell{
-        width:96%!important;
-        max-width:410px!important;
-        height:560px!important;
-        max-height:92vh!important;
-        min-height:500px!important;
     }
 }
 
@@ -670,7 +696,7 @@ html.w68-handheld .auth-shell{
     z-index:2147483000!important;
 }
 </style>
-<script src="{{ asset('js/w68-auth.js') }}?v=20261002-final-clean-v13" defer></script>
+<script src="{{ asset('js/w68-auth.js') }}?v=20261002-final-clean-v14" defer></script>
 </head>
 <body>
 @php

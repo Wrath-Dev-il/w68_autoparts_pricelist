@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>W68 Special Store</title>
-<link rel="stylesheet" href="{{ asset('css/w68-login.css') }}?v=20261002-full-handheld-v17">
+<link rel="stylesheet" href="{{ asset('css/w68-login.css') }}?v=20261002-full-handheld-v18">
 <script>
 (function () {
     var ua = navigator.userAgent || '';
@@ -54,7 +54,7 @@
     });
 })();
 </script>
-<style id="w68-auth-final-clean-v17">
+<style id="w68-auth-final-clean-v18">
 :root{
     --w68-green:#13300f;
     --w68-maroon:#890001;
@@ -788,6 +788,27 @@ html.w68-handheld.w68-compact-card .password-wrap>input{
     min-height:28px!important;
 }
 
+/* W68_TABLET_50PX_INPUTS_SHOW_20261002_V18 */
+html.w68-handheld:not(.w68-compact-card) .auth-field>input,
+html.w68-handheld:not(.w68-compact-card) .password-wrap>input{
+    height:50px!important;
+    min-height:50px!important;
+    font-size:18px!important;
+}
+
+html.w68-handheld:not(.w68-compact-card) .password-toggle{
+    height:40px!important;
+    min-width:62px!important;
+    right:6px!important;
+    font-size:13px!important;
+    line-height:40px!important;
+    font-weight:900!important;
+}
+
+html.w68-handheld:not(.w68-compact-card) .password-wrap>input{
+    padding-right:74px!important;
+}
+
 /* OTP stays functional and above the auth page. */
 .otp-modal{
     position:fixed!important;
@@ -795,7 +816,7 @@ html.w68-handheld.w68-compact-card .password-wrap>input{
     z-index:2147483000!important;
 }
 </style>
-<script src="{{ asset('js/w68-auth.js') }}?v=20261002-full-handheld-v17" defer></script>
+<script src="{{ asset('js/w68-auth.js') }}?v=20261002-full-handheld-v18" defer></script>
 </head>
 <body>
 @php

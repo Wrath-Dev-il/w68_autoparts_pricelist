@@ -97,6 +97,15 @@
             <section class="auth-panel" data-auth-panel="register" hidden>
                 <h1 class="auth-title">REGISTER</h1>
 
+                <div class="mobile-register-brand" aria-hidden="true">
+                    <span>W68 SPECIAL STORE</span>
+                    <svg class="brand-cart-icon" viewBox="0 0 24 24">
+                        <path d="M3 4h2l2.2 10.2a2 2 0 0 0 2 1.6h7.7a2 2 0 0 0 1.9-1.4L21 7H7" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+                        <circle cx="10" cy="19" r="1.3" fill="currentColor"/>
+                        <circle cx="18" cy="19" r="1.3" fill="currentColor"/>
+                    </svg>
+                </div>
+
                 <form method="POST" action="{{ route('register.attempt') }}" class="auth-form auth-form-box register-form-box">
                     @csrf
                     <input type="hidden" name="auth_mode" value="register">

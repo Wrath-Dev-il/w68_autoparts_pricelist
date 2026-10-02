@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>W68 Special Store</title>
-<link rel="stylesheet" href="{{ asset('css/w68-login.css') }}?v=20261002-full-handheld-v19">
+<link rel="stylesheet" href="{{ asset('css/w68-login.css') }}?v=20261002-otp-v20">
 <script>
 (function () {
     var ua = navigator.userAgent || '';
@@ -54,7 +54,7 @@
     });
 })();
 </script>
-<style id="w68-auth-final-clean-v19">
+<style id="w68-auth-final-clean-v20">
 :root{
     --w68-green:#13300f;
     --w68-maroon:#890001;
@@ -814,14 +814,221 @@ html.w68-handheld .forgot-link{
     font-size:11.5px!important;
 }
 
-/* OTP stays functional and above the auth page. */
+/* W68_OTP_RESPONSIVE_TWO_BUTTONS_20261002_V20 */
 .otp-modal{
     position:fixed!important;
     inset:0!important;
     z-index:2147483000!important;
+    display:none!important;
+    align-items:center!important;
+    justify-content:center!important;
+    padding:16px!important;
+    overflow:auto!important;
+}
+
+.otp-modal.is-open{
+    display:flex!important;
+}
+
+.otp-modal[hidden]{
+    display:none!important;
+}
+
+.otp-backdrop{
+    position:fixed!important;
+    inset:0!important;
+    z-index:0!important;
+    background:rgba(0,0,0,.48)!important;
+}
+
+.otp-card{
+    position:relative!important;
+    z-index:1!important;
+    width:640px!important;
+    max-width:calc(100vw - 32px)!important;
+    max-height:calc(100vh - 32px)!important;
+    margin:auto!important;
+    overflow-y:auto!important;
+    background:#fffbdc!important;
+    border:3px solid var(--w68-green)!important;
+    border-radius:12px!important;
+    padding:0 38px 32px!important;
+    box-shadow:0 18px 55px rgba(0,0,0,.28)!important;
+}
+
+.otp-heading-band{
+    margin:0 -38px 20px!important;
+    padding:16px 24px 14px!important;
+    background:var(--w68-green)!important;
+    color:#fff!important;
+    text-align:center!important;
+}
+
+.otp-heading-band h2{
+    margin:0 0 8px!important;
+    color:var(--w68-yellow)!important;
+    font-size:32px!important;
+    line-height:1!important;
+    font-weight:900!important;
+}
+
+.otp-heading-band p{
+    margin:0!important;
+    color:#fff!important;
+    font-size:13px!important;
+    line-height:1.35!important;
+}
+
+.otp-email{
+    margin:0 0 12px!important;
+    color:var(--w68-green)!important;
+    text-align:center!important;
+    font-size:13px!important;
+    font-weight:800!important;
+}
+
+.otp-form{
+    margin:0!important;
+}
+
+.otp-countdown{
+    margin:0 0 9px!important;
+    color:#111!important;
+    font-size:14px!important;
+    font-weight:700!important;
+    text-align:left!important;
+}
+
+.otp-countdown strong{
+    color:var(--w68-maroon)!important;
+    font-size:15px!important;
+}
+
+.otp-form>input{
+    width:100%!important;
+    height:56px!important;
+    border:2px solid #111!important;
+    border-radius:10px!important;
+    background:#fff!important;
+    color:#111!important;
+    text-align:center!important;
+    font-size:28px!important;
+    font-weight:900!important;
+    letter-spacing:8px!important;
+    outline:none!important;
+}
+
+.otp-actions{
+    display:grid!important;
+    grid-template-columns:1fr 1fr!important;
+    gap:14px!important;
+    margin-top:20px!important;
+}
+
+.otp-button{
+    width:100%!important;
+    min-height:48px!important;
+    border:2px solid #111!important;
+    border-radius:5px!important;
+    font-size:15px!important;
+    font-weight:900!important;
+    cursor:pointer!important;
+}
+
+.otp-button-cancel{
+    background:var(--w68-maroon)!important;
+    color:var(--w68-yellow)!important;
+}
+
+.otp-button-action{
+    background:var(--w68-green)!important;
+    color:var(--w68-yellow)!important;
+}
+
+html.otp-is-open,
+body.otp-is-open{
+    overflow:hidden!important;
+}
+
+html.w68-handheld .otp-modal{
+    padding:10px!important;
+    align-items:center!important;
+    justify-content:center!important;
+}
+
+html.w68-handheld .otp-card{
+    width:calc(100vw - 20px)!important;
+    max-width:560px!important;
+    max-height:calc(100vh - 20px)!important;
+    margin:auto!important;
+    padding:0 24px 24px!important;
+    border-radius:10px!important;
+}
+
+html.w68-handheld .otp-heading-band{
+    margin:0 -24px 18px!important;
+    padding:15px 16px 13px!important;
+}
+
+html.w68-handheld .otp-heading-band h2{
+    font-size:30px!important;
+}
+
+html.w68-handheld .otp-heading-band p{
+    font-size:12px!important;
+}
+
+html.w68-handheld .otp-form>input{
+    height:58px!important;
+    font-size:28px!important;
+}
+
+html.w68-handheld .otp-button{
+    min-height:52px!important;
+    font-size:17px!important;
+}
+
+@media(max-width:430px){
+    html.w68-handheld .otp-modal{
+        padding:7px!important;
+    }
+
+    html.w68-handheld .otp-card{
+        width:calc(100vw - 14px)!important;
+        max-height:calc(100vh - 14px)!important;
+        padding:0 16px 18px!important;
+    }
+
+    html.w68-handheld .otp-heading-band{
+        margin:0 -16px 14px!important;
+        padding:13px 12px 11px!important;
+    }
+
+    html.w68-handheld .otp-heading-band h2{
+        font-size:26px!important;
+    }
+
+    html.w68-handheld .otp-heading-band p{
+        font-size:11px!important;
+    }
+
+    html.w68-handheld .otp-form>input{
+        height:50px!important;
+        font-size:24px!important;
+    }
+
+    html.w68-handheld .otp-actions{
+        gap:8px!important;
+        margin-top:15px!important;
+    }
+
+    html.w68-handheld .otp-button{
+        min-height:46px!important;
+        font-size:14px!important;
+    }
 }
 </style>
-<script src="{{ asset('js/w68-auth.js') }}?v=20261002-full-handheld-v19" defer></script>
+<script src="{{ asset('js/w68-auth.js') }}?v=20261002-otp-v20" defer></script>
 </head>
 <body>
 @php
@@ -973,24 +1180,43 @@ html.w68-handheld .forgot-link{
             <div class="auth-message auth-message-error otp-error">{{ $errors->first('otp') }}</div>
         @endif
 
-        <form method="POST" action="{{ route('otp.verify') }}" class="otp-form">
+        <form
+            method="POST"
+            action="{{ route('otp.verify') }}"
+            class="otp-form"
+            data-otp-action-form
+            data-verify-action="{{ route('otp.verify') }}"
+            data-resend-action="{{ route('otp.resend') }}"
+        >
             @csrf
-            <div class="otp-countdown">expired within: <strong data-otp-countdown>--:--</strong></div>
-            <input id="otp" type="text" name="otp" inputmode="numeric" pattern="[0-9]{6}" maxlength="6" autocomplete="one-time-code" required data-otp-input>
 
-            <div class="otp-actions" data-otp-active-actions>
-                <button type="button" class="otp-button otp-button-cancel" data-otp-cancel>CANCEL</button>
-                <button type="submit" class="otp-button otp-button-primary">VERIFY</button>
+            <div class="otp-countdown">
+                expired within:
+                <strong data-otp-countdown>--:--</strong>
+            </div>
+
+            <input
+                id="otp"
+                type="text"
+                name="otp"
+                inputmode="numeric"
+                pattern="[0-9]{6}"
+                maxlength="6"
+                autocomplete="one-time-code"
+                required
+                data-otp-input
+            >
+
+            <div class="otp-actions">
+                <button type="button" class="otp-button otp-button-cancel" data-otp-cancel>
+                    CANCEL
+                </button>
+
+                <button type="submit" class="otp-button otp-button-action" data-otp-action-button>
+                    VERIFY
+                </button>
             </div>
         </form>
-
-        <div class="otp-actions" data-otp-expired-actions hidden>
-            <button type="button" class="otp-button otp-button-cancel" data-otp-cancel>CANCEL</button>
-            <form method="POST" action="{{ route('otp.resend') }}" class="otp-resend-form">
-                @csrf
-                <button type="submit" class="otp-button otp-button-primary">RESEND</button>
-            </form>
-        </div>
     </section>
 </div>
 

@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>W68 Special Store</title>
-<link rel="stylesheet" href="{{ asset('css/w68-login.css') }}?v=20261002-final-clean-v15">
+<link rel="stylesheet" href="{{ asset('css/w68-login.css') }}?v=20261002-full-handheld-v16">
 <script>
 (function () {
     var ua = navigator.userAgent || '';
@@ -30,19 +30,16 @@
 
         var viewportWidth = window.innerWidth || document.documentElement.clientWidth || 360;
         var viewportHeight = window.innerHeight || document.documentElement.clientHeight || 640;
-        var margin = 14;
-        var maxWidth = Math.min(Math.max(240, viewportWidth - margin), 620);
-        var maxHeight = Math.min(Math.max(320, viewportHeight - margin), 725);
-        var ratio = 360 / 421;
-        var width = Math.min(maxWidth, maxHeight * ratio);
-        var height = width / ratio;
+        var margin = 12;
+        var width = Math.max(240, viewportWidth - margin);
+        var height = Math.max(320, viewportHeight - margin);
 
         shell.style.setProperty('width', Math.floor(width) + 'px', 'important');
         shell.style.setProperty('height', Math.floor(height) + 'px', 'important');
         shell.style.setProperty('min-height', '0', 'important');
         shell.style.setProperty('max-height', 'none', 'important');
 
-        if (width < 431) {
+        if (width < 431 || height < 600) {
             document.documentElement.classList.add('w68-compact-card');
         } else {
             document.documentElement.classList.remove('w68-compact-card');
@@ -57,7 +54,7 @@
     });
 })();
 </script>
-<style id="w68-auth-final-clean-v15">
+<style id="w68-auth-final-clean-v16">
 :root{
     --w68-green:#13300f;
     --w68-maroon:#890001;
@@ -343,10 +340,10 @@ html.w68-handheld .auth-stage{
 
 html.w68-handheld .auth-shell{
     position:relative!important;
-    width:360px!important;
-    max-width:96vw!important;
-    height:421px!important;
-    max-height:96vh!important;
+    width:calc(100vw - 12px)!important;
+    max-width:none!important;
+    height:calc(100vh - 12px)!important;
+    max-height:none!important;
     min-height:0!important;
     margin:auto!important;
     padding:0!important;
@@ -677,25 +674,22 @@ html.w68-handheld[data-auth-mode="register"] .register-form-box .auth-field labe
     }
 }
 
-/* W68_FULL_HANDHELD_CARD_FIT_20261002_V14
-   JS sets exact pixel width/height from the visible viewport so the entire card
-   remains visible on old iPad Safari, tablets and phones in either orientation. */
+/* W68_FULL_VIEWPORT_HANDHELD_20261002_V16
+   Handheld card fills the visible browser area with only a small outer margin. */
+html.w68-handheld .auth-stage{
+    padding:6px!important;
+}
+
 html.w68-handheld .auth-shell{
-    width:360px!important;
-    height:421px!important;
-    max-width:96vw!important;
-    max-height:96vh!important;
+    width:calc(100vw - 12px)!important;
+    max-width:none!important;
+    height:calc(100vh - 12px)!important;
+    max-height:none!important;
     min-height:0!important;
+    margin:0!important;
 }
 
-@media (max-width:430px){
-    html.w68-handheld .auth-stage{
-        align-items:center!important;
-        padding:7px!important;
-    }
-}
-
-/* W68_FULL_HANDHELD_CARD_FIT_20261002_V15 */
+/* Compact mode is applied by JS when either card width or height is small. */
 html.w68-handheld.w68-compact-card .auth-form-column{
     padding:10px 18px 14px!important;
 }
@@ -789,7 +783,7 @@ html.w68-handheld.w68-compact-card[data-auth-mode="register"] .register-form-box
     z-index:2147483000!important;
 }
 </style>
-<script src="{{ asset('js/w68-auth.js') }}?v=20261002-final-clean-v15" defer></script>
+<script src="{{ asset('js/w68-auth.js') }}?v=20261002-full-handheld-v16" defer></script>
 </head>
 <body>
 @php

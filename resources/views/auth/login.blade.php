@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>W68 Special Store</title>
-<link rel="stylesheet" href="{{ asset('css/w68-login.css') }}?v=20261002-final-clean-v14">
+<link rel="stylesheet" href="{{ asset('css/w68-login.css') }}?v=20261002-final-clean-v15">
 <script>
 (function () {
     var ua = navigator.userAgent || '';
@@ -41,6 +41,12 @@
         shell.style.setProperty('height', Math.floor(height) + 'px', 'important');
         shell.style.setProperty('min-height', '0', 'important');
         shell.style.setProperty('max-height', 'none', 'important');
+
+        if (width < 431) {
+            document.documentElement.classList.add('w68-compact-card');
+        } else {
+            document.documentElement.classList.remove('w68-compact-card');
+        }
     }
 
     window.w68FitHandheldCard = fitW68HandheldCard;
@@ -51,7 +57,7 @@
     });
 })();
 </script>
-<style id="w68-auth-final-clean-v14">
+<style id="w68-auth-final-clean-v15">
 :root{
     --w68-green:#13300f;
     --w68-maroon:#890001;
@@ -689,6 +695,93 @@ html.w68-handheld .auth-shell{
     }
 }
 
+/* W68_FULL_HANDHELD_CARD_FIT_20261002_V15 */
+html.w68-handheld.w68-compact-card .auth-form-column{
+    padding:10px 18px 14px!important;
+}
+
+html.w68-handheld.w68-compact-card .auth-logo{
+    width:78px!important;
+    height:78px!important;
+}
+
+html.w68-handheld.w68-compact-card .auth-brand-line{
+    font-size:18px!important;
+}
+
+html.w68-handheld.w68-compact-card .auth-brand-line .uploaded-cart-icon,
+html.w68-handheld.w68-compact-card .mobile-register-brand .uploaded-cart-icon{
+    width:20px!important;
+    height:20px!important;
+    flex-basis:20px!important;
+}
+
+html.w68-handheld.w68-compact-card .auth-title{
+    margin:0 0 9px 5px!important;
+    font-size:20px!important;
+}
+
+html.w68-handheld.w68-compact-card .auth-field,
+html.w68-handheld.w68-compact-card .register-form-box .auth-field{
+    grid-template-columns:78px 1fr!important;
+    margin-bottom:8px!important;
+}
+
+html.w68-handheld.w68-compact-card .auth-field label{
+    font-size:14px!important;
+}
+
+html.w68-handheld.w68-compact-card .auth-field>input,
+html.w68-handheld.w68-compact-card .password-wrap>input{
+    height:22px!important;
+    min-height:22px!important;
+    border-radius:12px!important;
+    -webkit-border-radius:12px!important;
+    font-size:13px!important;
+}
+
+html.w68-handheld.w68-compact-card .forgot-link{
+    font-size:9px!important;
+}
+
+html.w68-handheld.w68-compact-card .auth-actions,
+html.w68-handheld.w68-compact-card .register-form-box .auth-actions{
+    left:18px!important;
+    right:18px!important;
+    bottom:28px!important;
+    gap:7px!important;
+}
+
+html.w68-handheld.w68-compact-card .auth-button{
+    height:35px!important;
+    min-height:35px!important;
+    font-size:15px!important;
+    line-height:31px!important;
+}
+
+html.w68-handheld.w68-compact-card[data-auth-mode="register"] .auth-title{
+    margin:6px 0 36px 5px!important;
+    font-size:22px!important;
+}
+
+html.w68-handheld.w68-compact-card[data-auth-mode="register"] .mobile-register-brand{
+    top:72px!important;
+    font-size:18px!important;
+}
+
+html.w68-handheld.w68-compact-card[data-auth-mode="register"] .register-form-box{
+    padding-top:35px!important;
+}
+
+html.w68-handheld.w68-compact-card[data-auth-mode="register"] .register-form-box .auth-field{
+    grid-template-columns:92px 1fr!important;
+    margin-bottom:10px!important;
+}
+
+html.w68-handheld.w68-compact-card[data-auth-mode="register"] .register-form-box .auth-field label{
+    font-size:14px!important;
+}
+
 /* OTP stays functional and above the auth page. */
 .otp-modal{
     position:fixed!important;
@@ -696,7 +789,7 @@ html.w68-handheld .auth-shell{
     z-index:2147483000!important;
 }
 </style>
-<script src="{{ asset('js/w68-auth.js') }}?v=20261002-final-clean-v14" defer></script>
+<script src="{{ asset('js/w68-auth.js') }}?v=20261002-final-clean-v15" defer></script>
 </head>
 <body>
 @php

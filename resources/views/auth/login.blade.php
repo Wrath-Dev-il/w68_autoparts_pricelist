@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>W68 Special Store</title>
-<link rel="stylesheet" href="{{ asset('css/w68-login.css') }}?v=20261002-final-clean-v12">
+<link rel="stylesheet" href="{{ asset('css/w68-login.css') }}?v=20261002-final-clean-v13">
 <script>
 (function () {
     var ua = navigator.userAgent || '';
@@ -19,7 +19,7 @@
     }
 })();
 </script>
-<style id="w68-auth-final-clean-v12">
+<style id="w68-auth-final-clean-v13">
 :root{
     --w68-green:#13300f;
     --w68-maroon:#890001;
@@ -294,7 +294,7 @@ html.w68-handheld body{
 html.w68-handheld .auth-stage{
     width:100%!important;
     min-height:100vh!important;
-    min-height:100dvh!important;
+    
     display:flex!important;
     align-items:center!important;
     justify-content:center!important;
@@ -305,10 +305,10 @@ html.w68-handheld .auth-stage{
 
 html.w68-handheld .auth-shell{
     position:relative!important;
-    width:calc(100vw - 16px)!important;
+    width:96%!important;
     max-width:620px!important;
-    height:calc(100vh - 16px)!important;
-    max-height:725px!important;
+    height:725px!important;
+    max-height:92vh!important;
     min-height:560px!important;
     margin:auto!important;
     padding:0!important;
@@ -639,10 +639,12 @@ html.w68-handheld[data-auth-mode="register"] .register-form-box .auth-field labe
     }
 }
 
-/* W68_OLD_SAFARI_HANDHELD_HEIGHT_FIX_20261002_V12 */
+/* W68_OLD_SAFARI_HANDHELD_HEIGHT_FIX_20261002_V13 */
 html.w68-handheld .auth-shell{
-    height:calc(100vh - 16px)!important;
-    max-height:725px!important;
+    width:96%!important;
+    max-width:620px!important;
+    height:725px!important;
+    max-height:92vh!important;
     min-height:560px!important;
 }
 
@@ -653,11 +655,11 @@ html.w68-handheld .auth-shell{
     }
 
     html.w68-handheld .auth-shell{
-        width:calc(100vw - 14px)!important;
-        max-width:none!important;
-        height:calc(100vh - 14px)!important;
-        max-height:none!important;
-        min-height:540px!important;
+        width:96%!important;
+        max-width:410px!important;
+        height:560px!important;
+        max-height:92vh!important;
+        min-height:500px!important;
     }
 }
 
@@ -668,7 +670,7 @@ html.w68-handheld .auth-shell{
     z-index:2147483000!important;
 }
 </style>
-<script src="{{ asset('js/w68-auth.js') }}?v=20261002-final-clean-v12" defer></script>
+<script src="{{ asset('js/w68-auth.js') }}?v=20261002-final-clean-v13" defer></script>
 </head>
 <body>
 @php

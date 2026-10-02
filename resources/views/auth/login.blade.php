@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>W68 Special Store</title>
-<link rel="stylesheet" href="{{ asset('css/w68-login.css') }}?v=20261002-canva-v3">
+<link rel="stylesheet" href="{{ asset('css/w68-login.css') }}?v=20261002-canva-v4">
 <script>
 (function () {
     var ua = navigator.userAgent || '';
@@ -242,8 +242,340 @@ html.w68-handheld[data-auth-mode="register"] .register-form-box .auth-field{marg
     html.w68-handheld .auth-field label{font-size:15px!important}
     html.w68-handheld .auth-button{font-size:16px!important}
 }
+
+/* W68_AUTH_FINAL_SCALE_AND_IPAD_20261002_V4 */
+
+/* Desktop: render at approximately the user's preferred 125% browser-zoom size. */
+html:not(.w68-handheld) .auth-stage{
+    overflow:hidden!important;
+}
+
+html:not(.w68-handheld) .auth-shell{
+    width:min(1240px,94vw)!important;
+    min-height:650px!important;
+    height:auto!important;
+    grid-template-columns:49% 51%!important;
+    gap:20px!important;
+}
+
+html:not(.w68-handheld) .auth-form-column{
+    max-width:590px!important;
+}
+
+html:not(.w68-handheld) .auth-logo{
+    width:132px!important;
+    height:132px!important;
+}
+
+html:not(.w68-handheld) .auth-brand-line{
+    font-size:22px!important;
+}
+
+html:not(.w68-handheld) .brand-cart-icon{
+    width:23px!important;
+    height:23px!important;
+}
+
+html:not(.w68-handheld) .auth-title{
+    margin:0 0 13px 8px!important;
+    font-size:38px!important;
+}
+
+html:not(.w68-handheld) .auth-form-box{
+    padding:22px 18px 20px!important;
+    border-width:5px!important;
+}
+
+html:not(.w68-handheld) .auth-field{
+    grid-template-columns:108px 1fr!important;
+    margin-bottom:13px!important;
+}
+
+html:not(.w68-handheld) .register-form-box .auth-field{
+    grid-template-columns:112px 1fr!important;
+}
+
+html:not(.w68-handheld) .auth-field label{
+    font-size:20px!important;
+}
+
+html:not(.w68-handheld) .auth-field>input,
+html:not(.w68-handheld) .password-wrap>input{
+    height:40px!important;
+    border-radius:15px!important;
+    -webkit-border-radius:15px!important;
+    font-size:17px!important;
+}
+
+html:not(.w68-handheld) .password-toggle{
+    height:26px!important;
+    min-width:54px!important;
+    font-size:11px!important;
+}
+
+html:not(.w68-handheld) .forgot-link{
+    margin:-6px 0 5px auto!important;
+    font-size:11px!important;
+}
+
+html:not(.w68-handheld) .remember-row{
+    margin:0 0 9px 112px!important;
+    font-size:14px!important;
+}
+
+html:not(.w68-handheld) .remember-row input{
+    width:18px!important;
+    height:18px!important;
+}
+
+html:not(.w68-handheld) .auth-actions{
+    margin-left:108px!important;
+    gap:6px!important;
+}
+
+html:not(.w68-handheld) .register-form-box .auth-actions{
+    margin-left:112px!important;
+}
+
+html:not(.w68-handheld) .auth-button{
+    height:34px!important;
+    min-height:34px!important;
+    font-size:14px!important;
+    line-height:30px!important;
+}
+
+html:not(.w68-handheld) .auth-art-panel{
+    min-height:650px!important;
+    height:auto!important;
+}
+
+html:not(.w68-handheld) .auth-art{
+    width:min(100%,610px)!important;
+    max-height:690px!important;
+}
+
+/* Remove every legacy overlay that was hiding the iPad artwork. */
+html.w68-handheld .auth-art-panel::before,
+html.w68-handheld .auth-art-panel::after{
+    content:none!important;
+    display:none!important;
+    background:none!important;
+}
+
+/* iPad / tablet: match the Canva card instead of filling the whole iPad page. */
+html.w68-handheld .auth-stage{
+    min-height:100vh!important;
+    min-height:100dvh!important;
+    display:flex!important;
+    align-items:center!important;
+    justify-content:center!important;
+    padding:14px!important;
+    overflow:auto!important;
+    background:#fff!important;
+}
+
+html.w68-handheld .auth-shell{
+    position:relative!important;
+    width:min(620px,calc(100vw - 28px))!important;
+    height:min(707px,calc(100dvh - 28px))!important;
+    min-height:560px!important;
+    max-height:707px!important;
+    margin:auto!important;
+    padding:0!important;
+    display:block!important;
+    overflow:hidden!important;
+    border:4px solid #13300f!important;
+    border-radius:15px!important;
+    background:#fff!important;
+}
+
+html.w68-handheld .auth-art-panel{
+    position:absolute!important;
+    inset:0!important;
+    z-index:0!important;
+    width:100%!important;
+    height:100%!important;
+    min-height:0!important;
+    margin:0!important;
+    display:block!important;
+    overflow:hidden!important;
+    pointer-events:none!important;
+}
+
+html.w68-handheld .auth-art{
+    position:absolute!important;
+    inset:0!important;
+    display:block!important;
+    width:100%!important;
+    height:100%!important;
+    max-height:none!important;
+    object-fit:cover!important;
+    object-position:center center!important;
+    opacity:.72!important;
+    visibility:visible!important;
+    filter:none!important;
+}
+
+html.w68-handheld .auth-form-column{
+    position:relative!important;
+    z-index:2!important;
+    width:100%!important;
+    height:100%!important;
+    min-height:0!important;
+    padding:17px 18px 16px!important;
+    display:block!important;
+    background:transparent!important;
+}
+
+html.w68-handheld .auth-brand{
+    margin:0 0 20px!important;
+}
+
+html.w68-handheld .auth-logo{
+    width:100px!important;
+    height:100px!important;
+}
+
+html.w68-handheld .auth-brand-line{
+    font-size:19px!important;
+}
+
+html.w68-handheld .auth-title{
+    margin:0 0 24px!important;
+    font-size:31px!important;
+}
+
+html.w68-handheld .auth-field,
+html.w68-handheld .register-form-box .auth-field{
+    grid-template-columns:100px 1fr!important;
+    margin-bottom:14px!important;
+}
+
+html.w68-handheld .auth-field label{
+    font-size:16px!important;
+}
+
+html.w68-handheld .auth-field>input,
+html.w68-handheld .password-wrap>input{
+    height:34px!important;
+    border-radius:14px!important;
+    -webkit-border-radius:14px!important;
+    background:rgba(255,255,255,.96)!important;
+}
+
+html.w68-handheld .forgot-link{
+    margin:-7px 0 24px auto!important;
+    font-size:10px!important;
+}
+
+html.w68-handheld .auth-actions,
+html.w68-handheld .register-form-box .auth-actions{
+    gap:8px!important;
+}
+
+html.w68-handheld .auth-button{
+    height:42px!important;
+    min-height:42px!important;
+    font-size:18px!important;
+}
+
+/* Login Canva placement */
+html.w68-handheld[data-auth-mode="login"] .auth-brand{
+    margin-top:0!important;
+    margin-bottom:22px!important;
+}
+
+html.w68-handheld[data-auth-mode="login"] .auth-title{
+    margin-bottom:26px!important;
+}
+
+/* Register Canva placement */
+html.w68-handheld[data-auth-mode="register"] .auth-brand{
+    display:none!important;
+}
+
+html.w68-handheld[data-auth-mode="register"] .auth-title{
+    margin:0!important;
+}
+
+html.w68-handheld[data-auth-mode="register"] .mobile-register-brand{
+    display:flex!important;
+    align-items:center!important;
+    justify-content:center!important;
+    gap:4px!important;
+    margin:34px 0 23px!important;
+    color:#13300f!important;
+    font-size:19px!important;
+    font-weight:900!important;
+}
+
+html.w68-handheld[data-auth-mode="register"] .register-form-box .auth-field{
+    margin-bottom:16px!important;
+}
+
+/* Small phones: keep the same composition but allow the card to use available height. */
+@media(max-width:430px){
+    html.w68-handheld .auth-stage{
+        padding:7px!important;
+    }
+
+    html.w68-handheld .auth-shell{
+        width:calc(100vw - 14px)!important;
+        height:calc(100dvh - 14px)!important;
+        min-height:540px!important;
+    }
+
+    html.w68-handheld .auth-form-column{
+        padding:12px!important;
+    }
+
+    html.w68-handheld .auth-logo{
+        width:82px!important;
+        height:82px!important;
+    }
+
+    html.w68-handheld .auth-brand{
+        margin-bottom:16px!important;
+    }
+
+    html.w68-handheld .auth-brand-line,
+    html.w68-handheld[data-auth-mode="register"] .mobile-register-brand{
+        font-size:17px!important;
+    }
+
+    html.w68-handheld .auth-title{
+        font-size:27px!important;
+        margin-bottom:18px!important;
+    }
+
+    html.w68-handheld .auth-field,
+    html.w68-handheld .register-form-box .auth-field{
+        grid-template-columns:96px 1fr!important;
+        margin-bottom:11px!important;
+    }
+
+    html.w68-handheld .auth-field label{
+        font-size:14px!important;
+    }
+
+    html.w68-handheld .auth-field>input,
+    html.w68-handheld .password-wrap>input{
+        height:31px!important;
+    }
+
+    html.w68-handheld .forgot-link{
+        margin-bottom:16px!important;
+    }
+
+    html.w68-handheld .auth-button{
+        height:38px!important;
+        min-height:38px!important;
+        font-size:16px!important;
+    }
+}
+
 </style>
-<script src="{{ asset('js/w68-auth.js') }}?v=20261002-canva-v3" defer></script>
+<script src="{{ asset('js/w68-auth.js') }}?v=20261002-canva-v4" defer></script>
 </head>
 <body>
 @php

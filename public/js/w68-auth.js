@@ -2,11 +2,12 @@
     const root = document.documentElement;
     const panels = [...document.querySelectorAll('[data-auth-panel]')];
     const switches = [...document.querySelectorAll('[data-auth-switch]')];
+
     const otpModal = document.querySelector('[data-otp-modal]');
     const otpInput = document.querySelector('[data-otp-input]');
     const otpCountdown = document.querySelector('[data-otp-countdown]');
-    const activeOtpActions = document.querySelector('[data-otp-active-actions]');
-    const expiredOtpActions = document.querySelector('[data-otp-expired-actions]');
+    const otpActionForm = document.querySelector('[data-otp-action-form]');
+    const otpActionButton = document.querySelector('[data-otp-action-button]');
 
     const setMode = (mode) => {
         const selected = mode === 'register' ? 'register' : 'login';
@@ -47,6 +48,7 @@
 
     const closeOtp = () => {
         if (!otpModal) return;
+
         otpModal.classList.remove('is-open');
         otpModal.hidden = true;
         otpModal.setAttribute('aria-hidden', 'true');
@@ -60,6 +62,7 @@
 
     const openOtp = () => {
         if (!otpModal) return;
+
         otpModal.hidden = false;
         otpModal.removeAttribute('hidden');
         otpModal.classList.add('is-open');
@@ -68,25 +71,68 @@
         document.body.classList.add('otp-is-open');
     };
 
+    const setOtpExpired = (expired) => {
+        if (!otpActionForm || !otpActionButton) return;
+
+        const verifyAction = otpActionForm.dataset.verifyAction || otpActionForm.action;
+        const resendAction = otpActionForm.dataset.resendAction || otpActionForm.action;
+
+        if (expired) {
+            otpActionForm.action = resendAction;
+            otpActionButton.textContent = 'RESEND';
+            otpActionButton.setAttribute('aria-label', 'Resend OTP');
+
+            if (otpInput) {
+                otpInput.required = false;
+                otpInput.disabled = true;
+            }
+
+            return;
+        }
+
+        otpActionForm.action = verifyAction;
+        otpActionButton.textContent = 'VERIFY';
+        otpActionButton.setAttribute('aria-label', 'Verify OTP');
+
+        if (otpInput) {
+            otpInput.disabled = false;
+            otpInput.required = true;
+        }
+    };
+
     let countdownTimer = null;
 
     const startOtpCountdown = () => {
         if (!otpModal || !otpCountdown) return;
+
+        if (countdownTimer) {
+            window.clearInterval(countdownTimer);
+            countdownTimer = null;
+        }
 
         const expiresAt = Number(otpModal.dataset.otpExpiresAt || 0);
         const serverNow = Number(otpModal.dataset.serverNow || 0);
 
         if (!expiresAt || !serverNow) {
             otpCountdown.textContent = '00:00';
-            activeOtpActions?.setAttribute('hidden', 'hidden');
-            expiredOtpActions?.removeAttribute('hidden');
+            setOtpExpired(true);
             return;
         }
 
-        const localDeadline = Date.now() + Math.max(0, (expiresAt - serverNow) * 1000);
+        /*
+         * Convert the server expiry timestamp to this browser's clock once.
+         * This keeps the countdown correct even when iPad Safari restores the
+         * page from its back/forward cache.
+         */
+        const browserServerOffset = Date.now() - (serverNow * 1000);
+        const localDeadline = (expiresAt * 1000) + browserServerOffset;
 
         const render = () => {
-            const totalSeconds = Math.max(0, Math.ceil((localDeadline - Date.now()) / 1000));
+            const totalSeconds = Math.max(
+                0,
+                Math.ceil((localDeadline - Date.now()) / 1000)
+            );
+
             const minutes = Math.floor(totalSeconds / 60);
             const seconds = totalSeconds % 60;
 
@@ -96,19 +142,22 @@
 
             if (totalSeconds <= 0) {
                 if (countdownTimer) {
-                    clearInterval(countdownTimer);
+                    window.clearInterval(countdownTimer);
                     countdownTimer = null;
                 }
-                activeOtpActions?.setAttribute('hidden', 'hidden');
-                expiredOtpActions?.removeAttribute('hidden');
-            } else {
-                activeOtpActions?.removeAttribute('hidden');
-                expiredOtpActions?.setAttribute('hidden', 'hidden');
+
+                setOtpExpired(true);
+                return;
             }
+
+            setOtpExpired(false);
         };
 
         render();
-        countdownTimer = setInterval(render, 1000);
+
+        if (localDeadline > Date.now()) {
+            countdownTimer = window.setInterval(render, 1000);
+        }
     };
 
     const otpShouldOpen = Boolean(
@@ -123,12 +172,21 @@
         openOtp();
         startOtpCountdown();
 
-        setTimeout(() => {
+        window.setTimeout(() => {
+            if (!otpInput || otpInput.disabled) return;
+
             try {
-                otpInput?.focus({ preventScroll: true });
+                otpInput.focus({ preventScroll: true });
             } catch (error) {
-                otpInput?.focus();
+                otpInput.focus();
             }
         }, 160);
     }
+
+    window.addEventListener('pageshow', () => {
+        if (otpModal?.dataset.otpOpen !== 'true') return;
+
+        openOtp();
+        startOtpCountdown();
+    });
 })();

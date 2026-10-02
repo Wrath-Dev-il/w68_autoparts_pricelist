@@ -1,81 +1,120 @@
-(() => {
-    const root = document.documentElement;
-    const panels = [...document.querySelectorAll('[data-auth-panel]')];
-    const switches = [...document.querySelectorAll('[data-auth-switch]')];
+(function () {
+    'use strict';
 
-    const otpModal = document.querySelector('[data-otp-modal]');
-    const otpInput = document.querySelector('[data-otp-input]');
-    const otpCountdown = document.querySelector('[data-otp-countdown]');
-    const otpActionForm = document.querySelector('[data-otp-action-form]');
-    const otpActionButton = document.querySelector('[data-otp-action-button]');
+    var root = document.documentElement;
+    var panels = Array.prototype.slice.call(document.querySelectorAll('[data-auth-panel]'));
+    var switches = Array.prototype.slice.call(document.querySelectorAll('[data-auth-switch]'));
 
-    const setMode = (mode) => {
-        const selected = mode === 'register' ? 'register' : 'login';
-        root.dataset.authMode = selected;
+    var otpModal = document.querySelector('[data-otp-modal]');
+    var otpInput = document.querySelector('[data-otp-input]');
+    var otpCountdown = document.querySelector('[data-otp-countdown]');
+    var otpActionForm = document.querySelector('[data-otp-action-form]');
+    var otpActionButton = document.querySelector('[data-otp-action-button]');
+    var countdownTimer = null;
 
-        panels.forEach((panel) => {
-            const active = panel.dataset.authPanel === selected;
+    function setMode(mode) {
+        var selected = mode === 'register' ? 'register' : 'login';
+
+        root.setAttribute('data-auth-mode', selected);
+
+        panels.forEach(function (panel) {
+            var active = panel.getAttribute('data-auth-panel') === selected;
+            var controls;
+            var i;
+
             panel.hidden = !active;
+            controls = panel.querySelectorAll('input, select, textarea, button');
 
-            panel.querySelectorAll('input, select, textarea, button').forEach((control) => {
-                if (control.matches('[data-auth-switch]')) return;
-                control.disabled = !active;
-            });
+            for (i = 0; i < controls.length; i += 1) {
+                if (controls[i].hasAttribute('data-auth-switch')) {
+                    continue;
+                }
+
+                controls[i].disabled = !active;
+            }
         });
-    };
+    }
 
-    switches.forEach((button) => {
-        button.addEventListener('click', () => setMode(button.dataset.authSwitch));
+    switches.forEach(function (button) {
+        button.addEventListener('click', function () {
+            setMode(button.getAttribute('data-auth-switch'));
+        });
     });
 
-    setMode(root.dataset.authMode || 'login');
+    setMode(root.getAttribute('data-auth-mode') || 'login');
 
-    document.querySelectorAll('[data-password-toggle]').forEach((button) => {
-        button.addEventListener('click', () => {
-            const input = document.getElementById(button.getAttribute('aria-controls'));
-            if (!input) return;
+    Array.prototype.slice.call(document.querySelectorAll('[data-password-toggle]')).forEach(function (button) {
+        button.addEventListener('click', function () {
+            var inputId = button.getAttribute('aria-controls');
+            var input = inputId ? document.getElementById(inputId) : null;
+            var willShow;
 
-            const willShow = input.type === 'password';
+            if (!input) {
+                return;
+            }
+
+            willShow = input.type === 'password';
             input.type = willShow ? 'text' : 'password';
             button.textContent = willShow ? 'HIDE' : 'SHOW';
             button.setAttribute('aria-label', willShow ? 'Hide password' : 'Show password');
         });
     });
 
-    otpInput?.addEventListener('input', () => {
-        otpInput.value = otpInput.value.replace(/\D/g, '').slice(0, 6);
-    });
+    if (otpInput) {
+        otpInput.addEventListener('input', function () {
+            otpInput.value = otpInput.value.replace(/\D/g, '').slice(0, 6);
+        });
+    }
 
-    const closeOtp = () => {
-        if (!otpModal) return;
+    function closeOtp() {
+        if (!otpModal) {
+            return;
+        }
 
         otpModal.classList.remove('is-open');
         otpModal.hidden = true;
+        otpModal.style.display = 'none';
         otpModal.setAttribute('aria-hidden', 'true');
         document.documentElement.classList.remove('otp-is-open');
-        document.body.classList.remove('otp-is-open');
-    };
 
-    document.querySelectorAll('[data-otp-cancel]').forEach((button) => {
+        if (document.body) {
+            document.body.classList.remove('otp-is-open');
+        }
+    }
+
+    Array.prototype.slice.call(document.querySelectorAll('[data-otp-cancel]')).forEach(function (button) {
         button.addEventListener('click', closeOtp);
     });
 
-    const openOtp = () => {
-        if (!otpModal) return;
+    function openOtp() {
+        if (!otpModal) {
+            return;
+        }
 
         otpModal.hidden = false;
         otpModal.removeAttribute('hidden');
         otpModal.classList.add('is-open');
+        otpModal.style.setProperty('display', 'flex', 'important');
+        otpModal.style.setProperty('visibility', 'visible', 'important');
+        otpModal.style.setProperty('opacity', '1', 'important');
         otpModal.setAttribute('aria-hidden', 'false');
         document.documentElement.classList.add('otp-is-open');
-        document.body.classList.add('otp-is-open');
-    };
 
-    const setOtpExpired = (expired) => {
-        if (!otpActionForm || !otpActionButton) return;
+        if (document.body) {
+            document.body.classList.add('otp-is-open');
+        }
+    }
 
-        const verifyAction = otpActionForm.dataset.verifyAction || otpActionForm.action;
-        const resendAction = otpActionForm.dataset.resendAction || otpActionForm.action;
+    function setOtpExpired(expired) {
+        var verifyAction;
+        var resendAction;
+
+        if (!otpActionForm || !otpActionButton) {
+            return;
+        }
+
+        verifyAction = otpActionForm.getAttribute('data-verify-action') || otpActionForm.action;
+        resendAction = otpActionForm.getAttribute('data-resend-action') || otpActionForm.action;
 
         if (expired) {
             otpActionForm.action = resendAction;
@@ -98,20 +137,25 @@
             otpInput.disabled = false;
             otpInput.required = true;
         }
-    };
+    }
 
-    let countdownTimer = null;
+    function startOtpCountdown() {
+        var expiresAt;
+        var serverNow;
+        var browserServerOffset;
+        var localDeadline;
 
-    const startOtpCountdown = () => {
-        if (!otpModal || !otpCountdown) return;
+        if (!otpModal || !otpCountdown) {
+            return;
+        }
 
         if (countdownTimer) {
             window.clearInterval(countdownTimer);
             countdownTimer = null;
         }
 
-        const expiresAt = Number(otpModal.dataset.otpExpiresAt || 0);
-        const serverNow = Number(otpModal.dataset.serverNow || 0);
+        expiresAt = Number(otpModal.getAttribute('data-otp-expires-at') || 0);
+        serverNow = Number(otpModal.getAttribute('data-server-now') || 0);
 
         if (!expiresAt || !serverNow) {
             otpCountdown.textContent = '00:00';
@@ -119,26 +163,17 @@
             return;
         }
 
-        /*
-         * Convert the server expiry timestamp to this browser's clock once.
-         * This keeps the countdown correct even when iPad Safari restores the
-         * page from its back/forward cache.
-         */
-        const browserServerOffset = Date.now() - (serverNow * 1000);
-        const localDeadline = (expiresAt * 1000) + browserServerOffset;
+        browserServerOffset = Date.now() - (serverNow * 1000);
+        localDeadline = (expiresAt * 1000) + browserServerOffset;
 
-        const render = () => {
-            const totalSeconds = Math.max(
-                0,
-                Math.ceil((localDeadline - Date.now()) / 1000)
-            );
-
-            const minutes = Math.floor(totalSeconds / 60);
-            const seconds = totalSeconds % 60;
+        function renderCountdown() {
+            var totalSeconds = Math.max(0, Math.ceil((localDeadline - Date.now()) / 1000));
+            var minutes = Math.floor(totalSeconds / 60);
+            var seconds = totalSeconds % 60;
 
             otpCountdown.textContent =
-                String(minutes).padStart(2, '0') + ':' +
-                String(seconds).padStart(2, '0');
+                String(minutes).replace(/^([0-9])$/, '0$1') + ':' +
+                String(seconds).replace(/^([0-9])$/, '0$1');
 
             if (totalSeconds <= 0) {
                 if (countdownTimer) {
@@ -151,40 +186,48 @@
             }
 
             setOtpExpired(false);
-        };
+        }
 
-        render();
+        renderCountdown();
 
         if (localDeadline > Date.now()) {
-            countdownTimer = window.setInterval(render, 1000);
+            countdownTimer = window.setInterval(renderCountdown, 1000);
         }
-    };
+    }
 
-    const otpShouldOpen = Boolean(
-        otpModal && (
-            otpModal.dataset.otpOpen === 'true' ||
+    function shouldOpenOtp() {
+        if (!otpModal) {
+            return false;
+        }
+
+        return (
+            otpModal.getAttribute('data-otp-open') === 'true' ||
             !otpModal.hidden ||
             otpModal.classList.contains('is-open')
-        )
-    );
+        );
+    }
 
-    if (otpShouldOpen) {
+    if (shouldOpenOtp()) {
         openOtp();
         startOtpCountdown();
 
-        window.setTimeout(() => {
-            if (!otpInput || otpInput.disabled) return;
+        window.setTimeout(function () {
+            if (!otpInput || otpInput.disabled) {
+                return;
+            }
 
             try {
-                otpInput.focus({ preventScroll: true });
-            } catch (error) {
                 otpInput.focus();
+            } catch (error) {
+                // Older Safari may reject focus while the keyboard is changing.
             }
         }, 160);
     }
 
-    window.addEventListener('pageshow', () => {
-        if (otpModal?.dataset.otpOpen !== 'true') return;
+    window.addEventListener('pageshow', function () {
+        if (!otpModal || otpModal.getAttribute('data-otp-open') !== 'true') {
+            return;
+        }
 
         openOtp();
         startOtpCountdown();

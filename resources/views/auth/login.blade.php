@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>W68 Special Store</title>
-<link rel="stylesheet" href="{{ asset('css/w68-login.css') }}?v=20261002-canva-v7">
+<link rel="stylesheet" href="{{ asset('css/w68-login.css') }}?v=20261002-canva-v8">
 <script>
 (function () {
     var ua = navigator.userAgent || '';
@@ -574,28 +574,39 @@ html.w68-handheld[data-auth-mode="register"] .register-form-box .auth-field{
     }
 }
 
-/* W68_DESKTOP_SOLID_CART_20261002_V7 */
-html:not(.w68-handheld) .auth-brand-line .desktop-cart-icon{
+/* W68_UPLOADED_FLATICON_CART_20261002_V8 */
+.uploaded-cart-icon{
     display:inline-block!important;
-    width:26px!important;
-    height:26px!important;
-    margin-left:4px!important;
-    color:#13300f!important;
-    flex:0 0 26px!important;
-    transform:translateY(1px)!important;
+    background-color:#13300f!important;
+    -webkit-mask-image:url("{{ asset('images/shopping-cart-removebg-preview.png') }}")!important;
+    mask-image:url("{{ asset('images/shopping-cart-removebg-preview.png') }}")!important;
+    -webkit-mask-repeat:no-repeat!important;
+    mask-repeat:no-repeat!important;
+    -webkit-mask-position:center!important;
+    mask-position:center!important;
+    -webkit-mask-size:contain!important;
+    mask-size:contain!important;
 }
-html:not(.w68-handheld) .auth-brand-line .desktop-cart-icon path{
-    fill:#13300f!important;
+html:not(.w68-handheld) .auth-brand-line .uploaded-cart-icon{
+    width:25px!important;
+    height:25px!important;
+    margin-left:4px!important;
+    flex:0 0 25px!important;
+    transform:translateY(1px)!important;
 }
 html:not(.w68-handheld)[data-auth-mode="login"] .auth-title{
     font-weight:900!important;
 }
-html.w68-handheld .desktop-cart-icon{
-    display:none!important;
+html.w68-handheld .auth-brand-line .uploaded-cart-icon,
+html.w68-handheld .mobile-register-brand .uploaded-cart-icon{
+    width:20px!important;
+    height:20px!important;
+    margin-left:3px!important;
+    flex:0 0 20px!important;
 }
 
 </style>
-<script src="{{ asset('js/w68-auth.js') }}?v=20261002-canva-v7" defer></script>
+<script src="{{ asset('js/w68-auth.js') }}?v=20261002-canva-v8" defer></script>
 </head>
 <body>
 @php
@@ -617,9 +628,7 @@ html.w68-handheld .desktop-cart-icon{
                 <img class="auth-logo" src="{{ asset('images/sidebar_logo.png') }}" alt="W68">
                 <div class="auth-brand-line">
                     <span>W68 SPECIAL STORE</span>
-                    <svg class="desktop-cart-icon" viewBox="0 0 32 32" aria-hidden="true">
-                        <path fill="currentColor" d="M4 5h3.1c.9 0 1.7.6 2 1.5l.5 2H27c.8 0 1.4.8 1.1 1.6l-3.2 9.1c-.3.9-1.1 1.4-2 1.4H12c-.9 0-1.8-.6-2-1.5L7 8H4a1.5 1.5 0 0 1 0-3Zm7 6 1.8 6.6h9.4l2.3-6.6H11Zm2 11.5a2.5 2.5 0 1 1 0 5 2.5 2.5 0 0 1 0-5Zm9 0a2.5 2.5 0 1 1 0 5 2.5 2.5 0 0 1 0-5Z"/>
-                    </svg>
+                    <span class="uploaded-cart-icon" aria-hidden="true"></span>
                 </div>
             </div>
 
@@ -675,11 +684,7 @@ html.w68-handheld .desktop-cart-icon{
 
                 <div class="mobile-register-brand" aria-hidden="true">
                     <span>W68 SPECIAL STORE</span>
-                    <svg class="brand-cart-icon" viewBox="0 0 24 24">
-                        <path d="M3 4h2l2.2 10.2a2 2 0 0 0 2 1.6h7.7a2 2 0 0 0 1.9-1.4L21 7H7" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
-                        <circle cx="10" cy="19" r="1.3" fill="currentColor"/>
-                        <circle cx="18" cy="19" r="1.3" fill="currentColor"/>
-                    </svg>
+                    <span class="uploaded-cart-icon" aria-hidden="true"></span>
                 </div>
 
                 <form method="POST" action="{{ route('register.attempt') }}" class="auth-form auth-form-box register-form-box">

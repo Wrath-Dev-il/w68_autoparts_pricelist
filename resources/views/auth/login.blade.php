@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>W68 Special Store</title>
-<link rel="stylesheet" href="{{ asset('css/w68-login.css') }}?v=20261002-full-handheld-v18">
+<link rel="stylesheet" href="{{ asset('css/w68-login.css') }}?v=20261002-full-handheld-v19">
 <script>
 (function () {
     var ua = navigator.userAgent || '';
@@ -54,7 +54,7 @@
     });
 })();
 </script>
-<style id="w68-auth-final-clean-v18">
+<style id="w68-auth-final-clean-v19">
 :root{
     --w68-green:#13300f;
     --w68-maroon:#890001;
@@ -809,6 +809,11 @@ html.w68-handheld:not(.w68-compact-card) .password-wrap>input{
     padding-right:74px!important;
 }
 
+/* W68_HANDHELD_FORGOT_PASSWORD_11_5PX_20261002_V19 */
+html.w68-handheld .forgot-link{
+    font-size:11.5px!important;
+}
+
 /* OTP stays functional and above the auth page. */
 .otp-modal{
     position:fixed!important;
@@ -816,7 +821,7 @@ html.w68-handheld:not(.w68-compact-card) .password-wrap>input{
     z-index:2147483000!important;
 }
 </style>
-<script src="{{ asset('js/w68-auth.js') }}?v=20261002-full-handheld-v18" defer></script>
+<script src="{{ asset('js/w68-auth.js') }}?v=20261002-full-handheld-v19" defer></script>
 </head>
 <body>
 @php

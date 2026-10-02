@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>W68 Special Store</title>
-<link rel="stylesheet" href="{{ asset('css/w68-login.css') }}?v=20261002-otp-v20">
+<link rel="stylesheet" href="{{ asset('css/w68-login.css') }}?v=20261002-otp-v21">
 <script>
 (function () {
     var ua = navigator.userAgent || '';
@@ -54,7 +54,7 @@
     });
 })();
 </script>
-<style id="w68-auth-final-clean-v20">
+<style id="w68-auth-final-clean-v21">
 :root{
     --w68-green:#13300f;
     --w68-maroon:#890001;
@@ -815,19 +815,31 @@ html.w68-handheld .forgot-link{
 }
 
 /* W68_OTP_RESPONSIVE_TWO_BUTTONS_20261002_V20 */
+/* W68_OTP_IPAD_FORCE_VISIBLE_20261002_V21 */
 .otp-modal{
     position:fixed!important;
-    inset:0!important;
+    top:0!important;
+    right:0!important;
+    bottom:0!important;
+    left:0!important;
+    width:100%!important;
+    height:100vh!important;
     z-index:2147483000!important;
     display:none!important;
+    visibility:hidden!important;
+    opacity:0!important;
     align-items:center!important;
     justify-content:center!important;
     padding:16px!important;
     overflow:auto!important;
+    -webkit-overflow-scrolling:touch!important;
 }
 
-.otp-modal.is-open{
+.otp-modal.is-open,
+.otp-modal[data-otp-open="true"]{
     display:flex!important;
+    visibility:visible!important;
+    opacity:1!important;
 }
 
 .otp-modal[hidden]{
@@ -836,7 +848,12 @@ html.w68-handheld .forgot-link{
 
 .otp-backdrop{
     position:fixed!important;
-    inset:0!important;
+    top:0!important;
+    right:0!important;
+    bottom:0!important;
+    left:0!important;
+    width:100%!important;
+    height:100vh!important;
     z-index:0!important;
     background:rgba(0,0,0,.48)!important;
 }
@@ -1028,7 +1045,7 @@ html.w68-handheld .otp-button{
     }
 }
 </style>
-<script src="{{ asset('js/w68-auth.js') }}?v=20261002-otp-v20" defer></script>
+<script src="{{ asset('js/w68-auth.js') }}?v=20261002-otp-v21" defer></script>
 </head>
 <body>
 @php
@@ -1161,7 +1178,11 @@ html.w68-handheld .otp-button{
     data-otp-open="{{ $showOtpModal ? 'true' : 'false' }}"
     data-otp-expires-at="{{ $otpExpiresAt }}"
     data-server-now="{{ $serverNow }}"
-    @if (!$showOtpModal) hidden @endif
+    @if ($showOtpModal)
+        style="display:flex!important;visibility:visible!important;opacity:1!important;"
+    @else
+        hidden
+    @endif
     aria-hidden="{{ $showOtpModal ? 'false' : 'true' }}"
 >
     <div class="otp-backdrop" data-otp-cancel></div>
@@ -1219,6 +1240,30 @@ html.w68-handheld .otp-button{
         </form>
     </section>
 </div>
+
+<script>
+(function () {
+    var modal = document.querySelector('[data-otp-modal]');
+
+    if (!modal || modal.getAttribute('data-otp-open') !== 'true') {
+        return;
+    }
+
+    modal.removeAttribute('hidden');
+    modal.style.setProperty('display', 'flex', 'important');
+    modal.style.setProperty('visibility', 'visible', 'important');
+    modal.style.setProperty('opacity', '1', 'important');
+    modal.setAttribute('aria-hidden', 'false');
+
+    if (document.documentElement.className.indexOf('otp-is-open') === -1) {
+        document.documentElement.className += ' otp-is-open';
+    }
+
+    if (document.body.className.indexOf('otp-is-open') === -1) {
+        document.body.className += ' otp-is-open';
+    }
+})();
+</script>
 
 <script>
 document.addEventListener('DOMContentLoaded', function () {

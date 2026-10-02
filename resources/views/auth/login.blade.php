@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>W68 Special Store</title>
-<link rel="stylesheet" href="{{ asset('css/w68-login.css') }}?v=20261002-full-handheld-v16">
+<link rel="stylesheet" href="{{ asset('css/w68-login.css') }}?v=20261002-full-handheld-v17">
 <script>
 (function () {
     var ua = navigator.userAgent || '';
@@ -54,7 +54,7 @@
     });
 })();
 </script>
-<style id="w68-auth-final-clean-v16">
+<style id="w68-auth-final-clean-v17">
 :root{
     --w68-green:#13300f;
     --w68-maroon:#890001;
@@ -469,8 +469,8 @@ html.w68-handheld .auth-field label{
 html.w68-handheld .auth-field>input,
 html.w68-handheld .password-wrap>input{
     width:100%!important;
-    height:22px!important;
-    min-height:22px!important;
+    height:28px!important;
+    min-height:28px!important;
     padding:0 7px!important;
     border:2px solid #111!important;
     border-radius:12px!important;
@@ -624,8 +624,8 @@ html.w68-handheld[data-auth-mode="register"] .register-form-box .auth-field labe
 
     html.w68-handheld .auth-field>input,
     html.w68-handheld .password-wrap>input{
-        height:32px!important;
-        min-height:32px!important;
+        height:38px!important;
+        min-height:38px!important;
         border-radius:16px!important;
         -webkit-border-radius:16px!important;
         font-size:16px!important;
@@ -727,8 +727,8 @@ html.w68-handheld.w68-compact-card .auth-field label{
 
 html.w68-handheld.w68-compact-card .auth-field>input,
 html.w68-handheld.w68-compact-card .password-wrap>input{
-    height:22px!important;
-    min-height:22px!important;
+    height:28px!important;
+    min-height:28px!important;
     border-radius:12px!important;
     -webkit-border-radius:12px!important;
     font-size:13px!important;
@@ -776,6 +776,18 @@ html.w68-handheld.w68-compact-card[data-auth-mode="register"] .register-form-box
     font-size:14px!important;
 }
 
+/* W68_HANDHELD_TALLER_INPUTS_20261002_V17 */
+html.w68-handheld:not(.w68-compact-card) .auth-field>input,
+html.w68-handheld:not(.w68-compact-card) .password-wrap>input{
+    height:38px!important;
+    min-height:38px!important;
+}
+html.w68-handheld.w68-compact-card .auth-field>input,
+html.w68-handheld.w68-compact-card .password-wrap>input{
+    height:28px!important;
+    min-height:28px!important;
+}
+
 /* OTP stays functional and above the auth page. */
 .otp-modal{
     position:fixed!important;
@@ -783,7 +795,7 @@ html.w68-handheld.w68-compact-card[data-auth-mode="register"] .register-form-box
     z-index:2147483000!important;
 }
 </style>
-<script src="{{ asset('js/w68-auth.js') }}?v=20261002-full-handheld-v16" defer></script>
+<script src="{{ asset('js/w68-auth.js') }}?v=20261002-full-handheld-v17" defer></script>
 </head>
 <body>
 @php

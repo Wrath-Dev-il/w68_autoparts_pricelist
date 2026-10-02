@@ -4,20 +4,246 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>W68 Special Store</title>
-<link rel="stylesheet" href="{{ asset('css/w68-login.css') }}?v=20261002-canva-v2">
+<link rel="stylesheet" href="{{ asset('css/w68-login.css') }}?v=20261002-canva-v3">
 <script>
 (function () {
     var ua = navigator.userAgent || '';
+    var touchTablet = navigator.maxTouchPoints > 1 && Math.min(screen.width || 9999, screen.height || 9999) <= 1100;
     var isHandheld =
         /iPhone|iPad|iPod|Android|Mobile|Tablet/i.test(ua) ||
-        (/Macintosh/i.test(ua) && navigator.maxTouchPoints > 1);
+        (/Macintosh/i.test(ua) && navigator.maxTouchPoints > 1) ||
+        touchTablet;
 
     if (isHandheld) {
         document.documentElement.classList.add('w68-handheld');
     }
 })();
 </script>
-<script src="{{ asset('js/w68-auth.js') }}?v=20261002-canva-v2" defer></script>
+<style id="w68-auth-critical-20261002-v3">
+:root{--w68-green:#13300f;--w68-maroon:#890001;--w68-yellow:#ffea32}
+html,body{margin:0!important;min-height:100%!important;background:#fff!important}
+body{font-family:Arial,Helvetica,sans-serif!important}
+.auth-stage{min-height:100vh!important;min-height:100dvh!important;background:#fff!important}
+
+/* DESKTOP / LAPTOP */
+html:not(.w68-handheld) .auth-stage{
+    display:flex!important;
+    align-items:center!important;
+    justify-content:center!important;
+    padding:0 28px!important;
+}
+html:not(.w68-handheld) .auth-shell{
+    width:min(1180px,100%)!important;
+    min-height:100vh!important;
+    display:grid!important;
+    grid-template-columns:48% 52%!important;
+    gap:18px!important;
+    align-items:center!important;
+}
+html:not(.w68-handheld) .auth-form-column{
+    width:100%!important;
+    max-width:520px!important;
+    justify-self:center!important;
+}
+html:not(.w68-handheld) .auth-brand{margin:0 0 10px!important}
+html:not(.w68-handheld) .auth-logo{
+    width:110px!important;height:110px!important;object-fit:contain!important
+}
+html:not(.w68-handheld) .auth-brand-line{
+    display:flex!important;align-items:center!important;justify-content:center!important;
+    gap:4px!important;color:var(--w68-green)!important;font-size:18px!important;font-weight:900!important
+}
+html:not(.w68-handheld) .brand-cart-icon{width:20px!important;height:20px!important;color:var(--w68-green)!important}
+html:not(.w68-handheld) .auth-title{
+    margin:0 0 10px 8px!important;color:var(--w68-maroon)!important;
+    font-size:31px!important;line-height:1!important;font-weight:500!important
+}
+html:not(.w68-handheld) .auth-form-box{
+    width:100%!important;padding:18px 14px 16px!important;
+    border:5px solid var(--w68-green)!important;border-radius:18px!important;
+    background:#fff!important;box-shadow:none!important
+}
+html:not(.w68-handheld) .auth-field{
+    display:grid!important;grid-template-columns:88px 1fr!important;
+    align-items:center!important;gap:0!important;margin:0 0 10px!important
+}
+html:not(.w68-handheld) .register-form-box .auth-field{grid-template-columns:92px 1fr!important}
+html:not(.w68-handheld) .auth-field label{
+    margin:0!important;color:#111!important;font-size:17px!important;font-weight:700!important;line-height:1.05!important
+}
+html:not(.w68-handheld) .auth-field>input,
+html:not(.w68-handheld) .password-wrap>input{
+    width:100%!important;height:32px!important;padding:0 10px!important;
+    border:2px solid #111!important;border-radius:13px!important;
+    -webkit-border-radius:13px!important;-webkit-appearance:none!important;appearance:none!important;
+    background:#fff!important;background-color:#fff!important;color:#111!important;
+    box-shadow:none!important;outline:none!important
+}
+html:not(.w68-handheld) .password-wrap{position:relative!important;width:100%!important}
+html:not(.w68-handheld) .password-wrap>input{padding-right:62px!important}
+html:not(.w68-handheld) .password-toggle{
+    position:absolute!important;right:5px!important;top:50%!important;transform:translateY(-50%)!important;
+    height:22px!important;min-width:48px!important;border:0!important;background:transparent!important;
+    color:var(--w68-maroon)!important;font-size:10px!important;font-weight:800!important
+}
+html:not(.w68-handheld) .forgot-link{
+    display:block!important;margin:-5px 0 3px auto!important;padding:0!important;
+    border:0!important;background:transparent!important;color:var(--w68-maroon)!important;
+    font-size:10px!important;font-weight:700!important;text-decoration:underline!important
+}
+html:not(.w68-handheld) .remember-row{
+    display:flex!important;align-items:center!important;gap:5px!important;
+    margin:0 0 7px 92px!important;color:#111!important;font-size:12px!important
+}
+html:not(.w68-handheld) .remember-row input{width:15px!important;height:15px!important}
+html:not(.w68-handheld) .auth-actions{
+    display:grid!important;gap:4px!important;margin:0 0 0 88px!important
+}
+html:not(.w68-handheld) .register-form-box .auth-actions{margin-left:92px!important}
+html:not(.w68-handheld) .auth-button{
+    width:100%!important;height:24px!important;min-height:24px!important;padding:0 8px!important;
+    border:2px solid #111!important;border-radius:4px!important;font-size:12px!important;font-weight:700!important
+}
+html:not(.w68-handheld) .auth-button-primary{background:var(--w68-green)!important;color:var(--w68-yellow)!important}
+html:not(.w68-handheld) .auth-button-secondary{background:var(--w68-maroon)!important;color:var(--w68-yellow)!important}
+html:not(.w68-handheld) .auth-art-panel{
+    min-height:100vh!important;height:100vh!important;display:flex!important;
+    align-items:center!important;justify-content:flex-end!important;overflow:hidden!important
+}
+html:not(.w68-handheld) .auth-art{
+    width:min(100%,540px)!important;max-height:94vh!important;height:auto!important;
+    object-fit:contain!important;object-position:right center!important
+}
+html:not(.w68-handheld) .register-grid{display:block!important}
+html:not(.w68-handheld) .mobile-register-brand{display:none!important}
+
+/* IPAD / TABLET / PHONE */
+html.w68-handheld,
+html.w68-handheld body{
+    width:100%!important;min-height:100%!important;background:#fff!important
+}
+html.w68-handheld .auth-stage{
+    width:100%!important;min-height:100vh!important;min-height:100dvh!important;
+    display:flex!important;align-items:flex-start!important;justify-content:center!important;
+    padding:0!important;background:#fff!important;overflow:auto!important
+}
+html.w68-handheld .auth-shell{
+    position:relative!important;width:100%!important;max-width:none!important;
+    min-height:100vh!important;min-height:100dvh!important;margin:0!important;padding:0!important;
+    display:block!important;overflow:hidden!important;border:4px solid var(--w68-green)!important;
+    border-radius:15px!important;background:#fff!important;box-shadow:none!important
+}
+html.w68-handheld .auth-art-panel{
+    position:absolute!important;inset:0!important;z-index:0!important;width:100%!important;height:100%!important;
+    min-height:0!important;margin:0!important;display:block!important;overflow:hidden!important
+}
+html.w68-handheld .auth-art{
+    position:absolute!important;inset:0!important;width:100%!important;height:100%!important;
+    max-height:none!important;object-fit:cover!important;object-position:center top!important;
+    opacity:.72!important;filter:none!important
+}
+html.w68-handheld .auth-form-column{
+    position:relative!important;z-index:2!important;width:100%!important;max-width:none!important;
+    min-height:100vh!important;min-height:100dvh!important;margin:0!important;
+    padding:18px 18px 16px!important;display:block!important
+}
+html.w68-handheld .auth-panel{
+    width:100%!important;margin:0!important;padding:0!important;border:0!important;
+    background:transparent!important;box-shadow:none!important
+}
+html.w68-handheld .auth-form-box{
+    width:100%!important;margin:0!important;padding:0!important;border:0!important;
+    border-radius:0!important;background:transparent!important;box-shadow:none!important
+}
+html.w68-handheld .auth-brand{
+    display:flex!important;flex-direction:column!important;align-items:center!important;
+    margin:0 0 28px!important
+}
+html.w68-handheld .auth-logo{
+    width:92px!important;height:92px!important;object-fit:contain!important
+}
+html.w68-handheld .auth-brand-line{
+    display:flex!important;align-items:center!important;justify-content:center!important;
+    gap:4px!important;color:var(--w68-green)!important;font-size:19px!important;font-weight:900!important
+}
+html.w68-handheld .brand-cart-icon{width:20px!important;height:20px!important;color:var(--w68-green)!important}
+html.w68-handheld .auth-title{
+    margin:0 0 26px!important;color:var(--w68-maroon)!important;
+    font-size:31px!important;line-height:1!important;font-weight:800!important
+}
+html.w68-handheld .auth-field,
+html.w68-handheld .register-form-box .auth-field{
+    display:grid!important;grid-template-columns:100px 1fr!important;
+    align-items:center!important;gap:0!important;margin:0 0 14px!important
+}
+html.w68-handheld .auth-field label{
+    margin:0!important;color:#111!important;font-size:16px!important;
+    line-height:1.05!important;font-weight:800!important;text-transform:uppercase!important
+}
+html.w68-handheld .auth-field>input,
+html.w68-handheld .password-wrap>input{
+    width:100%!important;height:31px!important;padding:0 9px!important;
+    border:2px solid #111!important;border-radius:13px!important;
+    -webkit-border-radius:13px!important;-webkit-appearance:none!important;appearance:none!important;
+    background:#fff!important;background-color:#fff!important;color:#111!important;
+    box-shadow:none!important;outline:none!important
+}
+html.w68-handheld .password-wrap{position:relative!important;width:100%!important}
+html.w68-handheld .password-wrap>input{padding-right:58px!important}
+html.w68-handheld .password-toggle{
+    position:absolute!important;right:5px!important;top:50%!important;transform:translateY(-50%)!important;
+    height:22px!important;min-width:46px!important;border:0!important;background:transparent!important;
+    color:var(--w68-maroon)!important;font-size:9px!important;font-weight:800!important
+}
+html.w68-handheld .forgot-link{
+    display:block!important;margin:-8px 0 28px auto!important;padding:0!important;
+    border:0!important;background:transparent!important;color:var(--w68-maroon)!important;
+    font-size:10px!important;font-weight:700!important;text-decoration:underline!important
+}
+html.w68-handheld .remember-row{display:none!important}
+html.w68-handheld .auth-actions,
+html.w68-handheld .register-form-box .auth-actions{
+    display:grid!important;gap:8px!important;margin:0!important
+}
+html.w68-handheld .auth-button{
+    width:100%!important;height:40px!important;min-height:40px!important;
+    border:2px solid #111!important;border-radius:4px!important;
+    font-size:18px!important;font-weight:500!important
+}
+html.w68-handheld .auth-button-primary{background:var(--w68-green)!important;color:var(--w68-yellow)!important}
+html.w68-handheld .auth-button-secondary{background:var(--w68-maroon)!important;color:var(--w68-yellow)!important}
+html.w68-handheld .mobile-register-brand{display:none!important}
+
+/* login screen placement */
+html.w68-handheld[data-auth-mode="login"] .auth-brand{margin-top:0!important}
+html.w68-handheld[data-auth-mode="login"] [data-auth-panel="login"]{margin-top:0!important}
+
+/* register screen placement */
+html.w68-handheld[data-auth-mode="register"] .auth-brand{display:none!important}
+html.w68-handheld[data-auth-mode="register"] .auth-title{margin:0 0 0!important}
+html.w68-handheld[data-auth-mode="register"] .mobile-register-brand{
+    display:flex!important;align-items:center!important;justify-content:center!important;gap:4px!important;
+    margin:34px 0 24px!important;color:var(--w68-green)!important;font-size:19px!important;font-weight:900!important
+}
+html.w68-handheld[data-auth-mode="register"] .register-form-box .auth-field{margin-bottom:16px!important}
+
+/* force tablet layout even when Safari requests desktop site */
+@media (max-width:1100px) and (pointer:coarse){
+    html:not(.w68-handheld){background:#fff!important}
+}
+@media (max-width:430px){
+    html.w68-handheld .auth-form-column{padding:14px 12px 14px!important}
+    html.w68-handheld .auth-logo{width:80px!important;height:80px!important}
+    html.w68-handheld .auth-brand-line,
+    html.w68-handheld[data-auth-mode="register"] .mobile-register-brand{font-size:17px!important}
+    html.w68-handheld .auth-title{font-size:27px!important}
+    html.w68-handheld .auth-field,
+    html.w68-handheld .register-form-box .auth-field{grid-template-columns:98px 1fr!important}
+    html.w68-handheld .auth-field label{font-size:15px!important}
+    html.w68-handheld .auth-button{font-size:16px!important}
+}
+</style>
+<script src="{{ asset('js/w68-auth.js') }}?v=20261002-canva-v3" defer></script>
 </head>
 <body>
 @php

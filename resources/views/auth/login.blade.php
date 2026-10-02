@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>W68 Special Store</title>
-<link rel="stylesheet" href="{{ asset('css/w68-login.css') }}?v=20261002-canva-v8">
+<link rel="stylesheet" href="{{ asset('css/w68-login.css') }}?v=20261002-canva-v9">
 <script>
 (function () {
     var ua = navigator.userAgent || '';
@@ -605,8 +605,428 @@ html.w68-handheld .mobile-register-brand .uploaded-cart-icon{
     flex:0 0 20px!important;
 }
 
+
+/* W68_HANDHELD_REFERENCE_20261002_V9 */
+html.w68-handheld body,
+html.w68-handheld .auth-stage{
+    background:#fff!important;
+}
+
+html.w68-handheld .auth-stage{
+    width:100%!important;
+    min-height:100vh!important;
+    min-height:100dvh!important;
+    padding:8px!important;
+    display:flex!important;
+    align-items:center!important;
+    justify-content:center!important;
+    overflow:auto!important;
+}
+
+html.w68-handheld .auth-shell{
+    position:relative!important;
+    width:min(620px,calc(100vw - 16px))!important;
+    height:auto!important;
+    min-height:0!important;
+    max-height:none!important;
+    aspect-ratio:360 / 421!important;
+    margin:auto!important;
+    padding:0!important;
+    display:block!important;
+    overflow:hidden!important;
+    border:4px solid #13300f!important;
+    border-radius:15px!important;
+    background:#fff!important;
+    box-shadow:none!important;
+}
+
+html.w68-handheld .auth-art-panel,
+html.w68-handheld .auth-art-panel::before,
+html.w68-handheld .auth-art-panel::after{
+    position:absolute!important;
+    inset:0!important;
+    width:100%!important;
+    height:100%!important;
+    margin:0!important;
+    padding:0!important;
+    min-height:0!important;
+    display:block!important;
+    content:none!important;
+    background:none!important;
+    overflow:hidden!important;
+    pointer-events:none!important;
+}
+
+html.w68-handheld .auth-art-panel{
+    z-index:0!important;
+}
+
+html.w68-handheld .auth-art{
+    position:absolute!important;
+    inset:0!important;
+    width:100%!important;
+    height:100%!important;
+    max-width:none!important;
+    max-height:none!important;
+    display:block!important;
+    object-fit:cover!important;
+    object-position:center center!important;
+    opacity:.82!important;
+    visibility:visible!important;
+    filter:none!important;
+}
+
+html.w68-handheld .auth-form-column{
+    position:absolute!important;
+    inset:0!important;
+    z-index:2!important;
+    width:100%!important;
+    height:100%!important;
+    min-height:0!important;
+    max-width:none!important;
+    margin:0!important;
+    padding:10px 18px 14px!important;
+    display:block!important;
+    background:transparent!important;
+}
+
+html.w68-handheld .auth-brand{
+    display:flex!important;
+    flex-direction:column!important;
+    align-items:center!important;
+    justify-content:flex-start!important;
+    margin:0 0 10px!important;
+}
+
+html.w68-handheld .auth-logo{
+    width:78px!important;
+    height:78px!important;
+    object-fit:contain!important;
+    margin:0!important;
+}
+
+html.w68-handheld .auth-brand-line{
+    display:flex!important;
+    align-items:center!important;
+    justify-content:center!important;
+    gap:3px!important;
+    margin-top:3px!important;
+    color:#13300f!important;
+    font-size:18px!important;
+    line-height:1!important;
+    font-weight:900!important;
+    white-space:nowrap!important;
+}
+
+html.w68-handheld .auth-brand-line .uploaded-cart-icon{
+    width:20px!important;
+    height:20px!important;
+    margin-left:1px!important;
+    flex:0 0 20px!important;
+    background-color:#13300f!important;
+}
+
+html.w68-handheld .auth-panel{
+    position:static!important;
+    width:100%!important;
+    margin:0!important;
+    padding:0!important;
+    border:0!important;
+    border-radius:0!important;
+    background:transparent!important;
+    box-shadow:none!important;
+}
+
+html.w68-handheld .auth-title{
+    margin:0 0 9px 5px!important;
+    color:#890001!important;
+    font-size:20px!important;
+    line-height:1!important;
+    font-weight:900!important;
+    text-align:left!important;
+}
+
+html.w68-handheld .auth-form-box{
+    position:static!important;
+    width:100%!important;
+    margin:0!important;
+    padding:0!important;
+    border:0!important;
+    border-radius:0!important;
+    background:transparent!important;
+    box-shadow:none!important;
+}
+
+html.w68-handheld .auth-field,
+html.w68-handheld .register-form-box .auth-field{
+    display:grid!important;
+    grid-template-columns:78px 1fr!important;
+    align-items:center!important;
+    gap:0!important;
+    margin:0 0 8px!important;
+}
+
+html.w68-handheld .auth-field label{
+    margin:0!important;
+    color:#111!important;
+    font-size:14px!important;
+    line-height:1!important;
+    font-weight:900!important;
+    text-transform:uppercase!important;
+}
+
+html.w68-handheld .auth-field>input,
+html.w68-handheld .password-wrap>input{
+    width:100%!important;
+    height:22px!important;
+    min-height:22px!important;
+    padding:0 7px!important;
+    border:2px solid #111!important;
+    border-radius:12px!important;
+    -webkit-border-radius:12px!important;
+    -webkit-appearance:none!important;
+    appearance:none!important;
+    background:rgba(255,255,255,.96)!important;
+    color:#111!important;
+    box-shadow:none!important;
+    outline:none!important;
+    font-size:13px!important;
+}
+
+html.w68-handheld .password-wrap{
+    position:relative!important;
+    width:100%!important;
+}
+
+html.w68-handheld .password-wrap>input{
+    padding-right:42px!important;
+}
+
+html.w68-handheld .password-toggle{
+    position:absolute!important;
+    top:50%!important;
+    right:4px!important;
+    transform:translateY(-50%)!important;
+    height:18px!important;
+    min-width:34px!important;
+    padding:0!important;
+    border:0!important;
+    background:transparent!important;
+    color:#890001!important;
+    font-size:8px!important;
+    line-height:18px!important;
+    font-weight:900!important;
+}
+
+html.w68-handheld .forgot-link{
+    display:block!important;
+    margin:-3px 0 0 auto!important;
+    padding:0!important;
+    border:0!important;
+    background:transparent!important;
+    color:#890001!important;
+    font-size:9px!important;
+    line-height:1!important;
+    font-weight:700!important;
+    text-decoration:underline!important;
+}
+
+html.w68-handheld .remember-row{
+    display:none!important;
+}
+
+html.w68-handheld .auth-actions,
+html.w68-handheld .register-form-box .auth-actions{
+    position:absolute!important;
+    left:18px!important;
+    right:18px!important;
+    bottom:28px!important;
+    margin:0!important;
+    display:grid!important;
+    gap:7px!important;
+}
+
+html.w68-handheld .auth-button{
+    width:100%!important;
+    height:35px!important;
+    min-height:35px!important;
+    padding:0 8px!important;
+    border:2px solid #111!important;
+    border-radius:4px!important;
+    font-size:15px!important;
+    line-height:31px!important;
+    font-weight:500!important;
+}
+
+html.w68-handheld .auth-button-primary{
+    background:#13300f!important;
+    color:#ffea32!important;
+}
+
+html.w68-handheld .auth-button-secondary{
+    background:#890001!important;
+    color:#ffea32!important;
+}
+
+/* Login reference positioning */
+html.w68-handheld[data-auth-mode="login"] .auth-brand{
+    display:flex!important;
+    margin-bottom:10px!important;
+}
+
+html.w68-handheld[data-auth-mode="login"] .auth-title{
+    margin-top:0!important;
+}
+
+/* Register reference positioning */
+html.w68-handheld[data-auth-mode="register"] .auth-brand{
+    display:none!important;
+}
+
+html.w68-handheld[data-auth-mode="register"] .auth-title{
+    margin:6px 0 36px 5px!important;
+    font-size:22px!important;
+}
+
+html.w68-handheld[data-auth-mode="register"] .mobile-register-brand{
+    position:absolute!important;
+    top:72px!important;
+    left:0!important;
+    right:0!important;
+    display:flex!important;
+    align-items:center!important;
+    justify-content:center!important;
+    gap:3px!important;
+    margin:0!important;
+    color:#13300f!important;
+    font-size:18px!important;
+    line-height:1!important;
+    font-weight:900!important;
+    white-space:nowrap!important;
+}
+
+html.w68-handheld[data-auth-mode="register"] .mobile-register-brand .uploaded-cart-icon{
+    width:20px!important;
+    height:20px!important;
+    margin-left:1px!important;
+    flex:0 0 20px!important;
+    background-color:#13300f!important;
+}
+
+html.w68-handheld[data-auth-mode="register"] .register-form-box{
+    padding-top:35px!important;
+}
+
+html.w68-handheld[data-auth-mode="register"] .register-form-box .auth-field{
+    grid-template-columns:92px 1fr!important;
+    margin-bottom:10px!important;
+}
+
+html.w68-handheld[data-auth-mode="register"] .register-form-box .auth-field label{
+    font-size:14px!important;
+    line-height:1.05!important;
+}
+
+html.w68-handheld[data-auth-mode="register"] .register-form-box .auth-actions{
+    bottom:27px!important;
+}
+
+/* Scale the same composition for tablets/iPad. */
+@media (min-width:431px){
+    html.w68-handheld .auth-form-column{
+        padding:16px 28px 20px!important;
+    }
+
+    html.w68-handheld .auth-logo{
+        width:108px!important;
+        height:108px!important;
+    }
+
+    html.w68-handheld .auth-brand-line{
+        font-size:24px!important;
+    }
+
+    html.w68-handheld .auth-brand-line .uploaded-cart-icon{
+        width:26px!important;
+        height:26px!important;
+        flex-basis:26px!important;
+    }
+
+    html.w68-handheld .auth-title{
+        margin-left:8px!important;
+        margin-bottom:15px!important;
+        font-size:28px!important;
+    }
+
+    html.w68-handheld .auth-field,
+    html.w68-handheld .register-form-box .auth-field{
+        grid-template-columns:118px 1fr!important;
+        margin-bottom:12px!important;
+    }
+
+    html.w68-handheld .auth-field label{
+        font-size:19px!important;
+    }
+
+    html.w68-handheld .auth-field>input,
+    html.w68-handheld .password-wrap>input{
+        height:32px!important;
+        min-height:32px!important;
+        border-radius:16px!important;
+        font-size:16px!important;
+    }
+
+    html.w68-handheld .forgot-link{
+        font-size:11px!important;
+    }
+
+    html.w68-handheld .auth-actions,
+    html.w68-handheld .register-form-box .auth-actions{
+        left:28px!important;
+        right:28px!important;
+        bottom:40px!important;
+        gap:10px!important;
+    }
+
+    html.w68-handheld .auth-button{
+        height:50px!important;
+        min-height:50px!important;
+        font-size:20px!important;
+        line-height:46px!important;
+    }
+
+    html.w68-handheld[data-auth-mode="register"] .auth-title{
+        margin:12px 0 52px 8px!important;
+        font-size:29px!important;
+    }
+
+    html.w68-handheld[data-auth-mode="register"] .mobile-register-brand{
+        top:104px!important;
+        font-size:24px!important;
+    }
+
+    html.w68-handheld[data-auth-mode="register"] .mobile-register-brand .uploaded-cart-icon{
+        width:26px!important;
+        height:26px!important;
+        flex-basis:26px!important;
+    }
+
+    html.w68-handheld[data-auth-mode="register"] .register-form-box{
+        padding-top:48px!important;
+    }
+
+    html.w68-handheld[data-auth-mode="register"] .register-form-box .auth-field{
+        grid-template-columns:128px 1fr!important;
+        margin-bottom:14px!important;
+    }
+
+    html.w68-handheld[data-auth-mode="register"] .register-form-box .auth-field label{
+        font-size:18px!important;
+    }
+}
+
 </style>
-<script src="{{ asset('js/w68-auth.js') }}?v=20261002-canva-v8" defer></script>
+<script src="{{ asset('js/w68-auth.js') }}?v=20261002-canva-v9" defer></script>
 </head>
 <body>
 @php

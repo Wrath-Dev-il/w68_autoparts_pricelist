@@ -173,10 +173,13 @@
                 1px 1px 0 #ffe2e2;
         }
 
-        /* W68_UNAUTHORIZED_DESKTOP_REFERENCE_20261003_V2 */
+        /* W68_UNAUTHORIZED_DESKTOP_REFERENCE_20261003_V3 */
         @media (min-width:701px){
             body{
+                width:100vw;
+                height:100vh;
                 min-height:100vh;
+                margin:0;
                 display:block;
                 overflow:hidden;
                 background:var(--w68-cream);
@@ -194,20 +197,22 @@
                 border-radius:0;
                 overflow:hidden;
                 background:
-                    radial-gradient(circle, rgba(112,96,34,.16) 1px, transparent 1.2px) 0 0 / 12px 12px,
+                    radial-gradient(circle, rgba(112,96,34,.15) 1px, transparent 1.15px) 0 0 / 12px 12px,
                     var(--w68-cream);
             }
 
+            /* Keep the complete customer/cart artwork visible like the reference. */
             .authorization-bg{
                 position:absolute;
-                top:0;
+                top:3vh;
                 right:0;
-                bottom:0;
+                bottom:auto;
                 left:auto;
-                width:43%;
-                height:100%;
-                object-fit:cover;
-                object-position:center center;
+                width:42vw;
+                height:94vh;
+                max-width:none;
+                object-fit:contain;
+                object-position:right center;
                 opacity:1;
                 z-index:0;
             }
@@ -215,50 +220,67 @@
             .authorization-content{
                 position:relative;
                 z-index:2;
-                width:56%;
-                height:100%;
-                padding:14px 0 10px 0;
+                width:50vw;
+                height:100vh;
+                margin:0;
+                padding:2vh 0 0;
                 display:block;
                 text-align:center;
             }
 
             .authorization-logo{
                 display:block;
-                width:82px;
-                height:82px;
+                width:clamp(82px,17vh,132px);
+                height:clamp(82px,17vh,132px);
                 margin:0 auto;
                 object-fit:contain;
             }
 
             .authorization-brand{
-                margin:8px 0 0;
+                margin:1.2vh 0 0;
                 display:flex;
                 align-items:center;
                 justify-content:center;
-                gap:4px;
+                gap:5px;
                 color:var(--w68-green);
-                font-size:21px;
+                font-size:clamp(19px,2.15vw,29px);
                 line-height:1;
                 font-weight:900;
                 white-space:nowrap;
             }
 
             .authorization-cart{
-                width:22px;
-                height:22px;
-                flex-basis:22px;
+                width:clamp(21px,2vw,27px);
+                height:clamp(21px,2vw,27px);
+                flex-basis:clamp(21px,2vw,27px);
+            }
+
+            /* Dark-green rounded message box, sized from the viewport like the target. */
+            .authorization-content::after{
+                content:"";
+                position:absolute;
+                left:1.3vw;
+                top:32vh;
+                width:46vw;
+                height:51vh;
+                border:4px solid var(--w68-green);
+                border-radius:18px;
+                pointer-events:none;
+                z-index:-1;
             }
 
             .authorization-title{
                 position:absolute;
-                top:140px;
-                left:5px;
-                width:calc(100% - 10px);
+                top:36.5vh;
+                left:1.3vw;
+                width:46vw;
                 margin:0;
+                padding:0;
                 color:#190000;
-                font-size:18px;
+                font-size:clamp(17px,1.55vw,22px);
                 line-height:1;
                 font-weight:900;
+                text-align:center;
                 text-shadow:
                     -1px -1px 0 #ffd8d8,
                     1px -1px 0 #ffd8d8,
@@ -268,33 +290,22 @@
 
             .authorization-message{
                 position:absolute;
-                top:174px;
-                left:5px;
-                width:calc(100% - 10px);
+                top:43.5vh;
+                left:1.3vw;
+                width:46vw;
+                max-width:none;
                 margin:0;
                 padding:0;
                 color:#240000;
-                font-size:17px;
-                line-height:1.22;
+                font-size:clamp(16px,1.5vw,21px);
+                line-height:1.28;
                 font-weight:900;
+                text-align:center;
                 text-shadow:
                     -1px -1px 0 #ffe2e2,
                     1px -1px 0 #ffe2e2,
                     -1px 1px 0 #ffe2e2,
                     1px 1px 0 #ffe2e2;
-            }
-
-            .authorization-content::after{
-                content:"";
-                position:absolute;
-                left:5px;
-                top:138px;
-                width:calc(100% - 10px);
-                height:218px;
-                border:4px solid var(--w68-green);
-                border-radius:18px;
-                pointer-events:none;
-                z-index:-1;
             }
 
             .authorization-reason{
@@ -303,14 +314,16 @@
 
             .authorization-contact{
                 position:absolute;
-                top:250px;
-                left:5px;
-                width:calc(100% - 10px);
+                top:60vh;
+                left:1.3vw;
+                width:46vw;
                 margin:0;
+                padding:0;
                 color:#180000;
-                font-size:16px;
+                font-size:clamp(15px,1.45vw,20px);
                 line-height:1.22;
                 font-weight:900;
+                text-align:center;
                 text-shadow:
                     -1px -1px 0 #ffe2e2,
                     1px -1px 0 #ffe2e2,
@@ -319,18 +332,19 @@
             }
 
             .authorization-contact .heading{
-                margin-bottom:2px;
+                margin-bottom:3px;
             }
 
             .authorization-footer{
                 position:absolute;
-                left:4px;
-                bottom:7px;
+                left:1.1vw;
+                bottom:2.2vh;
+                width:48vw;
                 margin:0;
                 padding:0;
                 color:#180000;
-                font-size:13px;
-                line-height:1.8;
+                font-size:clamp(12px,1.05vw,15px);
+                line-height:1.75;
                 font-weight:900;
                 text-align:left;
                 white-space:nowrap;

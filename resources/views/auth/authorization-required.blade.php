@@ -325,7 +325,7 @@
             </div>
 
             <div class="authorization-footer">
-                <div>ALL RIGHTS RESERVED: W68 AUTO PARTS &amp; SERVICE CENTER</div>
+                <div>ALL RIGHTS RESERVED TO: W68 AUTO PARTS &amp; SERVICE CENTER</div>
                 <div>CEO: WARREN YU</div>
             </div>
         </section>

@@ -173,6 +173,175 @@
                 1px 1px 0 #ffe2e2;
         }
 
+        /* W68_UNAUTHORIZED_DESKTOP_REFERENCE_20261003_V2 */
+        @media (min-width:701px){
+            body{
+                min-height:100vh;
+                display:block;
+                overflow:hidden;
+                background:var(--w68-cream);
+            }
+
+            .authorization-card{
+                position:relative;
+                width:100vw;
+                height:100vh;
+                min-height:0;
+                max-width:none;
+                max-height:none;
+                margin:0;
+                border:0;
+                border-radius:0;
+                overflow:hidden;
+                background:
+                    radial-gradient(circle, rgba(112,96,34,.16) 1px, transparent 1.2px) 0 0 / 12px 12px,
+                    var(--w68-cream);
+            }
+
+            .authorization-bg{
+                position:absolute;
+                top:0;
+                right:0;
+                bottom:0;
+                left:auto;
+                width:43%;
+                height:100%;
+                object-fit:cover;
+                object-position:center center;
+                opacity:1;
+                z-index:0;
+            }
+
+            .authorization-content{
+                position:relative;
+                z-index:2;
+                width:56%;
+                height:100%;
+                padding:14px 0 10px 0;
+                display:block;
+                text-align:center;
+            }
+
+            .authorization-logo{
+                display:block;
+                width:82px;
+                height:82px;
+                margin:0 auto;
+                object-fit:contain;
+            }
+
+            .authorization-brand{
+                margin:8px 0 0;
+                display:flex;
+                align-items:center;
+                justify-content:center;
+                gap:4px;
+                color:var(--w68-green);
+                font-size:21px;
+                line-height:1;
+                font-weight:900;
+                white-space:nowrap;
+            }
+
+            .authorization-cart{
+                width:22px;
+                height:22px;
+                flex-basis:22px;
+            }
+
+            .authorization-title{
+                position:absolute;
+                top:140px;
+                left:5px;
+                width:calc(100% - 10px);
+                margin:0;
+                color:#190000;
+                font-size:18px;
+                line-height:1;
+                font-weight:900;
+                text-shadow:
+                    -1px -1px 0 #ffd8d8,
+                    1px -1px 0 #ffd8d8,
+                    -1px 1px 0 #ffd8d8,
+                    1px 1px 0 #ffd8d8;
+            }
+
+            .authorization-message{
+                position:absolute;
+                top:174px;
+                left:5px;
+                width:calc(100% - 10px);
+                margin:0;
+                padding:0;
+                color:#240000;
+                font-size:17px;
+                line-height:1.22;
+                font-weight:900;
+                text-shadow:
+                    -1px -1px 0 #ffe2e2,
+                    1px -1px 0 #ffe2e2,
+                    -1px 1px 0 #ffe2e2,
+                    1px 1px 0 #ffe2e2;
+            }
+
+            .authorization-content::after{
+                content:"";
+                position:absolute;
+                left:5px;
+                top:138px;
+                width:calc(100% - 10px);
+                height:218px;
+                border:4px solid var(--w68-green);
+                border-radius:18px;
+                pointer-events:none;
+                z-index:-1;
+            }
+
+            .authorization-reason{
+                display:none;
+            }
+
+            .authorization-contact{
+                position:absolute;
+                top:250px;
+                left:5px;
+                width:calc(100% - 10px);
+                margin:0;
+                color:#180000;
+                font-size:16px;
+                line-height:1.22;
+                font-weight:900;
+                text-shadow:
+                    -1px -1px 0 #ffe2e2,
+                    1px -1px 0 #ffe2e2,
+                    -1px 1px 0 #ffe2e2,
+                    1px 1px 0 #ffe2e2;
+            }
+
+            .authorization-contact .heading{
+                margin-bottom:2px;
+            }
+
+            .authorization-footer{
+                position:absolute;
+                left:4px;
+                bottom:7px;
+                margin:0;
+                padding:0;
+                color:#180000;
+                font-size:13px;
+                line-height:1.8;
+                font-weight:900;
+                text-align:left;
+                white-space:nowrap;
+                text-shadow:
+                    -1px -1px 0 #ffe2e2,
+                    1px -1px 0 #ffe2e2,
+                    -1px 1px 0 #ffe2e2,
+                    1px 1px 0 #ffe2e2;
+            }
+        }
+
         /* W68_UNAUTHORIZED_HANDHELD_REFERENCE_20261003 */
         @media (max-width:700px){
             body{

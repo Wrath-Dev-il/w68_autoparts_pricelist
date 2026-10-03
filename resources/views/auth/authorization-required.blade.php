@@ -173,7 +173,7 @@
                 1px 1px 0 #ffe2e2;
         }
 
-        /* W68_UNAUTHORIZED_DESKTOP_REFERENCE_20261003_V3 */
+        /* W68_UNAUTHORIZED_DESKTOP_WHITE_BG_20261003_V4 */
         @media (min-width:701px){
             body{
                 width:100vw;
@@ -182,7 +182,7 @@
                 margin:0;
                 display:block;
                 overflow:hidden;
-                background:var(--w68-cream);
+                background:#fff;
             }
 
             .authorization-card{
@@ -196,9 +196,7 @@
                 border:0;
                 border-radius:0;
                 overflow:hidden;
-                background:
-                    radial-gradient(circle, rgba(112,96,34,.15) 1px, transparent 1.15px) 0 0 / 12px 12px,
-                    var(--w68-cream);
+                background:#fff;
             }
 
             /* Keep the complete customer/cart artwork visible like the reference. */

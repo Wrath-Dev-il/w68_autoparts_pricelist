@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>W68 Special Store</title>
-<link rel="stylesheet" href="{{ asset('css/w68-login.css') }}?v=20261003-register-v22">
+<link rel="stylesheet" href="{{ asset('css/w68-login.css') }}?v=20261003-login-edge-v23">
 <script>
 (function () {
     var ua = navigator.userAgent || '';
@@ -30,9 +30,9 @@
 
         var viewportWidth = window.innerWidth || document.documentElement.clientWidth || 360;
         var viewportHeight = window.innerHeight || document.documentElement.clientHeight || 640;
-        var margin = 12;
-        var width = Math.max(240, viewportWidth - margin);
-        var height = Math.max(320, viewportHeight - margin);
+        var margin = 0;
+        var width = Math.max(240, viewportWidth);
+        var height = Math.max(320, viewportHeight);
 
         shell.style.setProperty('width', Math.floor(width) + 'px', 'important');
         shell.style.setProperty('height', Math.floor(height) + 'px', 'important');
@@ -54,7 +54,7 @@
     });
 })();
 </script>
-<style id="w68-auth-final-clean-v22">
+<style id="w68-auth-final-clean-v23">
 :root{
     --w68-green:#13300f;
     --w68-maroon:#890001;
@@ -814,6 +814,43 @@ html.w68-handheld .forgot-link{
     font-size:11.5px!important;
 }
 
+/* W68_HANDHELD_LOGIN_EDGE_TO_EDGE_20261003_V23 */
+html.w68-handheld,
+html.w68-handheld body{
+    width:100%!important;
+    height:100%!important;
+    margin:0!important;
+    padding:0!important;
+}
+
+html.w68-handheld[data-auth-mode="login"] body{
+    overflow:hidden!important;
+}
+
+html.w68-handheld[data-auth-mode="login"] .auth-stage{
+    width:100vw!important;
+    height:100vh!important;
+    min-height:100vh!important;
+    margin:0!important;
+    padding:0!important;
+    overflow:hidden!important;
+    align-items:stretch!important;
+    justify-content:stretch!important;
+}
+
+html.w68-handheld[data-auth-mode="login"] .auth-shell{
+    width:100vw!important;
+    max-width:none!important;
+    height:100vh!important;
+    max-height:none!important;
+    min-height:0!important;
+    margin:0!important;
+    border:0!important;
+    border-radius:0!important;
+    box-shadow:none!important;
+}
+
+/* Keep REGISTER using its own card treatment; LOGIN alone is edge-to-edge. */
 /* W68_HANDHELD_REGISTER_REFERENCE_20261003_V22 */
 .register-title-handheld{
     display:none!important;
@@ -1134,7 +1171,7 @@ html.w68-handheld .otp-button{
     }
 }
 </style>
-<script src="{{ asset('js/w68-auth.js') }}?v=20261003-register-v22" defer></script>
+<script src="{{ asset('js/w68-auth.js') }}?v=20261003-login-edge-v23" defer></script>
 </head>
 <body>
 @php

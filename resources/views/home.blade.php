@@ -87,6 +87,9 @@
                 'price' => number_format($price, 2, '.', ''),
                 'discountPercent' => number_format($discountPercent, 2, '.', ''),
                 'discountedPrice' => number_format($discountedPrice, 2, '.', ''),
+                // W68_HOME_HIDE_ZERO_PRICE_ADD_TO_CART_20261003
+                // ADD TO CART is available only when BOTH prices are greater than zero.
+                'canAddToCart' => $price > 0 && $discountedPrice > 0,
                 'hasDiscount' => $hasDiscount,
             ];
         };
@@ -403,7 +406,9 @@
                             </div>
 
                             <div class="new-item-actions">
-                                <button type="button" class="new-add-cart" data-add-cart>ADD TO CART</button>
+                                @if ($data['canAddToCart'])
+                                    <button type="button" class="new-add-cart" data-add-cart>ADD TO CART</button>
+                                @endif
                                 <button type="button" class="new-view-cart" data-view-cart hidden>VIEW CART</button>
                             </div>
                         </article>
@@ -486,7 +491,9 @@
                                     </div>
 
                                     <div class="product-card-actions">
-                                        <button type="button" class="product-add-cart" data-add-cart>ADD TO CART</button>
+                                        @if ($data['canAddToCart'])
+                                            <button type="button" class="product-add-cart" data-add-cart>ADD TO CART</button>
+                                        @endif
                                         <button type="button" class="product-view-cart" data-view-cart hidden>VIEW CART</button>
                                     </div>
                                 </div>
@@ -685,7 +692,7 @@
                 <div class="modal-actions">
                     <span>ACTION</span>
                     <div>
-                        <button type="button" class="modal-add-cart" data-product-modal-add>ADD TO CART</button>
+                        <button type="button" class="modal-add-cart" data-product-modal-add hidden>ADD TO CART</button>
                         <button type="button" class="modal-back" data-product-modal-close>BACK</button>
                     </div>
                 </div>

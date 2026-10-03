@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>W68 Special Store</title>
-<link rel="stylesheet" href="{{ asset('css/w68-login.css') }}?v=20261002-otp-v21">
+<link rel="stylesheet" href="{{ asset('css/w68-login.css') }}?v=20261003-register-v22">
 <script>
 (function () {
     var ua = navigator.userAgent || '';
@@ -54,7 +54,7 @@
     });
 })();
 </script>
-<style id="w68-auth-final-clean-v21">
+<style id="w68-auth-final-clean-v22">
 :root{
     --w68-green:#13300f;
     --w68-maroon:#890001;
@@ -814,6 +814,95 @@ html.w68-handheld .forgot-link{
     font-size:11.5px!important;
 }
 
+/* W68_HANDHELD_REGISTER_REFERENCE_20261003_V22 */
+.register-title-handheld{
+    display:none!important;
+}
+
+html.w68-handheld[data-auth-mode="register"] .auth-brand{
+    display:flex!important;
+    margin:0 0 7px!important;
+}
+
+html.w68-handheld[data-auth-mode="register"] .mobile-register-brand{
+    display:none!important;
+}
+
+html.w68-handheld[data-auth-mode="register"] .register-title-desktop{
+    display:none!important;
+}
+
+html.w68-handheld[data-auth-mode="register"] .register-title-handheld{
+    display:inline!important;
+}
+
+html.w68-handheld[data-auth-mode="register"] .register-account-title{
+    margin:0 0 9px 0!important;
+    color:var(--w68-maroon)!important;
+    font-size:24px!important;
+    line-height:1!important;
+    font-weight:900!important;
+    text-align:left!important;
+}
+
+html.w68-handheld[data-auth-mode="register"] .register-form-box{
+    padding-top:0!important;
+}
+
+html.w68-handheld[data-auth-mode="register"] .register-form-box .auth-field{
+    grid-template-columns:128px 1fr!important;
+    margin-bottom:12px!important;
+}
+
+html.w68-handheld[data-auth-mode="register"] .register-form-box .auth-field label{
+    color:#111!important;
+    font-size:18px!important;
+    line-height:1.05!important;
+    font-weight:900!important;
+    text-transform:uppercase!important;
+}
+
+html.w68-handheld[data-auth-mode="register"] .register-form-box .auth-actions{
+    left:28px!important;
+    right:28px!important;
+    bottom:28px!important;
+    gap:8px!important;
+}
+
+html.w68-handheld[data-auth-mode="register"] .register-form-box .auth-button{
+    width:100%!important;
+}
+
+html.w68-handheld.w68-compact-card[data-auth-mode="register"] .auth-brand{
+    margin:0 0 5px!important;
+}
+
+html.w68-handheld.w68-compact-card[data-auth-mode="register"] .register-account-title{
+    margin:0 0 8px 0!important;
+    font-size:17px!important;
+}
+
+html.w68-handheld.w68-compact-card[data-auth-mode="register"] .register-form-box{
+    padding-top:0!important;
+}
+
+html.w68-handheld.w68-compact-card[data-auth-mode="register"] .register-form-box .auth-field{
+    grid-template-columns:86px 1fr!important;
+    margin-bottom:8px!important;
+}
+
+html.w68-handheld.w68-compact-card[data-auth-mode="register"] .register-form-box .auth-field label{
+    font-size:13px!important;
+    line-height:1.05!important;
+}
+
+html.w68-handheld.w68-compact-card[data-auth-mode="register"] .register-form-box .auth-actions{
+    left:18px!important;
+    right:18px!important;
+    bottom:28px!important;
+    gap:7px!important;
+}
+
 /* W68_OTP_RESPONSIVE_TWO_BUTTONS_20261002_V20 */
 /* W68_OTP_IPAD_FORCE_VISIBLE_20261002_V21 */
 .otp-modal{
@@ -1045,7 +1134,7 @@ html.w68-handheld .otp-button{
     }
 }
 </style>
-<script src="{{ asset('js/w68-auth.js') }}?v=20261002-otp-v21" defer></script>
+<script src="{{ asset('js/w68-auth.js') }}?v=20261003-register-v22" defer></script>
 </head>
 <body>
 @php
@@ -1119,7 +1208,10 @@ html.w68-handheld .otp-button{
             </section>
 
             <section class="auth-panel" data-auth-panel="register" hidden>
-                <h1 class="auth-title">REGISTER</h1>
+                <h1 class="auth-title register-account-title">
+                    <span class="register-title-desktop">REGISTER</span>
+                    <span class="register-title-handheld">REGISTER ACCOUNT</span>
+                </h1>
 
                 <div class="mobile-register-brand" aria-hidden="true">
                     <span>W68 SPECIAL STORE</span>

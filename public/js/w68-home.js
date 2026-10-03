@@ -643,6 +643,19 @@
             : price;
     };
 
+    // W68_HOME_HIDE_ZERO_PRICE_ADD_TO_CART_20261003
+    // ADD TO CART is allowed only when BOTH the regular and discounted price
+    // are greater than zero. If either price is zero, hide/block the add flow.
+    const canAddToCart = (item) => {
+        const price = Number(item?.price || 0);
+        const discounted = Number(item?.discountedPrice ?? price);
+
+        return Number.isFinite(price)
+            && Number.isFinite(discounted)
+            && price > 0
+            && discounted > 0;
+    };
+
     const modalIsOpen = (modal) => modal && modal.hidden === false;
 
     const syncBodyLock = () => {
@@ -1140,7 +1153,7 @@
     };
 
     const commitAddToCart = (product, qty = 1) => {
-        if (!product?.id) return;
+        if (!product?.id || !canAddToCart(product)) return;
 
         const quantityToAdd = safeQty(qty);
         const cart = readCart();
@@ -1327,7 +1340,7 @@
     };
 
     const openQuantityModal = (product) => {
-        if (!quantityModal || !product?.id) return;
+        if (!quantityModal || !product?.id || !canAddToCart(product)) return;
 
         pendingQuantityProduct = product;
 
@@ -1489,7 +1502,12 @@
         }
 
         const add = productModal.querySelector('[data-product-modal-add]');
-        if (add) add._w68Product = product;
+        if (add) {
+            const allowed = canAddToCart(product);
+            add.hidden = !allowed;
+            add.disabled = !allowed;
+            add._w68Product = allowed ? product : null;
+        }
 
         productModal.hidden = false;
         productModal.setAttribute('aria-hidden', 'false');

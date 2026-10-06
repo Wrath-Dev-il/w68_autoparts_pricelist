@@ -385,7 +385,6 @@ class LoginController extends Controller
             $portal = $this->portalContextForLogin($request, (int) $account->login_ID);
 
             $pendingCustomerId = (int) $request->session()->get('w68_pending_customer_id', 0);
-            $pendingAuthorizationId = (int) $request->session()->get('w68_pending_authorization_id', 0);
 
             if ($pendingCustomerId !== (int) $portal['customer_id']) {
                 throw new RuntimeException('The customer authorization changed during OTP verification. Please start again.');
@@ -405,7 +404,6 @@ class LoginController extends Controller
                 (int) $account->login_ID,
                 (int) $portal['customer_id']
             );
-            }
         } catch (RuntimeException $exception) {
             return redirect()
                 ->route('login')
@@ -420,7 +418,7 @@ class LoginController extends Controller
 
         $account->OTP_CODE = null;
 
-        // Registration and login accounts are W68 account_type = 5.
+        // Password-recovery account remains W68 account_type = 5.
         $account->account_type = 5;
         $account->save();
 
@@ -504,7 +502,7 @@ class LoginController extends Controller
 
         return redirect()
             ->route('login')
-            ->with('auth_mode', $purpose === 'register' ? 'register' : 'login')
+            ->with('auth_mode', 'login')
             ->with('otp_required', true)
             ->with('otp_purpose', $purpose)
             ->with('otp_email', $account->Email)

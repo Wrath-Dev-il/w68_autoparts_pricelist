@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>W68 Special Store</title>
-<link rel="stylesheet" href="{{ asset('css/w68-login.css') }}?v=20261003-login-edge-v23">
+<link rel="stylesheet" href="{{ asset('css/w68-login.css') }}?v=20261006-no-login-register-otp-v24">
 <script>
 (function () {
     var ua = navigator.userAgent || '';
@@ -54,7 +54,7 @@
     });
 })();
 </script>
-<style id="w68-auth-final-clean-v23">
+<style id="w68-auth-final-clean-v24">
 :root{
     --w68-green:#13300f;
     --w68-maroon:#890001;
@@ -940,6 +940,14 @@ html.w68-handheld.w68-compact-card[data-auth-mode="register"] .register-form-box
     gap:7px!important;
 }
 
+/* W68_REGISTER_THREE_FIELDS_20261006_V24 */
+html.w68-handheld[data-auth-mode="register"] .register-form-box .auth-field{
+    margin-bottom:14px!important;
+}
+html.w68-handheld.w68-compact-card[data-auth-mode="register"] .register-form-box .auth-field{
+    margin-bottom:10px!important;
+}
+
 /* W68_OTP_RESPONSIVE_TWO_BUTTONS_20261002_V20 */
 /* W68_OTP_IPAD_FORCE_VISIBLE_20261002_V21 */
 .otp-modal{
@@ -1171,16 +1179,20 @@ html.w68-handheld .otp-button{
     }
 }
 </style>
-<script src="{{ asset('js/w68-auth.js') }}?v=20261003-login-edge-v23" defer></script>
+<script src="{{ asset('js/w68-auth.js') }}?v=20261006-no-login-register-otp-v24" defer></script>
 </head>
 <body>
 @php
-    $showOtpModal = (bool) ($otpRequired ?? false)
-        || session('otp_required')
-        || $errors->has('otp')
-        || in_array((string) session('w68_otp_purpose', ''), ['login', 'register', 'forgot'], true);
-
-    $visibleOtpPurpose = (string) ($otpPurpose ?? session('otp_purpose', session('w68_otp_purpose', 'login')));
+    // W68_LOGIN_REGISTER_NO_OTP_20261006
+    // OTP modal remains only for the Forgot Password recovery flow.
+    $visibleOtpPurpose = (string) ($otpPurpose ?? session('otp_purpose', session('w68_otp_purpose', '')));
+    $showOtpModal = $visibleOtpPurpose === 'forgot'
+        && (
+            (bool) ($otpRequired ?? false)
+            || session('otp_required')
+            || $errors->has('otp')
+            || (string) session('w68_otp_purpose', '') === 'forgot'
+        );
     $visibleOtpEmail = (string) ($otpEmail ?? session('otp_email', ''));
     $otpExpiresAt = (int) session('w68_otp_expires_at', 0);
     $serverNow = now()->timestamp;
@@ -1201,7 +1213,7 @@ html.w68-handheld .otp-button{
                 <div class="auth-message auth-message-success">{{ session('status') }}</div>
             @endif
 
-            @if ($errors->any() && !$errors->has('otp'))
+            @if ($errors->any() && !($showOtpModal && $errors->has('otp')))
                 <div class="auth-message auth-message-error">{{ $errors->first() }}</div>
             @endif
 
@@ -1278,13 +1290,6 @@ html.w68-handheld .otp-button{
                             </div>
                         </div>
 
-                        <div class="auth-field">
-                            <label for="register_password_confirmation">Re Type Password</label>
-                            <div class="password-wrap">
-                                <input id="register_password_confirmation" type="password" name="register_password_confirmation" autocomplete="new-password" required>
-                                <button type="button" class="password-toggle" data-password-toggle aria-controls="register_password_confirmation">SHOW</button>
-                            </div>
-                        </div>
                     </div>
 
                     <div class="auth-actions">

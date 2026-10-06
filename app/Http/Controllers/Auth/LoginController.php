@@ -15,7 +15,6 @@ use Illuminate\Validation\Rules\Password;
 use Illuminate\View\View;
 use RuntimeException;
 use Throwable;
-use Symfony\Component\Mailer\Exception\TransportExceptionInterface;
 
 class LoginController extends Controller
 {
@@ -31,21 +30,16 @@ class LoginController extends Controller
         }
 
         /*
-         * Do not rely only on the one-request otp_required flash value.
-         * Mobile Safari/iPad can restore or reload the login page while the
-         * pending OTP session is still valid, which used to hide the modal.
-         * The pending auth keys are ordinary session values and therefore are
-         * the reliable source of truth until verifyOtp()/clearPendingAuth().
+         * W68_LOGIN_REGISTER_NO_OTP_20261006
+         * Login and registration now complete immediately after validation.
+         * OTP is retained only for the Forgot Password recovery flow.
          */
         $otpPurpose = (string) $request->session()->get('w68_otp_purpose', '');
-        $pendingAccountId = match ($otpPurpose) {
-            'register' => (int) $request->session()->get('w68_pending_registration_id', 0),
-            'forgot' => (int) $request->session()->get('w68_pending_password_reset_id', 0),
-            default => (int) $request->session()->get('w68_pending_login_id', 0),
-        };
+        $pendingAccountId = $otpPurpose === 'forgot'
+            ? (int) $request->session()->get('w68_pending_password_reset_id', 0)
+            : 0;
 
-        $otpRequired = in_array($otpPurpose, ['login', 'register', 'forgot'], true)
-            && $pendingAccountId > 0;
+        $otpRequired = $otpPurpose === 'forgot' && $pendingAccountId > 0;
 
         $otpEmail = (string) session('otp_email', '');
 
@@ -107,6 +101,14 @@ class LoginController extends Controller
         try {
             $portal = $this->portalContextForLogin($request, (int) $account->login_ID);
             $this->assertAccountCanUseCustomer((int) $account->login_ID, $portal['customer_id']);
+
+            if (!(bool) ($portal['linked_account'] ?? false)) {
+                $this->linkPortalAccount(
+                    (int) $account->login_ID,
+                    (int) $portal['customer_id'],
+                    (int) $portal['authorization_id']
+                );
+            }
         } catch (RuntimeException $exception) {
             return back()
                 ->withInput($request->only('email'))
@@ -115,36 +117,18 @@ class LoginController extends Controller
                 ]);
         }
 
-        try {
-            $this->issueOtp($request, $account, 'login');
-        } catch (Throwable $exception) {
-            report($exception);
+        $this->clearPendingAuth($request);
 
-            $account->OTP_CODE = null;
-            $account->save();
-
-            return back()
-                ->withInput($request->only('email'))
-                ->withErrors([
-                    'email' => $exception instanceof RuntimeException
-                        ? $exception->getMessage()
-                        : $this->friendlyMailError($exception, 'login'),
-                ]);
-        }
-
-        $request->session()->put([
-            'w68_pending_login_id' => $account->login_ID,
-            'w68_pending_login_remember' => $request->boolean('remember'),
-            'w68_pending_customer_id' => $portal['customer_id'],
-            'w68_pending_authorization_id' => $portal['authorization_id'],
-        ]);
+        /*
+         * logins does not have Laravel's remember_token column, therefore
+         * use the normal secure session login.
+         */
+        Auth::login($account, false);
+        $request->session()->regenerate();
 
         return redirect()
-            ->route('login')
-            ->with('otp_required', true)
-            ->with('otp_purpose', 'login')
-            ->with('otp_email', $account->Email)
-            ->with('status', 'A 6-digit login OTP was sent to your email.');
+            ->route('home')
+            ->with('status', 'Login successful.');
     }
 
     public function forgotPassword(Request $request): RedirectResponse
@@ -245,19 +229,13 @@ class LoginController extends Controller
             'register_email' => ['required', 'email', 'max:255'],
             'register_password' => [
                 'required',
-                'confirmed',
                 Password::min(8)->letters()->numbers(),
             ],
-        ], [
-            'register_password.confirmed' => 'The password and retype password do not match.',
         ]);
 
         if (!$this->existingAuthStructureIsReady()) {
             return back()
-                ->withInput($request->except([
-                    'register_password',
-                    'register_password_confirmation',
-                ]))
+                ->withInput($request->except(['register_password']))
                 ->with('auth_mode', 'register')
                 ->withErrors([
                     'register_email' => 'The existing core4_system_proposal.logins authentication structure is not available.',
@@ -272,10 +250,7 @@ class LoginController extends Controller
             $this->assertCustomerCanRegister($portal['customer_id']);
         } catch (RuntimeException $exception) {
             return back()
-                ->withInput($request->except([
-                    'register_password',
-                    'register_password_confirmation',
-                ]))
+                ->withInput($request->except(['register_password']))
                 ->with('auth_mode', 'register')
                 ->withErrors([
                     'register_email' => $exception->getMessage(),
@@ -294,12 +269,8 @@ class LoginController extends Controller
             $retryAccount = null;
 
             /*
-             * If the immediately previous registration attempt created
-             * account_type = 5 but SMTP failed, allow the same user to retry
-             * instead of trapping them behind a duplicate-email error.
-             *
-             * This retry is only allowed when username + email point to the
-             * same account and the submitted password matches that row.
+             * Preserve support for an older incomplete account row that was
+             * created by the former OTP registration flow but never linked.
              */
             if (
                 $sameUsername
@@ -316,10 +287,7 @@ class LoginController extends Controller
 
             if ($sameUsername && !$retryAccount) {
                 return back()
-                    ->withInput($request->except([
-                        'register_password',
-                        'register_password_confirmation',
-                    ]))
+                    ->withInput($request->except(['register_password']))
                     ->with('auth_mode', 'register')
                     ->withErrors([
                         'username' => 'That username is already in use.',
@@ -328,17 +296,12 @@ class LoginController extends Controller
 
             if ($sameEmail && !$retryAccount) {
                 return back()
-                    ->withInput($request->except([
-                        'register_password',
-                        'register_password_confirmation',
-                    ]))
+                    ->withInput($request->except(['register_password']))
                     ->with('auth_mode', 'register')
                     ->withErrors([
                         'register_email' => 'That email is already registered.',
                     ]);
             }
-
-            $accountWasCreatedNow = false;
 
             if ($retryAccount) {
                 $account = $retryAccount;
@@ -346,8 +309,6 @@ class LoginController extends Controller
                 $account->save();
             } else {
                 $account = new LoginAccount();
-
-                // W68 customer accounts are account_type = 5 immediately.
                 $account->account_type = 5;
                 $account->User_ID = $username;
                 $account->Email = $email;
@@ -356,67 +317,36 @@ class LoginController extends Controller
                 $account->User_Middle_Name = null;
                 $account->User_Last_Name = 'W68 Customer';
                 $account->Gender = 'N/A';
+                $account->OTP_CODE = null;
                 $account->save();
-
-                $accountWasCreatedNow = true;
             }
 
-            try {
-                $this->issueOtp($request, $account, 'register');
-            } catch (Throwable $mailException) {
-                /*
-                 * Do not leave a newly-created unusable registration row if
-                 * Gmail/SMTP fails. Existing/retry rows are kept intact.
-                 */
-                if ($accountWasCreatedNow) {
-                    $account->delete();
-                } else {
-                    $account->OTP_CODE = null;
-                    $account->save();
-                }
-
-                throw $mailException;
-            }
+            $this->linkPortalAccount(
+                (int) $account->login_ID,
+                (int) $portal['customer_id'],
+                (int) $portal['authorization_id']
+            );
         } catch (Throwable $exception) {
             report($exception);
 
-            if (isset($account) && $account instanceof LoginAccount) {
-                try {
-                    $account->OTP_CODE = null;
-                    $account->save();
-                } catch (Throwable) {
-                    // Keep the original exception as the useful failure.
-                }
-            }
-
             return back()
-                ->withInput($request->except([
-                    'register_password',
-                    'register_password_confirmation',
-                ]))
+                ->withInput($request->except(['register_password']))
                 ->with('auth_mode', 'register')
                 ->withErrors([
                     'register_email' => $exception instanceof RuntimeException
                         ? $exception->getMessage()
-                        : ($exception instanceof TransportExceptionInterface
-                            ? $this->friendlyMailError($exception, 'registration')
-                            : 'Registration could not be completed. Check storage/logs/laravel.log for the exact application error.'),
+                        : 'Registration could not be completed. Check storage/logs/laravel.log for the exact application error.',
                 ]);
         }
 
-        $request->session()->put([
-            'w68_pending_registration_id' => $account->login_ID,
-            'w68_pending_customer_id' => $portal['customer_id'],
-            'w68_pending_authorization_id' => $portal['authorization_id'],
-        ]);
+        $this->clearPendingAuth($request);
+
+        Auth::login($account, false);
+        $request->session()->regenerate();
 
         return redirect()
-            ->route('login')
-            ->with('auth_mode', 'register')
-            ->with('otp_required', true)
-            ->with('otp_purpose', 'register')
-            ->with('otp_email', $account->Email)
-            ->with('status', 'A 6-digit registration OTP was sent to your email.');
+            ->route('home')
+            ->with('status', 'Registration completed successfully.');
     }
 
     public function verifyOtp(Request $request): RedirectResponse
@@ -427,7 +357,7 @@ class LoginController extends Controller
 
         $purpose = (string) $request->session()->get('w68_otp_purpose', '');
 
-        if (!in_array($purpose, ['login', 'register', 'forgot'], true)) {
+        if ($purpose !== 'forgot') {
             return redirect()
                 ->route('login')
                 ->withErrors([
@@ -435,11 +365,7 @@ class LoginController extends Controller
                 ]);
         }
 
-        $accountId = match ($purpose) {
-            'register' => (int) $request->session()->get('w68_pending_registration_id', 0),
-            'forgot' => (int) $request->session()->get('w68_pending_password_reset_id', 0),
-            default => (int) $request->session()->get('w68_pending_login_id', 0),
-        };
+        $accountId = (int) $request->session()->get('w68_pending_password_reset_id', 0);
 
         $account = LoginAccount::query()->find($accountId);
 
@@ -456,9 +382,7 @@ class LoginController extends Controller
         try {
             $this->assertOtpIsValid($request, $account, $validated['otp']);
 
-            $portal = in_array($purpose, ['login', 'forgot'], true)
-                ? $this->portalContextForLogin($request, (int) $account->login_ID)
-                : $this->portalContext($request);
+            $portal = $this->portalContextForLogin($request, (int) $account->login_ID);
 
             $pendingCustomerId = (int) $request->session()->get('w68_pending_customer_id', 0);
             $pendingAuthorizationId = (int) $request->session()->get('w68_pending_authorization_id', 0);
@@ -467,49 +391,25 @@ class LoginController extends Controller
                 throw new RuntimeException('The customer authorization changed during OTP verification. Please start again.');
             }
 
-            if ($purpose === 'forgot') {
-                $currentCustomerId = (int) $request->session()->get('w68_customer_id', 0);
+            $currentCustomerId = (int) $request->session()->get('w68_customer_id', 0);
 
-                if (!(bool) ($portal['linked_account'] ?? false)) {
-                    throw new RuntimeException('This account is not linked to a W68 customer.');
-                }
+            if (!(bool) ($portal['linked_account'] ?? false)) {
+                throw new RuntimeException('This account is not linked to a W68 customer.');
+            }
 
-                if ($currentCustomerId < 1 || $currentCustomerId !== (int) $portal['customer_id']) {
-                    throw new RuntimeException('The W68 customer authorization changed during password reset. Please start again.');
-                }
+            if ($currentCustomerId < 1 || $currentCustomerId !== (int) $portal['customer_id']) {
+                throw new RuntimeException('The W68 customer authorization changed during password reset. Please start again.');
+            }
 
-                $this->assertAccountCanUseCustomer(
-                    (int) $account->login_ID,
-                    (int) $portal['customer_id']
-                );
-            } else {
-                /*
-                 * First-time/registration authorization must still be the same QR
-                 * authorization that began the OTP flow. For an already-linked
-                 * login, the permanent customer_portal_accounts row is the source
-                 * of truth and its original authorization may already be expired.
-                 */
-                if (!(bool) ($portal['linked_account'] ?? false)) {
-                    if ($pendingAuthorizationId !== (int) $portal['authorization_id']) {
-                        throw new RuntimeException('The customer authorization changed during OTP verification. Please start again from the authorization link.');
-                    }
-
-                    $this->linkPortalAccount(
-                        (int) $account->login_ID,
-                        (int) $portal['customer_id'],
-                        (int) $portal['authorization_id']
-                    );
-                } else {
-                    $this->assertAccountCanUseCustomer(
-                        (int) $account->login_ID,
-                        (int) $portal['customer_id']
-                    );
-                }
+            $this->assertAccountCanUseCustomer(
+                (int) $account->login_ID,
+                (int) $portal['customer_id']
+            );
             }
         } catch (RuntimeException $exception) {
             return redirect()
                 ->route('login')
-                ->with('auth_mode', $purpose === 'register' ? 'register' : 'login')
+                ->with('auth_mode', 'login')
                 ->with('otp_required', true)
                 ->with('otp_purpose', $purpose)
                 ->with('otp_email', $account->Email)
@@ -524,47 +424,29 @@ class LoginController extends Controller
         $account->account_type = 5;
         $account->save();
 
-        if ($purpose === 'forgot') {
-            $resetLoginId = (int) $account->login_ID;
-            $resetCustomerId = (int) $pendingCustomerId;
-
-            $this->clearPendingAuth($request);
-            $request->session()->put([
-                'w68_password_reset_login_id' => $resetLoginId,
-                'w68_password_reset_customer_id' => $resetCustomerId,
-                'w68_password_reset_expires_at' => now()
-                    ->addMinutes(self::PASSWORD_RESET_EXPIRES_MINUTES)
-                    ->timestamp,
-            ]);
-            $request->session()->regenerateToken();
-
-            return redirect()
-                ->route('password.reset.form')
-                ->with('status', 'OTP verified. Set your new password below.');
-        }
+        $resetLoginId = (int) $account->login_ID;
+        $resetCustomerId = (int) $pendingCustomerId;
 
         $this->clearPendingAuth($request);
-
-        /*
-         * logins does not have Laravel's remember_token column, therefore
-         * use the normal secure session login. The Remember Me checkbox is
-         * intentionally not allowed to invent/alter a database column.
-         */
-        Auth::login($account, false);
-        $request->session()->regenerate();
+        $request->session()->put([
+            'w68_password_reset_login_id' => $resetLoginId,
+            'w68_password_reset_customer_id' => $resetCustomerId,
+            'w68_password_reset_expires_at' => now()
+                ->addMinutes(self::PASSWORD_RESET_EXPIRES_MINUTES)
+                ->timestamp,
+        ]);
+        $request->session()->regenerateToken();
 
         return redirect()
-            ->route('home')
-            ->with('status', $purpose === 'register'
-                ? 'Registration completed successfully.'
-                : 'Login verified successfully.');
+            ->route('password.reset.form')
+            ->with('status', 'OTP verified. Set your new password below.');
     }
 
     public function resendOtp(Request $request): RedirectResponse
     {
         $purpose = (string) $request->session()->get('w68_otp_purpose', '');
 
-        if (!in_array($purpose, ['login', 'register', 'forgot'], true)) {
+        if ($purpose !== 'forgot') {
             return redirect()
                 ->route('login')
                 ->withErrors([
@@ -580,7 +462,7 @@ class LoginController extends Controller
 
             return redirect()
                 ->route('login')
-                ->with('auth_mode', $purpose === 'register' ? 'register' : 'login')
+                ->with('auth_mode', 'login')
                 ->with('otp_required', true)
                 ->with('otp_purpose', $purpose)
                 ->withErrors([
@@ -588,11 +470,7 @@ class LoginController extends Controller
                 ]);
         }
 
-        $accountId = match ($purpose) {
-            'register' => (int) $request->session()->get('w68_pending_registration_id', 0),
-            'forgot' => (int) $request->session()->get('w68_pending_password_reset_id', 0),
-            default => (int) $request->session()->get('w68_pending_login_id', 0),
-        };
+        $accountId = (int) $request->session()->get('w68_pending_password_reset_id', 0);
 
         $account = LoginAccount::query()->find($accountId);
 
@@ -613,7 +491,7 @@ class LoginController extends Controller
 
             return redirect()
                 ->route('login')
-                ->with('auth_mode', $purpose === 'register' ? 'register' : 'login')
+                ->with('auth_mode', 'login')
                 ->with('otp_required', true)
                 ->with('otp_purpose', $purpose)
                 ->with('otp_email', $account->Email)

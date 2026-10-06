@@ -257,6 +257,8 @@ class LoginController extends Controller
                 ]);
         }
 
+        $accountWasCreatedNow = false;
+
         try {
             $sameUsername = LoginAccount::query()
                 ->where('User_ID', $username)
@@ -319,6 +321,7 @@ class LoginController extends Controller
                 $account->Gender = 'N/A';
                 $account->OTP_CODE = null;
                 $account->save();
+                $accountWasCreatedNow = true;
             }
 
             $this->linkPortalAccount(
@@ -328,6 +331,14 @@ class LoginController extends Controller
             );
         } catch (Throwable $exception) {
             report($exception);
+
+            if ($accountWasCreatedNow && isset($account) && $account instanceof LoginAccount) {
+                try {
+                    $account->delete();
+                } catch (Throwable $cleanupException) {
+                    report($cleanupException);
+                }
+            }
 
             return back()
                 ->withInput($request->except(['register_password']))

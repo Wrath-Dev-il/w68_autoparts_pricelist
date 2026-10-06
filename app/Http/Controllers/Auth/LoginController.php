@@ -102,13 +102,18 @@ class LoginController extends Controller
             $portal = $this->portalContextForLogin($request, (int) $account->login_ID);
             $this->assertAccountCanUseCustomer((int) $account->login_ID, $portal['customer_id']);
 
-            if (!(bool) ($portal['linked_account'] ?? false)) {
-                $this->linkPortalAccount(
-                    (int) $account->login_ID,
-                    (int) $portal['customer_id'],
-                    (int) $portal['authorization_id']
-                );
-            }
+            /*
+             * W68_LOGIN_OWN_AUTHORIZATION_ONLY_20261006
+             * Always bind/refresh the permanent account link with the CURRENT
+             * authorization used to open this login page. For an existing
+             * account this updates authorization_id to the newly generated
+             * token for the same customer without changing customer ownership.
+             */
+            $this->linkPortalAccount(
+                (int) $account->login_ID,
+                (int) $portal['customer_id'],
+                (int) $portal['authorization_id']
+            );
         } catch (RuntimeException $exception) {
             return back()
                 ->withInput($request->only('email'))
@@ -838,32 +843,50 @@ HTML;
     {
         $this->assertPortalLinkTableReady();
 
+        /*
+         * W68_LOGIN_TOKEN_CUSTOMER_MATCH_20261006
+         *
+         * The currently opened generated authorization is always the source of
+         * truth for a guest login attempt. Even when the account was linked in
+         * the past, it may authenticate only when that CURRENT valid token is
+         * for the same customer that permanently owns the account.
+         *
+         * This also allows an existing account to keep working after an older
+         * token expires: W68 can generate a new token for the SAME customer,
+         * and login will refresh customer_portal_accounts.authorization_id.
+         */
+        $portal = $this->portalContext($request);
+
         $link = DB::connection('system')
             ->table('customer_portal_accounts')
             ->where('login_id', $loginId)
             ->first();
 
-        if ($link) {
-            $customerId = (int) $link->customer_id;
-
-            $customerExists = DB::connection('masterlist')
-                ->table('customers')
-                ->where('id', $customerId)
-                ->exists();
-
-            if (!$customerExists) {
-                throw new RuntimeException('The W68 customer linked to this Pricelist account no longer exists.');
-            }
-
-            return [
-                'authorization_id' => (int) ($link->authorization_id ?? 0),
-                'customer_id' => $customerId,
-                'linked_account' => true,
-            ];
+        if (!$link) {
+            $portal['linked_account'] = false;
+            return $portal;
         }
 
-        $portal = $this->portalContext($request);
-        $portal['linked_account'] = false;
+        $linkedCustomerId = (int) $link->customer_id;
+        $authorizedCustomerId = (int) $portal['customer_id'];
+
+        if ($linkedCustomerId !== $authorizedCustomerId) {
+            throw new RuntimeException(
+                'This Pricelist account cannot log in through this authorization link. '
+                . 'Please use a generated authorization link for the customer that owns this account.'
+            );
+        }
+
+        $customerExists = DB::connection('masterlist')
+            ->table('customers')
+            ->where('id', $linkedCustomerId)
+            ->exists();
+
+        if (!$customerExists) {
+            throw new RuntimeException('The W68 customer linked to this Pricelist account no longer exists.');
+        }
+
+        $portal['linked_account'] = true;
 
         return $portal;
     }

@@ -46,18 +46,39 @@ class AuthorizedAccessController extends Controller
             }
 
             if (Auth::check()) {
-                $linkedCustomerId = null;
+                $linkedAccount = null;
 
                 if (Schema::connection('system')->hasTable('customer_portal_accounts')) {
-                    $linkedCustomerId = DB::connection('system')
+                    $linkedAccount = DB::connection('system')
                         ->table('customer_portal_accounts')
                         ->where('login_id', Auth::id())
-                        ->value('customer_id');
+                        ->first();
                 }
 
-                if ($linkedCustomerId !== null && (int) $linkedCustomerId !== (int) $authorization->customer_id) {
+                if (
+                    $linkedAccount
+                    && (int) $linkedAccount->customer_id !== (int) $authorization->customer_id
+                ) {
+                    /*
+                     * W68_AUTH_LINK_ACCOUNT_OWNER_GUARD_20261006
+                     * A logged-in account must never carry an authorization
+                     * belonging to another customer.
+                     */
                     Auth::logout();
                     $request->session()->regenerate();
+                } elseif ($linkedAccount) {
+                    /*
+                     * A newly generated token for the SAME customer replaces
+                     * the old/expired authorization reference while keeping the
+                     * permanent account-to-customer ownership unchanged.
+                     */
+                    DB::connection('system')
+                        ->table('customer_portal_accounts')
+                        ->where('id', $linkedAccount->id)
+                        ->update([
+                            'authorization_id' => (int) $authorization->id,
+                            'updated_at' => now(),
+                        ]);
                 }
             }
 

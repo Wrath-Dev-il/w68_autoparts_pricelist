@@ -269,7 +269,11 @@
         renderOrderItems(order);
         if (editLock) editLock.hidden = Boolean(order.editable);
         if (saveButton) saveButton.hidden = !order.editable;
-        if (deleteOrderButton) deleteOrderButton.hidden = !order.editable;
+        if (deleteOrderButton) {
+            const canDelete = order.can_delete === true
+                || String(order.can_delete || '') === '1';
+            deleteOrderButton.hidden = !canDelete;
+        }
         modal.hidden = false;
         modal.setAttribute('aria-hidden', 'false');
         document.body.style.overflow = 'hidden';
@@ -332,8 +336,12 @@
     });
 
     deleteOrderButton?.addEventListener('click', async () => {
-        if (!currentOrder?.editable) return;
-        if (!confirm(`Delete order ${currentOrder.order_code}? This also deletes its linked Open Sales Note.`)) return;
+        const canDelete = currentOrder?.can_delete === true
+            || String(currentOrder?.can_delete || '') === '1';
+
+        if (!canDelete) return;
+
+        if (!confirm(`Delete order ${currentOrder.order_code}? This will also permanently delete its linked Open Sales Note and Sales Note items.`)) return;
 
         showError('');
         deleteOrderButton.disabled = true;

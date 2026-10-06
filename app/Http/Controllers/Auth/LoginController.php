@@ -232,10 +232,9 @@ class LoginController extends Controller
         $validated = $request->validate([
             'username' => ['required', 'string', 'min:3', 'max:255'],
             'register_email' => ['required', 'email', 'max:255'],
-            'register_password' => [
-                'required',
-                Password::min(8)->letters()->numbers(),
-            ],
+            // W68_REGISTER_ANY_PASSWORD_LENGTH_20261006
+            // Match Login: accept any non-empty password chosen by the user.
+            'register_password' => ['required', 'string'],
         ]);
 
         if (!$this->existingAuthStructureIsReady()) {

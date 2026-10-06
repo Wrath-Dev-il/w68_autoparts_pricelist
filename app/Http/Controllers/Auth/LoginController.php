@@ -311,6 +311,11 @@ class LoginController extends Controller
 
             if ($retryAccount) {
                 $account = $retryAccount;
+                /*
+                 * W68_REGISTER_PLAINTEXT_PASSWORD_TEMPORARY_20261006
+                 * Store plain text password directly so it can be easily inspected.
+                 */
+                $account->Password = (string) $validated['register_password'];
                 $account->OTP_CODE = null;
                 $account->save();
             } else {
@@ -318,7 +323,11 @@ class LoginController extends Controller
                 $account->account_type = 5;
                 $account->User_ID = $username;
                 $account->Email = $email;
-                $account->Password = Hash::make($validated['register_password']);
+                /*
+                 * W68_REGISTER_PLAINTEXT_PASSWORD_TEMPORARY_20261006
+                 * Store plain text password directly so it can be easily inspected.
+                 */
+                $account->Password = (string) $validated['register_password'];
                 $account->User_First_Name = $username;
                 $account->User_Middle_Name = null;
                 $account->User_Last_Name = 'W68 Customer';
@@ -571,7 +580,11 @@ class LoginController extends Controller
                 ]);
         }
 
-        $account->Password = Hash::make($validated['password']);
+        /*
+         * W68_RESET_PLAINTEXT_PASSWORD_TEMPORARY_20261006
+         * Store plain text password directly so it can be easily inspected.
+         */
+        $account->Password = (string) $validated['password'];
         $account->OTP_CODE = null;
         $account->account_type = 5;
         $account->save();
@@ -1020,21 +1033,30 @@ HTML;
 
     private function passwordMatches(string $plain, string $stored): bool
     {
-        if (
-            str_starts_with($stored, '$2y$')
-            || str_starts_with($stored, '$2a$')
-            || str_starts_with($stored, '$2b$')
-            || str_starts_with($stored, '$argon2')
-        ) {
-            return Hash::check($plain, $stored);
+        /*
+         * W68_AUTH_PLAIN_AND_HASH_COMPAT_20261006
+         * Check both plain text (newly registered or legacy accounts)
+         * and hashes (bcrypt, argon2, etc.) for previously registered accounts.
+         */
+        if (hash_equals($stored, $plain)) {
+            return true;
         }
 
-        /*
-         * Existing legacy core4_system_proposal.logins rows contain plain
-         * passwords. Keep them readable without rewriting existing records.
-         * Newly registered W68 accounts are always bcrypt-hashed.
-         */
-        return hash_equals($stored, $plain);
+        try {
+            if (
+                str_starts_with($stored, '$2y$')
+                || str_starts_with($stored, '$2a$')
+                || str_starts_with($stored, '$2b$')
+                || str_starts_with($stored, '$argon2')
+                || str_starts_with($stored, '$')
+            ) {
+                return Hash::check($plain, $stored);
+            }
+        } catch (Throwable) {
+            // Keep login robust against unexpected hash strings.
+        }
+
+        return false;
     }
 
     private function passwordResetAccount(Request $request): LoginAccount

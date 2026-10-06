@@ -1013,7 +1013,10 @@ class CustomerOrderController extends Controller
                 ->delete();
         });
 
-        return response()->json(['ok' => true, 'message' => 'Order deleted.']);
+        return response()->json([
+            'ok' => true,
+            'message' => 'Order and linked Open Sales Note deleted.',
+        ]);
     }
 
     private function portalOrders(int $loginId, int $customerId): Collection
@@ -1072,7 +1075,15 @@ class CustomerOrderController extends Controller
             // A waybill is informational only and is no longer required for the tab movement.
             $received = !$cancelled && $closed;
             $editable = !$cancelled
-                && mb_strtolower(trim((string) ($row->sales_note_status ?? ''))) === 'open'
+                && $noteStatus === 'open'
+                && $salesOrders->isEmpty();
+
+            // W68_ORDERS_DELETE_OPEN_NOTES_ONLY_20261006
+            // DELETE is available only while the linked Sales Note is OPEN and
+            // Sales Order processing has not started. PARTIAL/CLOSED notes can
+            // never expose the delete action.
+            $canDelete = !$cancelled
+                && $noteStatus === 'open'
                 && $salesOrders->isEmpty();
             $waybillRow = $salesOrders->first(function ($salesOrder) {
                 return !empty($salesOrder->waybill_id)
@@ -1110,6 +1121,7 @@ class CustomerOrderController extends Controller
                 'cancelled' => $cancelled,
                 'received' => $received,
                 'editable' => $editable,
+                'can_delete' => $canDelete,
                 'waybill_no' => (string) ($waybillRow->waybill_no ?? ''),
                 'waybill_id' => (int) ($waybillRow->waybill_id ?? 0),
                 'waybill_date' => (string) ($waybillRow->waybill_date ?? ''),

@@ -9,7 +9,7 @@
     <link rel="stylesheet" href="{{ asset('css/w68-orders.css') }}?v=20261001-v122">
     <link rel="stylesheet" href="{{ asset('css/w68-notifications.css') }}?v=20260916-v102">
     <script src="{{ asset('js/w68-orders.js') }}?v=20261001-v129" defer></script>
-    <script src="{{ asset('js/w68-orders-cart.js') }}?v=20260916-v102" defer></script>
+    <script src="{{ asset('js/w68-orders-cart.js') }}?v=20261007-v140" defer></script>
     <script src="{{ asset('js/w68-notifications.js') }}?v=20261001-v131" defer></script>
 </head>
 {{-- W68_ORDERS_UNSERVED_SEARCH_V109_20260930 --}}
@@ -199,7 +199,6 @@
         @endforelse
     </section>
 
-
     <section class="orders-tab-panel" data-orders-panel="unserved" hidden>
         <div class="orders-section-heading">
             <div><span>PARTIAL SALES NOTES ONLY</span><h2>Unserved Items</h2></div>
@@ -264,7 +263,6 @@
                             </div>
                         </div>
                     </div>
-
                 </div>
             </article>
         @empty
@@ -306,7 +304,6 @@
         @endforelse
     </section>
 
-
     {{-- W68_ORDERS_BILLS_V123_20261001 --}}
     <section class="orders-tab-panel bills-panel" data-orders-panel="bills" hidden>
         <div class="orders-section-heading">
@@ -339,10 +336,7 @@
                         <div class="bill-due-cell"><span>DUE DATE</span><strong>{{ $bill['due_date_display'] ?? ($bill['due_date'] ?: '—') }}</strong></div>
                         <div><span>TOTAL AMOUNT</span><strong>{{ number_format((float) ($bill['total_amount'] ?? 0), 2) }}</strong></div>
                     </div>
-                    <a
-                        class="view-order-button bill-view-button"
-                        href="{{ route('orders.view', ['order' => $bill['order_id'], 'sales_order' => $bill['sales_order_id']]) }}"
-                    >VIEW</a>
+                    <a class="view-order-button bill-view-button" href="{{ route('orders.view', ['order' => $bill['order_id'], 'sales_order' => $bill['sales_order_id']]) }}">VIEW</a>
                 </article>
             @empty
                 <div class="bills-empty">
@@ -371,10 +365,7 @@
                         <div class="bill-due-cell"><span>DUE DATE</span><strong>{{ $bill['due_date_display'] ?? ($bill['due_date'] ?: '—') }}</strong></div>
                         <div><span>TOTAL AMOUNT</span><strong>{{ number_format((float) ($bill['total_amount'] ?? 0), 2) }}</strong></div>
                     </div>
-                    <a
-                        class="view-order-button bill-view-button"
-                        href="{{ route('orders.view', ['order' => $bill['order_id'], 'sales_order' => $bill['sales_order_id']]) }}"
-                    >VIEW</a>
+                    <a class="view-order-button bill-view-button" href="{{ route('orders.view', ['order' => $bill['order_id'], 'sales_order' => $bill['sales_order_id']]) }}">VIEW</a>
                 </article>
             @empty
                 <div class="bills-empty">
@@ -384,7 +375,6 @@
             @endforelse
         </section>
     </section>
-
 </main>
 
 <aside class="orders-cart-drawer" data-orders-cart-drawer aria-hidden="true">
@@ -405,7 +395,8 @@
                 <div><span>TOTAL</span><strong data-orders-cart-total>0.00</strong></div>
                 <div><span>SELECTED TOTAL</span><strong data-orders-cart-selected-total>0.00</strong></div>
             </div>
-            <a href="{{ route('home') }}" class="orders-cart-shop">GO TO SHOP</a>
+            {{-- W68_ORDERS_CART_PROCESS_ORDER_LINK_FIX_20261007 --}}
+            <a href="{{ route('process-order') }}" class="orders-cart-shop">PROCESS ORDER</a>
         </footer>
     </section>
 </aside>

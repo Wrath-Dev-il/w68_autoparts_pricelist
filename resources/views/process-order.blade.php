@@ -18,7 +18,7 @@
     <title>W68 Autoparts | {{ $returnViewMode ? 'View Return' : ($viewMode ? 'View Order' : 'Process Order') }}</title>
     <link rel="icon" href="{{ asset('images/sidebar_logo.png') }}">
     <link rel="stylesheet" href="{{ asset('css/w68-process-order.css') }}?v=20261001-v138">
-    <script src="{{ asset('js/w68-process-order.js') }}?v=20261001-v136" defer></script>
+    <script src="{{ asset('js/w68-process-order.js') }}?v=20261007-v141" defer></script>
 </head>
 <body
     data-process-url="{{ $viewMode ? '' : route('home.orders.process') }}"
@@ -537,7 +537,8 @@
     </div>
 
     @unless($viewMode)
-        <dialog class="shipment-modal" data-shipment-modal aria-hidden="true">
+        {{-- W68_PROCESS_DELIVERY_HIDDEN_UNTIL_CLICK_20261007 --}}
+        <dialog class="shipment-modal" data-shipment-modal hidden aria-hidden="true">
             <button type="button" class="order-modal-backdrop shipment-backdrop" data-shipment-cancel aria-label="Close Shipment selection" onclick="return window.W68CloseShipmentModal ? window.W68CloseShipmentModal(event) : false;"></button>
             <section class="shipment-card" role="dialog" aria-modal="true" aria-labelledby="shipment-title">
                 <div class="shipment-card-head">
@@ -753,6 +754,7 @@
                 var box = modal();
                 if (!box) return false;
 
+                box.hidden = false;
                 draft = readCommitted();
                 box.setAttribute('aria-hidden', 'false');
 
@@ -814,6 +816,7 @@
                 box.style.removeProperty('visibility');
                 box.style.removeProperty('opacity');
                 box.style.removeProperty('pointer-events');
+                box.hidden = true;
 
                 if (document.body && document.body.classList) {
                     document.body.classList.remove('shipment-modal-open');

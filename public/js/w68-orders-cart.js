@@ -18,12 +18,24 @@
     var selectedCountNode = document.querySelector('[data-orders-cart-selected-count]');
     var selectAllNode = document.querySelector('[data-orders-cart-select-all]');
     var countNodes = document.querySelectorAll('[data-orders-cart-count]');
+    var processOrderLink = document.querySelector('.orders-cart-shop');
+    var processOrderUrl = stateUrl.replace(/\/home\/cart\/state(?:\?.*)?$/, '/process-order');
 
     if (!drawer || !itemsNode) return;
 
     var items = [];
     var loading = false;
     var lastOpenAt = 0;
+    var pendingMutationCount = 0;
+
+    // W68_ORDERS_CART_PROCESS_ORDER_FIX_20261007
+    // The Orders drawer previously used the GO TO SHOP link, which pointed to
+    // /home. Reuse the current portal base path and send selected cart items to
+    // the same Process Order review page used by the Home cart.
+    if (processOrderLink && processOrderUrl) {
+        processOrderLink.setAttribute('href', processOrderUrl);
+        processOrderLink.textContent = 'PROCESS ORDER';
+    }
 
     // Orders receives the current account cart directly from Laravel.
     // Render it immediately so the drawer is never empty just because
@@ -73,8 +85,20 @@
             return;
         }
 
+        var requestMethod = String(method || 'GET').toUpperCase();
+        var tracksMutation = requestMethod !== 'GET';
+        var mutationFinished = false;
+
+        if (tracksMutation) pendingMutationCount += 1;
+
+        function finishMutation() {
+            if (!tracksMutation || mutationFinished) return;
+            mutationFinished = true;
+            pendingMutationCount = Math.max(0, pendingMutationCount - 1);
+        }
+
         var xhr = new XMLHttpRequest();
-        xhr.open(method || 'GET', url, true);
+        xhr.open(requestMethod, url, true);
         xhr.setRequestHeader('Accept', 'application/json');
         xhr.setRequestHeader('X-Requested-With', 'XMLHttpRequest');
         if (csrfToken) xhr.setRequestHeader('X-CSRF-TOKEN', csrfToken);
@@ -84,6 +108,7 @@
 
         xhr.onreadystatechange = function () {
             if (xhr.readyState !== 4) return;
+            finishMutation();
 
             if (xhr.status >= 200 && xhr.status < 300) {
                 var data = null;
@@ -113,6 +138,7 @@
         };
 
         xhr.onerror = function () {
+            finishMutation();
             if (failure) failure(new Error('Unable to connect to the cart.'));
         };
 
@@ -283,6 +309,9 @@
             selectAllNode.checked = items.length > 0 && selectedCount === items.length;
             selectAllNode.indeterminate = selectedCount > 0 && selectedCount < items.length;
         }
+        if (processOrderLink) {
+            processOrderLink.setAttribute('aria-disabled', selectedCount > 0 ? 'false' : 'true');
+        }
     }
 
     function load() {
@@ -330,6 +359,44 @@
         drawer.setAttribute('aria-hidden', 'true');
         body.classList.remove('orders-cart-open');
         return false;
+    }
+
+    function openProcessOrder(event) {
+        if (!processOrderLink || !processOrderUrl) return;
+        if (event && event.preventDefault) event.preventDefault();
+        if (event && event.stopPropagation) event.stopPropagation();
+
+        if (!items.some(function (item) { return Boolean(item.selected); })) {
+            alert('Select at least one cart item before processing the order.');
+            return false;
+        }
+
+        processOrderLink.setAttribute('aria-busy', 'true');
+
+        var waitStartedAt = Date.now ? Date.now() : new Date().getTime();
+        var continueToReview = function () {
+            var now = Date.now ? Date.now() : new Date().getTime();
+            if (pendingMutationCount > 0 && now - waitStartedAt < 5000) {
+                window.setTimeout(continueToReview, 40);
+                return;
+            }
+
+            processOrderLink.removeAttribute('aria-busy');
+
+            if (!items.some(function (item) { return Boolean(item.selected); })) {
+                alert('No cart item is selected for processing.');
+                return;
+            }
+
+            window.location.href = processOrderUrl;
+        };
+
+        continueToReview();
+        return false;
+    }
+
+    if (processOrderLink) {
+        processOrderLink.addEventListener('click', openProcessOrder, false);
     }
 
     window.W68OrdersCartOpen = openCart;

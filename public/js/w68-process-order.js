@@ -40,6 +40,22 @@
     var deliverySelectedType = document.querySelector('[data-delivery-selected-type]');
     var deliverySelectedName = document.querySelector('[data-delivery-selected-name]');
 
+    // W68_PROCESS_DELIVERY_CLOSED_BY_DEFAULT_20261007
+    // The author CSS sets .shipment-modal to display:flex, which overrides the
+    // browser's default closed <dialog> styling. Keep a dialog hidden whenever
+    // it does not have the open attribute. SET DELIVERY OPTION still opens it
+    // normally via showModal()/open, and closing removes open so it hides again.
+    if (shipmentModal) {
+        var shipmentClosedStyle = document.createElement('style');
+        shipmentClosedStyle.setAttribute('data-w68-shipment-closed-style', '1');
+        shipmentClosedStyle.textContent = '.shipment-modal:not([open]){display:none!important;}';
+        document.head.appendChild(shipmentClosedStyle);
+
+        if (!shipmentModal.hasAttribute('open')) {
+            shipmentModal.setAttribute('aria-hidden', 'true');
+        }
+    }
+
     var selectedDeliveryType = '';
     var selectedShipmentId = 0;
     var selectedShipmentName = '';

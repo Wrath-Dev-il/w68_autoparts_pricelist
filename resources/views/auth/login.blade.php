@@ -8,11 +8,13 @@
 <script>
 (function () {
     var ua = navigator.userAgent || '';
-    var touchTablet = navigator.maxTouchPoints > 1 && Math.min(screen.width || 9999, screen.height || 9999) <= 1100;
+    // W68_LOGIN_WINDOWS_TOUCH_LAPTOP_DESKTOP_20261008
+    // Do not classify a Windows touchscreen laptop as a tablet just because it
+    // has multiple touch points. iPadOS can identify itself as Macintosh, so
+    // keep that dedicated touch check; phones/Android/tablets use their UA.
     var isHandheld =
         /iPhone|iPad|iPod|Android|Mobile|Tablet/i.test(ua) ||
-        (/Macintosh/i.test(ua) && navigator.maxTouchPoints > 1) ||
-        touchTablet;
+        (/Macintosh/i.test(ua) && navigator.maxTouchPoints > 1);
 
     if (isHandheld) {
         document.documentElement.classList.add('w68-handheld');

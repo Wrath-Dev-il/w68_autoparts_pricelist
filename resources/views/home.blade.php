@@ -9,10 +9,11 @@
     <link rel="icon" href="{{ asset('images/sidebar_logo.png') }}">
     <link rel="stylesheet" href="{{ asset('css/w68-home.css') }}?v=20261012-v143">
     <link rel="stylesheet" href="{{ asset('css/w68-notifications.css') }}?v=20260915-v95">
-    <script src="{{ asset('js/w68-home.js') }}?v=20261012-v146" defer></script>
+    <script src="{{ asset('js/w68-home.js') }}?v=20261012-v147" defer></script>
     <script src="{{ asset('js/w68-notifications.js') }}?v=20261001-v131" defer></script>
 </head>
 <body
+    data-home-url="{{ route('home') }}"
     data-search-suggestion-url="{{ rtrim(request()->getSchemeAndHttpHost(), '/') }}{{ preg_replace('#/index\.php$#i', '', rtrim(str_replace('\\', '/', (string) request()->getBaseUrl()), '/')) }}/home/search-suggestions"
     data-fallback-image="{{ asset('images/sidebar_logo.png') }}"
     data-brand-discounts="{{ e(json_encode($brandDiscounts ?? [], JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP | JSON_HEX_QUOT)) }}"

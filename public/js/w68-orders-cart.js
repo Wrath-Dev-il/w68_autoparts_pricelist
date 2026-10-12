@@ -21,6 +21,14 @@
     var processOrderLink = document.querySelector('.orders-cart-shop');
     var processOrderUrl = stateUrl.replace(/\/home\/cart\/state(?:\?.*)?$/, '/process-order');
 
+    // W68_CART_PRINT_LIST_20261012
+    var cartPrintButton = document.querySelector('[data-cart-print-open]');
+    var cartPrintModal = document.querySelector('[data-cart-print-modal]');
+    var cartPrintSheet = document.querySelector('[data-cart-print-sheet]');
+    var cartPrintAllButton = document.querySelector('[data-cart-print-all]');
+    var cartPrintSelectedButton = document.querySelector('[data-cart-print-selected]');
+    var cartPrintCloseButtons = document.querySelectorAll('[data-cart-print-close]');
+
     if (!drawer || !itemsNode) return;
 
     var items = [];
@@ -312,6 +320,8 @@
         if (processOrderLink) {
             processOrderLink.setAttribute('aria-disabled', selectedCount > 0 ? 'false' : 'true');
         }
+        if (cartPrintButton) cartPrintButton.disabled = items.length === 0;
+        if (cartPrintSelectedButton) cartPrintSelectedButton.disabled = selectedCount === 0;
     }
 
     function load() {
@@ -359,6 +369,200 @@
         drawer.setAttribute('aria-hidden', 'true');
         body.classList.remove('orders-cart-open');
         return false;
+    }
+
+    function cartItemHasDiscount(item) {
+        var original = Number(item && item.price ? item.price : 0);
+        var discounted = item && item.discountedPrice !== undefined && item.discountedPrice !== null
+            ? Number(item.discountedPrice)
+            : original;
+        var discount = Number(item && item.discountPercent ? item.discountPercent : 0);
+
+        return discount > 0 || (original > 0 && discounted >= 0 && discounted < original);
+    }
+
+    function cartPrintLessPercent(item) {
+        var stored = Number(item && item.discountPercent ? item.discountPercent : 0);
+        if (isFinite(stored) && stored > 0) return stored;
+
+        var original = Number(item && item.price ? item.price : 0);
+        var effective = unitPrice(item);
+        if (original > 0 && effective >= 0 && effective < original) {
+            return ((original - effective) / original) * 100;
+        }
+
+        return 0;
+    }
+
+    function closeCartPrintModal(event) {
+        if (event) {
+            if (event.preventDefault) event.preventDefault();
+            if (event.stopPropagation) event.stopPropagation();
+        }
+        if (!cartPrintModal) return false;
+        cartPrintModal.hidden = true;
+        cartPrintModal.setAttribute('aria-hidden', 'true');
+        return false;
+    }
+
+    function openCartPrintModal(event) {
+        if (event) {
+            if (event.preventDefault) event.preventDefault();
+            if (event.stopPropagation) event.stopPropagation();
+        }
+
+        if (!items.length || !cartPrintModal) {
+            if (!items.length) alert('Your cart is empty.');
+            return false;
+        }
+
+        if (cartPrintSelectedButton) {
+            cartPrintSelectedButton.disabled = !items.some(function (item) {
+                return Boolean(item.selected);
+            });
+        }
+
+        cartPrintModal.hidden = false;
+        cartPrintModal.setAttribute('aria-hidden', 'false');
+        return false;
+    }
+
+    function clearCartPrintSheet() {
+        body.classList.remove('w68-cart-printing');
+        if (!cartPrintSheet) return;
+        cartPrintSheet.hidden = true;
+        cartPrintSheet.setAttribute('aria-hidden', 'true');
+        cartPrintSheet.innerHTML = '';
+    }
+
+    function buildCartPrintSheet(printItems) {
+        if (!cartPrintSheet) return false;
+
+        var showLess = printItems.some(function (item) {
+            return cartItemHasDiscount(item);
+        });
+        var total = 0;
+        var rows = '';
+
+        printItems.forEach(function (item) {
+            var qty = safeQty(item.qty);
+            var subtotal = unitPrice(item) * qty;
+            var less = cartPrintLessPercent(item);
+            total += subtotal;
+
+            rows +=
+                '<tr>' +
+                    '<td>' + escapeHtml(item.productCode || '—') + '</td>' +
+                    '<td>' + escapeHtml(item.partNumber || '—') + '</td>' +
+                    '<td class="cart-print-description">' + escapeHtml(item.description || '—') + '</td>' +
+                    '<td class="cart-print-number">' + qty + '</td>' +
+                    '<td class="cart-print-number">' + money(item.price) + '</td>' +
+                    (showLess
+                        ? '<td class="cart-print-number">' + (less > 0 ? money(less) + '%' : '') + '</td>'
+                        : '') +
+                    '<td class="cart-print-number">' + money(subtotal) + '</td>' +
+                '</tr>';
+        });
+
+        var totalLabelColspan = showLess ? 6 : 5;
+
+        cartPrintSheet.innerHTML =
+            '<header class="cart-print-brand">' +
+                '<strong>ERW</strong>' +
+                '<span>SPECIAL STORE</span>' +
+            '</header>' +
+            '<table class="cart-print-table">' +
+                '<thead><tr>' +
+                    '<th>PRODUCT CODE</th>' +
+                    '<th>PART NO.</th>' +
+                    '<th>DESCRIPTION</th>' +
+                    '<th>QTY</th>' +
+                    '<th>UNIT PRICE</th>' +
+                    (showLess ? '<th>LESS</th>' : '') +
+                    '<th>SUB TOTAL</th>' +
+                '</tr></thead>' +
+                '<tbody>' + rows + '</tbody>' +
+                '<tfoot><tr class="cart-print-total-row">' +
+                    '<td colspan="' + totalLabelColspan + '">TOTAL</td>' +
+                    '<td class="cart-print-number">' + money(total) + '</td>' +
+                '</tr></tfoot>' +
+            '</table>';
+
+        return true;
+    }
+
+    function printCartList(selectedOnly, event) {
+        if (event) {
+            if (event.preventDefault) event.preventDefault();
+            if (event.stopPropagation) event.stopPropagation();
+        }
+
+        var printItems = selectedOnly
+            ? items.filter(function (item) { return Boolean(item.selected); })
+            : items.slice();
+
+        if (!printItems.length) {
+            alert(selectedOnly
+                ? 'Select at least one cart item before printing selected items.'
+                : 'Your cart is empty.');
+            return false;
+        }
+
+        if (!buildCartPrintSheet(printItems)) return false;
+
+        closeCartPrintModal();
+        cartPrintSheet.hidden = false;
+        cartPrintSheet.setAttribute('aria-hidden', 'false');
+        body.classList.add('w68-cart-printing');
+
+        var cleanup = function () {
+            clearCartPrintSheet();
+        };
+        window.addEventListener('afterprint', cleanup, { once: true });
+
+        try {
+            window.print();
+        } catch (error) {
+            window.removeEventListener('afterprint', cleanup);
+            clearCartPrintSheet();
+            alert('Unable to open the print dialog on this device.');
+        }
+
+        return false;
+    }
+
+    function bindCartPrintTap(node, handler) {
+        if (!node || typeof handler !== 'function') return;
+
+        var lastTouchAt = 0;
+
+        node.addEventListener('touchend', function (event) {
+            lastTouchAt = Date.now ? Date.now() : new Date().getTime();
+            event.preventDefault();
+            event.stopPropagation();
+            handler(event);
+        }, { passive: false });
+
+        node.addEventListener('click', function (event) {
+            var now = Date.now ? Date.now() : new Date().getTime();
+            if (now - lastTouchAt < 650) {
+                event.preventDefault();
+                event.stopPropagation();
+                return;
+            }
+            handler(event);
+        }, false);
+    }
+
+    bindCartPrintTap(cartPrintButton, openCartPrintModal);
+    bindCartPrintTap(cartPrintAllButton, function (event) {
+        printCartList(false, event);
+    });
+    bindCartPrintTap(cartPrintSelectedButton, function (event) {
+        if (!cartPrintSelectedButton.disabled) printCartList(true, event);
+    });
+    for (var pc = 0; pc < cartPrintCloseButtons.length; pc += 1) {
+        bindCartPrintTap(cartPrintCloseButtons[pc], closeCartPrintModal);
     }
 
     function openProcessOrder(event) {
@@ -444,7 +648,14 @@
     }
 
     document.addEventListener('keydown', function (event) {
-        if ((event.key === 'Escape' || event.keyCode === 27) && drawer.classList.contains('open')) closeCart(event);
+        if (!(event.key === 'Escape' || event.keyCode === 27)) return;
+
+        if (cartPrintModal && !cartPrintModal.hidden) {
+            closeCartPrintModal(event);
+            return;
+        }
+
+        if (drawer.classList.contains('open')) closeCart(event);
     });
 
     render();

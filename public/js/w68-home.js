@@ -1990,77 +1990,25 @@
     };
 
     const printCartDocument = (html) => {
-        // W68_CART_PRINT_TABLET_PREVIEW_ACTIONS_20261012
-        // Non-Windows touch tablets (including Android tablets in Desktop Site
-        // mode) open a visible preview page with BACK TO HOME + PRINT controls.
-        // Windows laptops/PCs retain the existing direct print behavior.
-        const ua = navigator.userAgent || '';
-        const isWindowsDesktop = /Windows NT/i.test(ua);
-        const hasTouch = Number(navigator.maxTouchPoints || 0) > 1
-            || Boolean(window.matchMedia?.('(pointer: coarse)')?.matches);
-        const useVisibleTabletPreview = hasTouch && !isWindowsDesktop;
+        // W68_CART_PRINT_UNIVERSAL_PREVIEW_20261012
+        // Always open our own visible print page first on every device.
+        // The native Windows/Android/iOS print dialog cannot be customized by
+        // the website, so BACK TO HOME + PRINT remain on this preview page.
+        const printWindow = window.open('', '_blank');
 
-        if (useVisibleTabletPreview) {
-            const printWindow = window.open('', '_blank');
-
-            if (!printWindow) {
-                alert('The browser blocked the cart print preview. Please allow pop-ups for this site and try again.');
-                return;
-            }
-
-            try {
-                printWindow.document.open();
-                printWindow.document.write(html);
-                printWindow.document.close();
-                printWindow.focus();
-            } catch (error) {
-                try { printWindow.close(); } catch (_) {}
-                alert('Unable to open the cart print preview on this tablet.');
-            }
-
+        if (!printWindow) {
+            alert('The browser blocked the cart print preview. Please allow pop-ups for this site and try again.');
             return;
         }
-
-        // Desktop/laptop: isolated iframe keeps the website itself out of print.
-        const frame = document.createElement('iframe');
-        frame.setAttribute('aria-hidden', 'true');
-        frame.style.position = 'fixed';
-        frame.style.width = '1px';
-        frame.style.height = '1px';
-        frame.style.right = '100%';
-        frame.style.bottom = '100%';
-        frame.style.border = '0';
-        frame.style.opacity = '0';
-        document.body.appendChild(frame);
-
-        const printWindow = frame.contentWindow;
-        const printDocument = frame.contentDocument || printWindow?.document;
-
-        if (!printWindow || !printDocument) {
-            frame.remove();
-            alert('Unable to create the cart print document on this device.');
-            return;
-        }
-
-        printDocument.open();
-        printDocument.write(html);
-        printDocument.close();
-
-        let cleaned = false;
-        const cleanup = () => {
-            if (cleaned) return;
-            cleaned = true;
-            window.setTimeout(() => frame.remove(), 250);
-        };
 
         try {
-            printWindow.addEventListener('afterprint', cleanup, { once: true });
+            printWindow.document.open();
+            printWindow.document.write(html);
+            printWindow.document.close();
             printWindow.focus();
-            printWindow.print();
-            window.setTimeout(cleanup, 3000);
         } catch (error) {
-            cleanup();
-            alert('Unable to open the print dialog on this device.');
+            try { printWindow.close(); } catch (_) {}
+            alert('Unable to open the cart print preview on this device.');
         }
     };
 

@@ -7,9 +7,9 @@
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>W68 Autoparts & Service Center | Home</title>
     <link rel="icon" href="{{ asset('images/sidebar_logo.png') }}">
-    <link rel="stylesheet" href="{{ asset('css/w68-home.css') }}?v=20260916-v104">
+    <link rel="stylesheet" href="{{ asset('css/w68-home.css') }}?v=20261012-v142">
     <link rel="stylesheet" href="{{ asset('css/w68-notifications.css') }}?v=20260915-v95">
-    <script src="{{ asset('js/w68-home.js') }}?v=20260916-v104" defer></script>
+    <script src="{{ asset('js/w68-home.js') }}?v=20261012-v142" defer></script>
     <script src="{{ asset('js/w68-notifications.js') }}?v=20261001-v131" defer></script>
 </head>
 <body
@@ -657,10 +657,31 @@
                     <div><span>TOTAL</span><strong data-cart-total>0.00</strong></div>
                     <div><span>SELECTED TOTAL</span><strong data-cart-selected-total>0.00</strong></div>
                 </div>
-                <button type="button" class="process-order-button" data-process-order disabled>PROCESS ORDER</button>
+                {{-- W68_CART_PRINT_LIST_20261012 --}}
+                <div class="cart-footer-actions">
+                    <button type="button" class="cart-print-list-button" data-cart-print-open disabled>PRINT CART LIST</button>
+                    <button type="button" class="process-order-button" data-process-order disabled>PROCESS ORDER</button>
+                </div>
             </footer>
         </section>
     </aside>
+
+    {{-- W68_CART_PRINT_LIST_20261012: choose all cart rows or checkbox-selected rows. --}}
+    <div class="cart-print-choice-modal" data-cart-print-modal hidden aria-hidden="true">
+        <button type="button" class="cart-print-choice-backdrop" data-cart-print-close aria-label="Close print cart list"></button>
+        <section class="cart-print-choice-card" role="dialog" aria-modal="true" aria-labelledby="cart-print-choice-title">
+            <span class="cart-print-choice-kicker">ERW SPECIAL STORE</span>
+            <h2 id="cart-print-choice-title">PRINT CART LIST</h2>
+            <p>Choose which cart items you want to print.</p>
+            <div class="cart-print-choice-actions">
+                <button type="button" class="cart-print-choice-all" data-cart-print-all>PRINT ALL</button>
+                <button type="button" class="cart-print-choice-selected" data-cart-print-selected>PRINT SELECTED ONLY</button>
+                <button type="button" class="cart-print-choice-cancel" data-cart-print-close>CANCEL</button>
+            </div>
+        </section>
+    </div>
+
+    <section class="cart-print-sheet" data-cart-print-sheet hidden aria-hidden="true"></section>
 
     {{-- Product view modal --}}
     <div class="product-modal" data-product-modal hidden aria-hidden="true">

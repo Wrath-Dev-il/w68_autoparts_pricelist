@@ -452,7 +452,12 @@
                 '<tr>' +
                     '<td>' + escapeHtml(item.productCode || '—') + '</td>' +
                     '<td>' + escapeHtml(item.partNumber || '—') + '</td>' +
-                    '<td class="description">' + escapeHtml(item.description || '—') + '</td>' +
+                    '<td class="description">' + escapeHtml(
+                        [item.description, item.application, item.brand]
+                            .map(function (value) { return String(value || '').trim(); })
+                            .filter(function (value) { return value !== ''; })
+                            .join(' + ') || '—'
+                    ) + '</td>' +
                     '<td class="num">' + qty + '</td>' +
                     '<td class="num">' + money(item.price) + '</td>' +
                     (showLess

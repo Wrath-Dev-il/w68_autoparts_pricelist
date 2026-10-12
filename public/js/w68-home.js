@@ -1934,9 +1934,55 @@
     };
 
     const printCartDocument = (html) => {
-        // W68_CART_PRINT_ISOLATED_DOCUMENT_20261012
-        // Print an isolated iframe document so the portal page/sidebar can
-        // never be included in the browser print job.
+        // W68_CART_PRINT_IPAD_RENDER_FIX_20261012
+        // iPad/iPhone Safari can produce a white AirPrint preview when printing
+        // an invisible 1px iframe before it has painted. Use a real temporary
+        // document on Apple touch devices; keep the isolated iframe on desktop.
+        if (isAppleTouchDevice) {
+            const printWindow = window.open('', '_blank');
+
+            if (!printWindow) {
+                alert('Safari blocked the cart print window. Please allow pop-ups for this site and try again.');
+                return;
+            }
+
+            try {
+                printWindow.document.open();
+                printWindow.document.write(html);
+                printWindow.document.close();
+
+                const runPrint = () => {
+                    try {
+                        printWindow.focus();
+                        printWindow.print();
+                    } catch (error) {
+                        try { printWindow.close(); } catch (_) {}
+                        alert('Unable to open the AirPrint preview on this iPad.');
+                    }
+                };
+
+                // Give WebKit two paint frames plus a short render delay before
+                // invoking AirPrint. The document contains no remote resources.
+                printWindow.requestAnimationFrame(() => {
+                    printWindow.requestAnimationFrame(() => {
+                        printWindow.setTimeout(runPrint, 180);
+                    });
+                });
+
+                printWindow.addEventListener('afterprint', () => {
+                    printWindow.setTimeout(() => {
+                        try { printWindow.close(); } catch (_) {}
+                    }, 250);
+                }, { once: true });
+            } catch (error) {
+                try { printWindow.close(); } catch (_) {}
+                alert('Unable to prepare the cart print preview on this iPad.');
+            }
+
+            return;
+        }
+
+        // Desktop/laptop: isolated iframe keeps the website itself out of print.
         const frame = document.createElement('iframe');
         frame.setAttribute('aria-hidden', 'true');
         frame.style.position = 'fixed';

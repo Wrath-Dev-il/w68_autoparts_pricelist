@@ -50,6 +50,11 @@
     const cartSelectedCountNode = document.querySelector('[data-cart-selected-count]');
     const cartSelectAll = document.querySelector('[data-cart-select-all]');
     const processOrderButton = document.querySelector('[data-process-order]');
+    // W68_CART_PRINT_LIST_20261012
+    const cartPrintButton = document.querySelector('[data-cart-print-open]');
+    const cartPrintModal = document.querySelector('[data-cart-print-modal]');
+    const cartPrintSheet = document.querySelector('[data-cart-print-sheet]');
+    const cartPrintSelectedButton = document.querySelector('[data-cart-print-selected]');
     const brandDiscounts = (() => {
         try {
             const parsed = JSON.parse(document.body?.dataset.brandDiscounts || '{}');
@@ -133,7 +138,11 @@
             '[data-quantity-plus]',
             '[data-process-order]',
             '[data-process-order-close]',
-            '[data-process-proceed]'
+            '[data-process-proceed]',
+            '[data-cart-print-open]',
+            '[data-cart-print-close]',
+            '[data-cart-print-all]',
+            '[data-cart-print-selected]'
         ].join(',');
 
         document.addEventListener('touchstart', (event) => {
@@ -662,7 +671,8 @@
         const locked = cartDrawer?.classList.contains('open')
             || modalIsOpen(productModal)
             || modalIsOpen(cartItemModal)
-            || modalIsOpen(quantityModal);
+            || modalIsOpen(quantityModal)
+            || modalIsOpen(cartPrintModal);
 
         document.body.style.overflow = locked ? 'hidden' : '';
     };
@@ -1621,6 +1631,8 @@
         }
         if (cartEmptyNode) cartEmptyNode.style.display = cart.length ? 'none' : 'block';
         if (processOrderButton) processOrderButton.disabled = selected.length === 0;
+        if (cartPrintButton) cartPrintButton.disabled = cart.length === 0;
+        if (cartPrintSelectedButton) cartPrintSelectedButton.disabled = selected.length === 0;
 
         if (cartSelectAll) {
             cartSelectAll.checked = cart.length > 0 && selected.length === cart.length;
@@ -1773,6 +1785,147 @@
     });
 
     /* =====================================================
+       W68_CART_PRINT_LIST_20261012
+       - PRINT ALL uses every row currently in the cart.
+       - PRINT SELECTED ONLY uses only checkbox-selected rows.
+       - LESS is rendered only when at least one printed row has a discount.
+       ===================================================== */
+    const cartPrintLessPercent = (item) => {
+        const stored = Number(item?.discountPercent || 0);
+        if (Number.isFinite(stored) && stored > 0) return stored;
+
+        const original = Number(item?.price || 0);
+        const effective = Number(effectivePrice(item) || 0);
+        if (original > 0 && effective >= 0 && effective < original) {
+            return ((original - effective) / original) * 100;
+        }
+
+        return 0;
+    };
+
+    const closeCartPrintModal = () => {
+        if (!cartPrintModal) return;
+        cartPrintModal.hidden = true;
+        cartPrintModal.setAttribute('aria-hidden', 'true');
+        syncBodyLock();
+    };
+
+    const openCartPrintModal = () => {
+        const cart = readCart();
+        if (!cart.length || !cartPrintModal) {
+            if (!cart.length) alert('Your cart is empty.');
+            return;
+        }
+
+        if (cartPrintSelectedButton) {
+            cartPrintSelectedButton.disabled = !cart.some((item) => item.selected);
+        }
+
+        cartPrintModal.hidden = false;
+        cartPrintModal.setAttribute('aria-hidden', 'false');
+        syncBodyLock();
+    };
+
+    const clearCartPrintSheet = () => {
+        document.body.classList.remove('w68-cart-printing');
+        if (!cartPrintSheet) return;
+        cartPrintSheet.hidden = true;
+        cartPrintSheet.setAttribute('aria-hidden', 'true');
+        cartPrintSheet.innerHTML = '';
+    };
+
+    const buildCartPrintSheet = (printItems) => {
+        if (!cartPrintSheet) return false;
+
+        const showLess = printItems.some((item) => hasDiscount(item));
+        const total = printItems.reduce(
+            (sum, item) => sum + (effectivePrice(item) * safeQty(item.qty)),
+            0
+        );
+        const totalLabelColspan = showLess ? 6 : 5;
+
+        const rows = printItems.map((item) => {
+            const qty = safeQty(item.qty);
+            const subtotal = effectivePrice(item) * qty;
+            const less = cartPrintLessPercent(item);
+
+            return `
+                <tr>
+                    <td>${escapeHtml(item.productCode || '—')}</td>
+                    <td>${escapeHtml(item.partNumber || '—')}</td>
+                    <td class="cart-print-description">${escapeHtml(item.description || '—')}</td>
+                    <td class="cart-print-number">${qty}</td>
+                    <td class="cart-print-number">${money(item.price)}</td>
+                    ${showLess ? `<td class="cart-print-number">${less > 0 ? percent(less) + '%' : ''}</td>` : ''}
+                    <td class="cart-print-number">${money(subtotal)}</td>
+                </tr>
+            `;
+        }).join('');
+
+        cartPrintSheet.innerHTML = `
+            <header class="cart-print-brand">
+                <strong>ERW</strong>
+                <span>SPECIAL STORE</span>
+            </header>
+
+            <table class="cart-print-table">
+                <thead>
+                    <tr>
+                        <th>PRODUCT CODE</th>
+                        <th>PART NO.</th>
+                        <th>DESCRIPTION</th>
+                        <th>QTY</th>
+                        <th>UNIT PRICE</th>
+                        ${showLess ? '<th>LESS</th>' : ''}
+                        <th>SUB TOTAL</th>
+                    </tr>
+                </thead>
+                <tbody>${rows}</tbody>
+                <tfoot>
+                    <tr class="cart-print-total-row">
+                        <td colspan="${totalLabelColspan}">TOTAL</td>
+                        <td class="cart-print-number">${money(total)}</td>
+                    </tr>
+                </tfoot>
+            </table>
+        `;
+
+        return true;
+    };
+
+    const printCartList = (selectedOnly = false) => {
+        const cart = readCart();
+        const printItems = selectedOnly
+            ? cart.filter((item) => item.selected)
+            : cart;
+
+        if (!printItems.length) {
+            alert(selectedOnly
+                ? 'Select at least one cart item before printing selected items.'
+                : 'Your cart is empty.');
+            return;
+        }
+
+        if (!buildCartPrintSheet(printItems)) return;
+
+        closeCartPrintModal();
+        cartPrintSheet.hidden = false;
+        cartPrintSheet.setAttribute('aria-hidden', 'false');
+        document.body.classList.add('w68-cart-printing');
+
+        const cleanup = () => clearCartPrintSheet();
+        window.addEventListener('afterprint', cleanup, { once: true });
+
+        try {
+            window.print();
+        } catch (error) {
+            window.removeEventListener('afterprint', cleanup);
+            clearCartPrintSheet();
+            alert('Unable to open the print dialog on this device.');
+        }
+    };
+
+    /* =====================================================
        Process Order review page
        ===================================================== */
     const openProcessOrderReview = async () => {
@@ -1838,6 +1991,26 @@
             return;
         }
 
+        if (event.target.closest('[data-cart-print-open]')) {
+            openCartPrintModal();
+            return;
+        }
+
+        if (event.target.closest('[data-cart-print-close]')) {
+            closeCartPrintModal();
+            return;
+        }
+
+        if (event.target.closest('[data-cart-print-all]')) {
+            printCartList(false);
+            return;
+        }
+
+        if (event.target.closest('[data-cart-print-selected]')) {
+            printCartList(true);
+            return;
+        }
+
         // Orders is a normal link. Do not open the cart when it is clicked.
         if (event.target.closest('[data-orders-link]')) {
             return;
@@ -1888,6 +2061,10 @@
     document.addEventListener('keydown', (event) => {
         if (event.key !== 'Escape') return;
 
+        if (modalIsOpen(cartPrintModal)) {
+            closeCartPrintModal();
+            return;
+        }
         if (modalIsOpen(quantityModal)) {
             closeQuantityModal();
             return;

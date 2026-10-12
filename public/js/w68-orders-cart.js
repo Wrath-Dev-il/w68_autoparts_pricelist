@@ -9,6 +9,7 @@
     var stateUrl = body.getAttribute('data-cart-state-url') || '';
     var itemBaseUrl = body.getAttribute('data-cart-item-base-url') || '';
     var selectionUrl = body.getAttribute('data-cart-selection-url') || '';
+    var homeUrl = body.getAttribute('data-home-url') || '/home';
 
     var drawer = document.querySelector('[data-orders-cart-drawer]');
     var itemsNode = document.querySelector('[data-orders-cart-items]');
@@ -477,7 +478,14 @@
                 '*{box-sizing:border-box;}' +
                 'html,body{margin:0;padding:0;background:#fff;color:#000;}' +
                 'body{font-family:Arial,Helvetica,sans-serif;}' +
+                '.print-toolbar{position:sticky;top:0;z-index:9999;width:100%;min-height:64px;padding:10px 14px;display:flex;align-items:center;justify-content:space-between;gap:12px;background:#064e3b;border-bottom:3px solid #ffd633;box-shadow:0 5px 16px rgba(0,0,0,.16);}' +
+                '.print-toolbar a,.print-toolbar button{min-width:150px;min-height:44px;padding:0 18px;display:inline-flex;align-items:center;justify-content:center;border-radius:8px;font:700 13px Arial,Helvetica,sans-serif;text-decoration:none;cursor:pointer;touch-action:manipulation;}' +
+                '.print-toolbar a{border:1px solid #fff;background:#fff;color:#800020;}' +
+                '.print-toolbar button{border:1px solid #ffd633;background:#800020;color:#ffd633;}' +
+                '.print-content{padding:18px 0 0;}' +
                 '.brand{margin:0 0 20px;text-align:center;}' +
+                '@media (orientation:landscape){.print-toolbar{min-height:58px;padding:7px 18px;}.print-toolbar a,.print-toolbar button{min-height:42px;}}' +
+                '@media print{.print-toolbar{display:none!important;}.print-content{padding-top:0!important;}}' +
                 '.brand strong{display:block;font-size:20px;line-height:1.05;font-weight:700;}' +
                 '.brand span{display:block;margin-top:3px;font-size:13px;line-height:1.05;font-weight:700;letter-spacing:.7px;}' +
                 'table{width:100%;border-collapse:collapse;table-layout:fixed;font-size:9px;}' +
@@ -497,6 +505,11 @@
                 '.total-row td{padding-top:10px;padding-bottom:10px;border-top:1px dashed #000!important;border-bottom:1px dashed #000!important;font-size:10px;font-weight:700;}' +
                 '.total-row td:first-child{text-align:right;padding-right:12px;}' +
             '</style></head><body>' +
+                '<nav class="print-toolbar" aria-label="Cart print actions">' +
+                    '<a href="' + escapeHtml(homeUrl) + '">BACK TO HOME</a>' +
+                    '<button type="button" onclick="window.print()">PRINT</button>' +
+                '</nav>' +
+                '<main class="print-content">' +
                 '<header class="brand"><strong>ERW</strong><span>SPECIAL STORE</span></header>' +
                 '<table><thead><tr>' +
                     '<th>PRODUCT CODE</th>' +
@@ -512,55 +525,40 @@
                     '<td colspan="' + totalLabelColspan + '">TOTAL</td>' +
                     '<td class="num">' + money(total) + '</td>' +
                 '</tr></tfoot></table>' +
+                '</main>' +
             '</body></html>';
     }
 
     function printCartDocument(html) {
-        // W68_CART_PRINT_IPAD_RENDER_FIX_20261012
-        // Safari/iPad may print an invisible 1px iframe as a blank page.
-        // Use a real temporary document for Apple touch devices, then AirPrint
-        // after WebKit has had time to paint it.
+        // W68_CART_PRINT_TABLET_PREVIEW_ACTIONS_20261012
+        // Android/non-Windows touch tablets use a visible preview page even
+        // when the browser is in Desktop Site mode. Windows laptops keep the
+        // existing desktop print flow.
         var ua = navigator.userAgent || '';
-        var appleTouch = /iPad|iPhone|iPod/i.test(ua)
-            || (/Macintosh/i.test(ua) && Number(navigator.maxTouchPoints || 0) > 1);
+        var isWindowsDesktop = /Windows NT/i.test(ua);
+        var coarsePointer = false;
+        try {
+            coarsePointer = Boolean(window.matchMedia && window.matchMedia('(pointer: coarse)').matches);
+        } catch (ignore) {}
+        var hasTouch = Number(navigator.maxTouchPoints || 0) > 1 || coarsePointer;
+        var useVisibleTabletPreview = hasTouch && !isWindowsDesktop;
 
-        if (appleTouch) {
-            var applePrintWindow = window.open('', '_blank');
+        if (useVisibleTabletPreview) {
+            var tabletPrintWindow = window.open('', '_blank');
 
-            if (!applePrintWindow) {
-                alert('Safari blocked the cart print window. Please allow pop-ups for this site and try again.');
+            if (!tabletPrintWindow) {
+                alert('The browser blocked the cart print preview. Please allow pop-ups for this site and try again.');
                 return;
             }
 
             try {
-                applePrintWindow.document.open();
-                applePrintWindow.document.write(html);
-                applePrintWindow.document.close();
-
-                var runApplePrint = function () {
-                    try {
-                        applePrintWindow.focus();
-                        applePrintWindow.print();
-                    } catch (error) {
-                        try { applePrintWindow.close(); } catch (ignore) {}
-                        alert('Unable to open the AirPrint preview on this iPad.');
-                    }
-                };
-
-                applePrintWindow.requestAnimationFrame(function () {
-                    applePrintWindow.requestAnimationFrame(function () {
-                        applePrintWindow.setTimeout(runApplePrint, 180);
-                    });
-                });
-
-                applePrintWindow.addEventListener('afterprint', function () {
-                    applePrintWindow.setTimeout(function () {
-                        try { applePrintWindow.close(); } catch (ignore) {}
-                    }, 250);
-                }, { once: true });
+                tabletPrintWindow.document.open();
+                tabletPrintWindow.document.write(html);
+                tabletPrintWindow.document.close();
+                tabletPrintWindow.focus();
             } catch (error) {
-                try { applePrintWindow.close(); } catch (ignore) {}
-                alert('Unable to prepare the cart print preview on this iPad.');
+                try { tabletPrintWindow.close(); } catch (ignore2) {}
+                alert('Unable to open the cart print preview on this tablet.');
             }
 
             return;

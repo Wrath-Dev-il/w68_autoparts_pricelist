@@ -13,6 +13,7 @@
         sync: String(body?.dataset.cartSyncUrl || ''),
         state: String(body?.dataset.cartStateUrl || ''),
     };
+    const homeUrl = String(body?.dataset.homeUrl || window.location.href);
     const orderApi = {
         process: String(body?.dataset.orderProcessUrl || ''),
         review: String(body?.dataset.processOrderReviewUrl || ''),
@@ -1876,7 +1877,56 @@
     * { box-sizing: border-box; }
     html, body { margin: 0; padding: 0; background: #fff; color: #000; }
     body { font-family: Arial, Helvetica, sans-serif; }
+    .print-toolbar {
+        position: sticky;
+        top: 0;
+        z-index: 9999;
+        width: 100%;
+        min-height: 64px;
+        padding: 10px 14px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        background: #064e3b;
+        border-bottom: 3px solid #ffd633;
+        box-shadow: 0 5px 16px rgba(0,0,0,.16);
+    }
+    .print-toolbar a,
+    .print-toolbar button {
+        min-width: 150px;
+        min-height: 44px;
+        padding: 0 18px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 8px;
+        font: 700 13px Arial, Helvetica, sans-serif;
+        text-decoration: none;
+        cursor: pointer;
+        touch-action: manipulation;
+    }
+    .print-toolbar a {
+        border: 1px solid #fff;
+        background: #fff;
+        color: #800020;
+    }
+    .print-toolbar button {
+        border: 1px solid #ffd633;
+        background: #800020;
+        color: #ffd633;
+    }
+    .print-content { padding: 18px 0 0; }
     .brand { margin: 0 0 20px; text-align: center; }
+    @media (orientation: landscape) {
+        .print-toolbar { min-height: 58px; padding: 7px 18px; }
+        .print-toolbar a,
+        .print-toolbar button { min-height: 42px; }
+    }
+    @media print {
+        .print-toolbar { display: none !important; }
+        .print-content { padding-top: 0 !important; }
+    }
     .brand strong { display: block; font-size: 20px; line-height: 1.05; font-weight: 700; }
     .brand span { display: block; margin-top: 3px; font-size: 13px; line-height: 1.05; font-weight: 700; letter-spacing: .7px; }
     table { width: 100%; border-collapse: collapse; table-layout: fixed; font-size: 9px; }
@@ -1905,6 +1955,11 @@
 </style>
 </head>
 <body>
+    <nav class="print-toolbar" aria-label="Cart print actions">
+        <a href="${escapeHtml(homeUrl)}">BACK TO HOME</a>
+        <button type="button" onclick="window.print()">PRINT</button>
+    </nav>
+    <main class="print-content">
     <header class="brand">
         <strong>ERW</strong>
         <span>SPECIAL STORE</span>
@@ -1929,20 +1984,27 @@
             </tr>
         </tfoot>
     </table>
+    </main>
 </body>
 </html>`;
     };
 
     const printCartDocument = (html) => {
-        // W68_CART_PRINT_IPAD_RENDER_FIX_20261012
-        // iPad/iPhone Safari can produce a white AirPrint preview when printing
-        // an invisible 1px iframe before it has painted. Use a real temporary
-        // document on Apple touch devices; keep the isolated iframe on desktop.
-        if (isAppleTouchDevice) {
+        // W68_CART_PRINT_TABLET_PREVIEW_ACTIONS_20261012
+        // Non-Windows touch tablets (including Android tablets in Desktop Site
+        // mode) open a visible preview page with BACK TO HOME + PRINT controls.
+        // Windows laptops/PCs retain the existing direct print behavior.
+        const ua = navigator.userAgent || '';
+        const isWindowsDesktop = /Windows NT/i.test(ua);
+        const hasTouch = Number(navigator.maxTouchPoints || 0) > 1
+            || Boolean(window.matchMedia?.('(pointer: coarse)')?.matches);
+        const useVisibleTabletPreview = hasTouch && !isWindowsDesktop;
+
+        if (useVisibleTabletPreview) {
             const printWindow = window.open('', '_blank');
 
             if (!printWindow) {
-                alert('Safari blocked the cart print window. Please allow pop-ups for this site and try again.');
+                alert('The browser blocked the cart print preview. Please allow pop-ups for this site and try again.');
                 return;
             }
 
@@ -1950,33 +2012,10 @@
                 printWindow.document.open();
                 printWindow.document.write(html);
                 printWindow.document.close();
-
-                const runPrint = () => {
-                    try {
-                        printWindow.focus();
-                        printWindow.print();
-                    } catch (error) {
-                        try { printWindow.close(); } catch (_) {}
-                        alert('Unable to open the AirPrint preview on this iPad.');
-                    }
-                };
-
-                // Give WebKit two paint frames plus a short render delay before
-                // invoking AirPrint. The document contains no remote resources.
-                printWindow.requestAnimationFrame(() => {
-                    printWindow.requestAnimationFrame(() => {
-                        printWindow.setTimeout(runPrint, 180);
-                    });
-                });
-
-                printWindow.addEventListener('afterprint', () => {
-                    printWindow.setTimeout(() => {
-                        try { printWindow.close(); } catch (_) {}
-                    }, 250);
-                }, { once: true });
+                printWindow.focus();
             } catch (error) {
                 try { printWindow.close(); } catch (_) {}
-                alert('Unable to prepare the cart print preview on this iPad.');
+                alert('Unable to open the cart print preview on this tablet.');
             }
 
             return;

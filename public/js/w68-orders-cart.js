@@ -435,9 +435,7 @@
         cartPrintSheet.innerHTML = '';
     }
 
-    function buildCartPrintSheet(printItems) {
-        if (!cartPrintSheet) return false;
-
+    function buildCartPrintDocument(printItems) {
         var showLess = printItems.some(function (item) {
             return cartItemHasDiscount(item);
         });
@@ -454,25 +452,48 @@
                 '<tr>' +
                     '<td>' + escapeHtml(item.productCode || '—') + '</td>' +
                     '<td>' + escapeHtml(item.partNumber || '—') + '</td>' +
-                    '<td class="cart-print-description">' + escapeHtml(item.description || '—') + '</td>' +
-                    '<td class="cart-print-number">' + qty + '</td>' +
-                    '<td class="cart-print-number">' + money(item.price) + '</td>' +
+                    '<td class="description">' + escapeHtml(item.description || '—') + '</td>' +
+                    '<td class="num">' + qty + '</td>' +
+                    '<td class="num">' + money(item.price) + '</td>' +
                     (showLess
-                        ? '<td class="cart-print-number">' + (less > 0 ? money(less) + '%' : '') + '</td>'
+                        ? '<td class="num">' + (less > 0 ? money(less) + '%' : '') + '</td>'
                         : '') +
-                    '<td class="cart-print-number">' + money(subtotal) + '</td>' +
+                    '<td class="num">' + money(subtotal) + '</td>' +
                 '</tr>';
         });
 
         var totalLabelColspan = showLess ? 6 : 5;
 
-        cartPrintSheet.innerHTML =
-            '<header class="cart-print-brand">' +
-                '<strong>ERW</strong>' +
-                '<span>SPECIAL STORE</span>' +
-            '</header>' +
-            '<table class="cart-print-table">' +
-                '<thead><tr>' +
+        return '<!DOCTYPE html>' +
+            '<html><head><meta charset="utf-8">' +
+            '<title>ERW Special Store - Cart List</title>' +
+            '<style>' +
+                '@page{size:A4 portrait;margin:10mm;}' +
+                '*{box-sizing:border-box;}' +
+                'html,body{margin:0;padding:0;background:#fff;color:#000;}' +
+                'body{font-family:Arial,Helvetica,sans-serif;}' +
+                '.brand{margin:0 0 20px;text-align:center;}' +
+                '.brand strong{display:block;font-size:20px;line-height:1.05;font-weight:700;}' +
+                '.brand span{display:block;margin-top:3px;font-size:13px;line-height:1.05;font-weight:700;letter-spacing:.7px;}' +
+                'table{width:100%;border-collapse:collapse;table-layout:fixed;font-size:9px;}' +
+                'th,td{border:none!important;padding:5px 6px;vertical-align:top;overflow-wrap:anywhere;}' +
+                'thead th{padding-top:4px;padding-bottom:8px;text-align:center;font-size:8px;font-weight:700;white-space:nowrap;}' +
+                'tbody td{padding-top:5px;padding-bottom:5px;}' +
+                '.description{text-align:left;}' +
+                '.num{text-align:right;white-space:nowrap;}' +
+                'th:nth-child(1){width:14%;}' +
+                'th:nth-child(2){width:14%;}' +
+                'th:nth-child(3){width:28%;}' +
+                'th:nth-child(4){width:7%;}' +
+                'th:nth-child(5){width:13%;}' +
+                'th:nth-last-child(2){width:10%;}' +
+                'th:last-child{width:14%;}' +
+                'tfoot td{border:none!important;}' +
+                '.total-row td{padding-top:10px;padding-bottom:10px;border-top:1px dashed #000!important;border-bottom:1px dashed #000!important;font-size:10px;font-weight:700;}' +
+                '.total-row td:first-child{text-align:right;padding-right:12px;}' +
+            '</style></head><body>' +
+                '<header class="brand"><strong>ERW</strong><span>SPECIAL STORE</span></header>' +
+                '<table><thead><tr>' +
                     '<th>PRODUCT CODE</th>' +
                     '<th>PART NO.</th>' +
                     '<th>DESCRIPTION</th>' +
@@ -482,13 +503,58 @@
                     '<th>SUB TOTAL</th>' +
                 '</tr></thead>' +
                 '<tbody>' + rows + '</tbody>' +
-                '<tfoot><tr class="cart-print-total-row">' +
+                '<tfoot><tr class="total-row">' +
                     '<td colspan="' + totalLabelColspan + '">TOTAL</td>' +
-                    '<td class="cart-print-number">' + money(total) + '</td>' +
-                '</tr></tfoot>' +
-            '</table>';
+                    '<td class="num">' + money(total) + '</td>' +
+                '</tr></tfoot></table>' +
+            '</body></html>';
+    }
 
-        return true;
+    function printCartDocument(html) {
+        // W68_CART_PRINT_ISOLATED_DOCUMENT_20261012
+        // Print a dedicated iframe document so Orders itself is never printed.
+        var frame = document.createElement('iframe');
+        frame.setAttribute('aria-hidden', 'true');
+        frame.style.position = 'fixed';
+        frame.style.width = '1px';
+        frame.style.height = '1px';
+        frame.style.right = '100%';
+        frame.style.bottom = '100%';
+        frame.style.border = '0';
+        frame.style.opacity = '0';
+        document.body.appendChild(frame);
+
+        var printWindow = frame.contentWindow;
+        var printDocument = frame.contentDocument || (printWindow ? printWindow.document : null);
+
+        if (!printWindow || !printDocument) {
+            frame.parentNode.removeChild(frame);
+            alert('Unable to create the cart print document on this device.');
+            return;
+        }
+
+        printDocument.open();
+        printDocument.write(html);
+        printDocument.close();
+
+        var cleaned = false;
+        var cleanup = function () {
+            if (cleaned) return;
+            cleaned = true;
+            window.setTimeout(function () {
+                if (frame.parentNode) frame.parentNode.removeChild(frame);
+            }, 250);
+        };
+
+        try {
+            printWindow.addEventListener('afterprint', cleanup, { once: true });
+            printWindow.focus();
+            printWindow.print();
+            window.setTimeout(cleanup, 3000);
+        } catch (error) {
+            cleanup();
+            alert('Unable to open the print dialog on this device.');
+        }
     }
 
     function printCartList(selectedOnly, event) {
@@ -508,26 +574,9 @@
             return false;
         }
 
-        if (!buildCartPrintSheet(printItems)) return false;
-
+        var printHtml = buildCartPrintDocument(printItems);
         closeCartPrintModal();
-        cartPrintSheet.hidden = false;
-        cartPrintSheet.setAttribute('aria-hidden', 'false');
-        body.classList.add('w68-cart-printing');
-
-        var cleanup = function () {
-            clearCartPrintSheet();
-        };
-        window.addEventListener('afterprint', cleanup, { once: true });
-
-        try {
-            window.print();
-        } catch (error) {
-            window.removeEventListener('afterprint', cleanup);
-            clearCartPrintSheet();
-            alert('Unable to open the print dialog on this device.');
-        }
-
+        printCartDocument(printHtml);
         return false;
     }
 

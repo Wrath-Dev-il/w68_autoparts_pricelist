@@ -6,10 +6,10 @@
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>W68 Autoparts | Orders</title>
     <link rel="icon" href="{{ asset('images/sidebar_logo.png') }}">
-    <link rel="stylesheet" href="{{ asset('css/w68-orders.css') }}?v=20261001-v122">
+    <link rel="stylesheet" href="{{ asset('css/w68-orders.css') }}?v=20261012-v142">
     <link rel="stylesheet" href="{{ asset('css/w68-notifications.css') }}?v=20260916-v102">
     <script src="{{ asset('js/w68-orders.js') }}?v=20261001-v129" defer></script>
-    <script src="{{ asset('js/w68-orders-cart.js') }}?v=20261007-v140" defer></script>
+    <script src="{{ asset('js/w68-orders-cart.js') }}?v=20261012-v142" defer></script>
     <script src="{{ asset('js/w68-notifications.js') }}?v=20261001-v131" defer></script>
 </head>
 {{-- W68_ORDERS_UNSERVED_SEARCH_V109_20260930 --}}
@@ -395,11 +395,31 @@
                 <div><span>TOTAL</span><strong data-orders-cart-total>0.00</strong></div>
                 <div><span>SELECTED TOTAL</span><strong data-orders-cart-selected-total>0.00</strong></div>
             </div>
-            {{-- W68_ORDERS_CART_PROCESS_ORDER_LINK_FIX_20261007 --}}
-            <a href="{{ route('process-order') }}" class="orders-cart-shop">PROCESS ORDER</a>
+            {{-- W68_CART_PRINT_LIST_20261012 --}}
+            <div class="orders-cart-footer-actions">
+                <button type="button" class="orders-cart-print-button" data-cart-print-open disabled>PRINT CART LIST</button>
+                <a href="{{ route('process-order') }}" class="orders-cart-shop">PROCESS ORDER</a>
+            </div>
         </footer>
     </section>
 </aside>
+
+{{-- W68_CART_PRINT_LIST_20261012: shared cart print selection on Orders. --}}
+<div class="cart-print-choice-modal" data-cart-print-modal hidden aria-hidden="true">
+    <button type="button" class="cart-print-choice-backdrop" data-cart-print-close aria-label="Close print cart list"></button>
+    <section class="cart-print-choice-card" role="dialog" aria-modal="true" aria-labelledby="orders-cart-print-choice-title">
+        <span class="cart-print-choice-kicker">ERW SPECIAL STORE</span>
+        <h2 id="orders-cart-print-choice-title">PRINT CART LIST</h2>
+        <p>Choose which cart items you want to print.</p>
+        <div class="cart-print-choice-actions">
+            <button type="button" class="cart-print-choice-all" data-cart-print-all>PRINT ALL</button>
+            <button type="button" class="cart-print-choice-selected" data-cart-print-selected>PRINT SELECTED ONLY</button>
+            <button type="button" class="cart-print-choice-cancel" data-cart-print-close>CANCEL</button>
+        </div>
+    </section>
+</div>
+
+<section class="cart-print-sheet" data-cart-print-sheet hidden aria-hidden="true"></section>
 
 <div class="order-modal" data-order-modal hidden aria-hidden="true">
     <button type="button" class="order-modal-backdrop" data-order-modal-close aria-label="Close order"></button>

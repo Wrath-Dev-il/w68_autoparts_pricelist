@@ -530,82 +530,25 @@
     }
 
     function printCartDocument(html) {
-        // W68_CART_PRINT_TABLET_PREVIEW_ACTIONS_20261012
-        // Android/non-Windows touch tablets use a visible preview page even
-        // when the browser is in Desktop Site mode. Windows laptops keep the
-        // existing desktop print flow.
-        var ua = navigator.userAgent || '';
-        var isWindowsDesktop = /Windows NT/i.test(ua);
-        var coarsePointer = false;
-        try {
-            coarsePointer = Boolean(window.matchMedia && window.matchMedia('(pointer: coarse)').matches);
-        } catch (ignore) {}
-        var hasTouch = Number(navigator.maxTouchPoints || 0) > 1 || coarsePointer;
-        var useVisibleTabletPreview = hasTouch && !isWindowsDesktop;
+        // W68_CART_PRINT_UNIVERSAL_PREVIEW_20261012
+        // Always open our own visible print page first on every device.
+        // The native Windows/Android/iOS print dialog cannot be customized by
+        // the website, so BACK TO HOME + PRINT remain on this preview page.
+        var printWindow = window.open('', '_blank');
 
-        if (useVisibleTabletPreview) {
-            var tabletPrintWindow = window.open('', '_blank');
-
-            if (!tabletPrintWindow) {
-                alert('The browser blocked the cart print preview. Please allow pop-ups for this site and try again.');
-                return;
-            }
-
-            try {
-                tabletPrintWindow.document.open();
-                tabletPrintWindow.document.write(html);
-                tabletPrintWindow.document.close();
-                tabletPrintWindow.focus();
-            } catch (error) {
-                try { tabletPrintWindow.close(); } catch (ignore2) {}
-                alert('Unable to open the cart print preview on this tablet.');
-            }
-
+        if (!printWindow) {
+            alert('The browser blocked the cart print preview. Please allow pop-ups for this site and try again.');
             return;
         }
 
-        // Desktop/laptop: isolated iframe keeps the Orders page out of print.
-        var frame = document.createElement('iframe');
-        frame.setAttribute('aria-hidden', 'true');
-        frame.style.position = 'fixed';
-        frame.style.width = '1px';
-        frame.style.height = '1px';
-        frame.style.right = '100%';
-        frame.style.bottom = '100%';
-        frame.style.border = '0';
-        frame.style.opacity = '0';
-        document.body.appendChild(frame);
-
-        var printWindow = frame.contentWindow;
-        var printDocument = frame.contentDocument || (printWindow ? printWindow.document : null);
-
-        if (!printWindow || !printDocument) {
-            frame.parentNode.removeChild(frame);
-            alert('Unable to create the cart print document on this device.');
-            return;
-        }
-
-        printDocument.open();
-        printDocument.write(html);
-        printDocument.close();
-
-        var cleaned = false;
-        var cleanup = function () {
-            if (cleaned) return;
-            cleaned = true;
-            window.setTimeout(function () {
-                if (frame.parentNode) frame.parentNode.removeChild(frame);
-            }, 250);
-        };
-
         try {
-            printWindow.addEventListener('afterprint', cleanup, { once: true });
+            printWindow.document.open();
+            printWindow.document.write(html);
+            printWindow.document.close();
             printWindow.focus();
-            printWindow.print();
-            window.setTimeout(cleanup, 3000);
         } catch (error) {
-            cleanup();
-            alert('Unable to open the print dialog on this device.');
+            try { printWindow.close(); } catch (ignore) {}
+            alert('Unable to open the cart print preview on this device.');
         }
     }
 

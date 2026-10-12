@@ -1850,7 +1850,12 @@
                 <tr>
                     <td>${escapeHtml(item.productCode || '—')}</td>
                     <td>${escapeHtml(item.partNumber || '—')}</td>
-                    <td class="description">${escapeHtml(item.description || '—')}</td>
+                    <td class="description">${escapeHtml(
+                        [item.description, item.application, item.brand]
+                            .map((value) => String(value || '').trim())
+                            .filter(Boolean)
+                            .join(' + ') || '—'
+                    )}</td>
                     <td class="num">${qty}</td>
                     <td class="num">${money(item.price)}</td>
                     ${showLess ? `<td class="num">${less > 0 ? percent(less) + '%' : ''}</td>` : ''}

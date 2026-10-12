@@ -1914,12 +1914,14 @@ a.view-order-button:visited {
 }
 
 .cart-print-choice-modal {
-    position: fixed;
-    inset: 0;
-    z-index: 7000;
+    position: fixed !important;
+    inset: 0 !important;
+    z-index: 2147483000 !important;
     display: grid;
     place-items: center;
     padding: 18px;
+    pointer-events: auto !important;
+    isolation: isolate;
 }
 
 .cart-print-choice-backdrop {

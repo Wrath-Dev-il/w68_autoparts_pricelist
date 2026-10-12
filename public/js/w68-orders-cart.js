@@ -516,8 +516,57 @@
     }
 
     function printCartDocument(html) {
-        // W68_CART_PRINT_ISOLATED_DOCUMENT_20261012
-        // Print a dedicated iframe document so Orders itself is never printed.
+        // W68_CART_PRINT_IPAD_RENDER_FIX_20261012
+        // Safari/iPad may print an invisible 1px iframe as a blank page.
+        // Use a real temporary document for Apple touch devices, then AirPrint
+        // after WebKit has had time to paint it.
+        var ua = navigator.userAgent || '';
+        var appleTouch = /iPad|iPhone|iPod/i.test(ua)
+            || (/Macintosh/i.test(ua) && Number(navigator.maxTouchPoints || 0) > 1);
+
+        if (appleTouch) {
+            var applePrintWindow = window.open('', '_blank');
+
+            if (!applePrintWindow) {
+                alert('Safari blocked the cart print window. Please allow pop-ups for this site and try again.');
+                return;
+            }
+
+            try {
+                applePrintWindow.document.open();
+                applePrintWindow.document.write(html);
+                applePrintWindow.document.close();
+
+                var runApplePrint = function () {
+                    try {
+                        applePrintWindow.focus();
+                        applePrintWindow.print();
+                    } catch (error) {
+                        try { applePrintWindow.close(); } catch (ignore) {}
+                        alert('Unable to open the AirPrint preview on this iPad.');
+                    }
+                };
+
+                applePrintWindow.requestAnimationFrame(function () {
+                    applePrintWindow.requestAnimationFrame(function () {
+                        applePrintWindow.setTimeout(runApplePrint, 180);
+                    });
+                });
+
+                applePrintWindow.addEventListener('afterprint', function () {
+                    applePrintWindow.setTimeout(function () {
+                        try { applePrintWindow.close(); } catch (ignore) {}
+                    }, 250);
+                }, { once: true });
+            } catch (error) {
+                try { applePrintWindow.close(); } catch (ignore) {}
+                alert('Unable to prepare the cart print preview on this iPad.');
+            }
+
+            return;
+        }
+
+        // Desktop/laptop: isolated iframe keeps the Orders page out of print.
         var frame = document.createElement('iframe');
         frame.setAttribute('aria-hidden', 'true');
         frame.style.position = 'fixed';

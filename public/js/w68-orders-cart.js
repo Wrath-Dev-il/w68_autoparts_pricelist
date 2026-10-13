@@ -505,11 +505,6 @@
                 '.total-row td{padding-top:10px;padding-bottom:10px;border-top:1px dashed #000!important;border-bottom:1px dashed #000!important;font-size:10px;font-weight:700;}' +
                 '.total-row td:first-child{text-align:right;padding-right:12px;}' +
             '</style></head><body>' +
-                '<nav class="print-toolbar" aria-label="Cart print actions">' +
-                    '<a href="' + escapeHtml(homeUrl) + '">BACK TO HOME</a>' +
-                    '<button type="button" onclick="window.print()">PRINT</button>' +
-                '</nav>' +
-                '<main class="print-content">' +
                 '<header class="brand"><strong>ERW</strong><span>SPECIAL STORE</span></header>' +
                 '<table><thead><tr>' +
                     '<th>PRODUCT CODE</th>' +
@@ -525,17 +520,117 @@
                     '<td colspan="' + totalLabelColspan + '">TOTAL</td>' +
                     '<td class="num">' + money(total) + '</td>' +
                 '</tr></tfoot></table>' +
-                '</main>' +
             '</body></html>';
     }
 
     function printCartDocument(html) {
-        // W68_CART_PRINT_UNIVERSAL_PREVIEW_20261012
-        // Always open our own visible print page first on every device.
-        // The native Windows/Android/iOS print dialog cannot be customized by
-        // the website, so BACK TO HOME + PRINT remain on this preview page.
-        var printWindow = window.open('', '_blank');
+        // W68_CART_PRINT_TABLET_POPUP_20261013
+        // Tablets use a full-screen in-page popup, so Xiaomi/Android Desktop
+        // Site mode does not navigate away to a separate print area.
+        var ua = navigator.userAgent || '';
+        var isWindows = /Windows NT/i.test(ua);
+        var coarsePointer = false;
+        try {
+            coarsePointer = Boolean(window.matchMedia && window.matchMedia('(pointer: coarse)').matches);
+        } catch (ignore) {}
+        var hasTouch = Number(navigator.maxTouchPoints || 0) > 1 || coarsePointer;
+        var useTabletPopup = hasTouch && !isWindows;
 
+        if (useTabletPopup) {
+            var existing = document.querySelector('[data-cart-print-preview-popup]');
+            if (existing && existing.parentNode) existing.parentNode.removeChild(existing);
+
+            var overlay = document.createElement('div');
+            overlay.setAttribute('data-cart-print-preview-popup', '');
+            overlay.style.position = 'fixed';
+            overlay.style.inset = '0';
+            overlay.style.zIndex = '2147483600';
+            overlay.style.display = 'grid';
+            overlay.style.gridTemplateRows = '64px minmax(0, 1fr)';
+            overlay.style.background = '#dfe5e2';
+            overlay.style.overflow = 'hidden';
+
+            var toolbar = document.createElement('div');
+            toolbar.style.display = 'flex';
+            toolbar.style.alignItems = 'center';
+            toolbar.style.justifyContent = 'space-between';
+            toolbar.style.gap = '12px';
+            toolbar.style.padding = '8px 14px';
+            toolbar.style.background = '#064e3b';
+            toolbar.style.borderBottom = '3px solid #ffd633';
+            toolbar.style.boxShadow = '0 4px 16px rgba(0,0,0,.18)';
+
+            var backButton = document.createElement('button');
+            backButton.type = 'button';
+            backButton.textContent = 'BACK TO HOME';
+            backButton.style.minWidth = '150px';
+            backButton.style.minHeight = '44px';
+            backButton.style.padding = '0 18px';
+            backButton.style.border = '1px solid #ffffff';
+            backButton.style.borderRadius = '8px';
+            backButton.style.background = '#ffffff';
+            backButton.style.color = '#800020';
+            backButton.style.font = '700 13px Arial, sans-serif';
+            backButton.style.cursor = 'pointer';
+            backButton.style.touchAction = 'manipulation';
+
+            var printButton = document.createElement('button');
+            printButton.type = 'button';
+            printButton.textContent = 'PRINT';
+            printButton.style.minWidth = '150px';
+            printButton.style.minHeight = '44px';
+            printButton.style.padding = '0 18px';
+            printButton.style.border = '1px solid #ffd633';
+            printButton.style.borderRadius = '8px';
+            printButton.style.background = '#800020';
+            printButton.style.color = '#ffd633';
+            printButton.style.font = '700 13px Arial, sans-serif';
+            printButton.style.cursor = 'pointer';
+            printButton.style.touchAction = 'manipulation';
+
+            var frame = document.createElement('iframe');
+            frame.title = 'Cart print preview';
+            frame.style.width = '100%';
+            frame.style.height = '100%';
+            frame.style.border = '0';
+            frame.style.background = '#ffffff';
+            frame.style.display = 'block';
+
+            toolbar.appendChild(backButton);
+            toolbar.appendChild(printButton);
+            overlay.appendChild(toolbar);
+            overlay.appendChild(frame);
+            document.body.appendChild(overlay);
+
+            var frameDocument = frame.contentDocument || (frame.contentWindow ? frame.contentWindow.document : null);
+            if (!frameDocument || !frame.contentWindow) {
+                if (overlay.parentNode) overlay.parentNode.removeChild(overlay);
+                alert('Unable to open the cart print popup on this tablet.');
+                return;
+            }
+
+            frameDocument.open();
+            frameDocument.write(html);
+            frameDocument.close();
+
+            backButton.addEventListener('click', function () {
+                window.location.href = homeUrl;
+            });
+
+            printButton.addEventListener('click', function () {
+                try {
+                    frame.contentWindow.focus();
+                    frame.contentWindow.print();
+                } catch (ignore3) {
+                    alert('Unable to open the printer from this tablet.');
+                }
+            });
+
+            return;
+        }
+
+        // PCs/laptops keep the existing separate print-preview page.
+        var printWindow = window.open('', '_blank');
         if (!printWindow) {
             alert('The browser blocked the cart print preview. Please allow pop-ups for this site and try again.');
             return;
@@ -547,7 +642,7 @@
             printWindow.document.close();
             printWindow.focus();
         } catch (error) {
-            try { printWindow.close(); } catch (ignore) {}
+            try { printWindow.close(); } catch (ignore2) {}
             alert('Unable to open the cart print preview on this device.');
         }
     }

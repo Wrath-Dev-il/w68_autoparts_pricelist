@@ -1955,11 +1955,6 @@
 </style>
 </head>
 <body>
-    <nav class="print-toolbar" aria-label="Cart print actions">
-        <a href="${escapeHtml(homeUrl)}">BACK TO HOME</a>
-        <button type="button" onclick="window.print()">PRINT</button>
-    </nav>
-    <main class="print-content">
     <header class="brand">
         <strong>ERW</strong>
         <span>SPECIAL STORE</span>
@@ -1984,18 +1979,128 @@
             </tr>
         </tfoot>
     </table>
-    </main>
 </body>
 </html>`;
     };
 
     const printCartDocument = (html) => {
-        // W68_CART_PRINT_UNIVERSAL_PREVIEW_20261012
-        // Always open our own visible print page first on every device.
-        // The native Windows/Android/iOS print dialog cannot be customized by
-        // the website, so BACK TO HOME + PRINT remain on this preview page.
-        const printWindow = window.open('', '_blank');
+        // W68_CART_PRINT_TABLET_POPUP_20261013
+        // Tablets use an in-page full-screen preview instead of opening a new
+        // tab. The printable iframe is visible at full size before PRINT is
+        // tapped, which is reliable on Android/Xiaomi landscape printing.
+        const ua = navigator.userAgent || '';
+        const isWindows = /Windows NT/i.test(ua);
+        let coarsePointer = false;
+        try {
+            coarsePointer = Boolean(window.matchMedia?.('(pointer: coarse)')?.matches);
+        } catch (_) {}
+        const hasTouch = Number(navigator.maxTouchPoints || 0) > 1 || coarsePointer;
+        const useTabletPopup = hasTouch && !isWindows;
 
+        if (useTabletPopup) {
+            document.querySelector('[data-cart-print-preview-popup]')?.remove();
+
+            const overlay = document.createElement('div');
+            overlay.setAttribute('data-cart-print-preview-popup', '');
+            Object.assign(overlay.style, {
+                position: 'fixed',
+                inset: '0',
+                zIndex: '2147483600',
+                display: 'grid',
+                gridTemplateRows: '64px minmax(0, 1fr)',
+                background: '#dfe5e2',
+                overflow: 'hidden',
+            });
+
+            const toolbar = document.createElement('div');
+            Object.assign(toolbar.style, {
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                gap: '12px',
+                padding: '8px 14px',
+                background: '#064e3b',
+                borderBottom: '3px solid #ffd633',
+                boxShadow: '0 4px 16px rgba(0,0,0,.18)',
+            });
+
+            const backButton = document.createElement('button');
+            backButton.type = 'button';
+            backButton.textContent = 'BACK TO HOME';
+            Object.assign(backButton.style, {
+                minWidth: '150px',
+                minHeight: '44px',
+                padding: '0 18px',
+                border: '1px solid #ffffff',
+                borderRadius: '8px',
+                background: '#ffffff',
+                color: '#800020',
+                font: '700 13px Arial, sans-serif',
+                cursor: 'pointer',
+                touchAction: 'manipulation',
+            });
+
+            const printButton = document.createElement('button');
+            printButton.type = 'button';
+            printButton.textContent = 'PRINT';
+            Object.assign(printButton.style, {
+                minWidth: '150px',
+                minHeight: '44px',
+                padding: '0 18px',
+                border: '1px solid #ffd633',
+                borderRadius: '8px',
+                background: '#800020',
+                color: '#ffd633',
+                font: '700 13px Arial, sans-serif',
+                cursor: 'pointer',
+                touchAction: 'manipulation',
+            });
+
+            const frame = document.createElement('iframe');
+            frame.title = 'Cart print preview';
+            Object.assign(frame.style, {
+                width: '100%',
+                height: '100%',
+                border: '0',
+                background: '#ffffff',
+                display: 'block',
+            });
+
+            toolbar.appendChild(backButton);
+            toolbar.appendChild(printButton);
+            overlay.appendChild(toolbar);
+            overlay.appendChild(frame);
+            document.body.appendChild(overlay);
+
+            const frameDocument = frame.contentDocument || frame.contentWindow?.document;
+            if (!frameDocument || !frame.contentWindow) {
+                overlay.remove();
+                alert('Unable to open the cart print popup on this tablet.');
+                return;
+            }
+
+            frameDocument.open();
+            frameDocument.write(html);
+            frameDocument.close();
+
+            backButton.addEventListener('click', () => {
+                window.location.href = homeUrl;
+            });
+
+            printButton.addEventListener('click', () => {
+                try {
+                    frame.contentWindow.focus();
+                    frame.contentWindow.print();
+                } catch (_) {
+                    alert('Unable to open the printer from this tablet.');
+                }
+            });
+
+            return;
+        }
+
+        // PCs/laptops keep the existing separate print-preview page.
+        const printWindow = window.open('', '_blank');
         if (!printWindow) {
             alert('The browser blocked the cart print preview. Please allow pop-ups for this site and try again.');
             return;

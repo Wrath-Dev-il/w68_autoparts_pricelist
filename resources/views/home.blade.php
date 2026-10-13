@@ -151,10 +151,9 @@
             <div class="nav-main-content" data-nav-main>
                 <div class="nav-top-row">
                     <a class="nav-brand" href="{{ route('home') }}">
-                        <img src="{{ $logo }}" alt="W68 Autoparts & Service Center">
+                        <img src="{{ $logo }}" alt="W68 Special Store">
                         <span>
-                            <strong>W68 AUTOPARTS</strong>
-                            <small>Service Center &bull; Online Pricelist</small>
+                            <strong>W68 SPECIAL STORE</strong>
                         </span>
                     </a>
 

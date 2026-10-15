@@ -12,6 +12,21 @@
     var homeUrl = body.getAttribute('data-home-url') || '/home';
     var cartPrintBridgeUrl = body.getAttribute('data-cart-print-bridge-url') || '';
 
+    // W68_IPAD_CART_PRINT_BODY_LAUNCHER_20261015
+    var appleUa = navigator.userAgent || '';
+    var isIPadDevice = /iPad/i.test(appleUa)
+        || (
+            /Macintosh/i.test(appleUa)
+            && Number(navigator.maxTouchPoints || 0) > 1
+            && Math.min(
+                (window.screen && window.screen.width) || window.innerWidth || 0,
+                (window.screen && window.screen.height) || window.innerHeight || 0
+            ) >= 700
+        );
+    if (isIPadDevice) {
+        document.documentElement.classList.add('w68-ipad');
+    }
+
     var drawer = document.querySelector('[data-orders-cart-drawer]');
     var itemsNode = document.querySelector('[data-orders-cart-items]');
     var emptyNode = document.querySelector('[data-orders-cart-empty]');

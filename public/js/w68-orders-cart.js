@@ -783,7 +783,8 @@
         }, false);
     }
 
-    bindCartPrintTap(cartPrintButton, openCartPrintModal);
+    // W68_IPAD_PRINT_NATIVE_OPENER_20261015
+    // Keep the opener as a native href/#target control on Safari.
     bindCartPrintTap(cartPrintAllButton, function (event) {
         printCartList(false, event);
     });

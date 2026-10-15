@@ -111,6 +111,9 @@ Route::middleware(['portal.access', 'auth'])->group(function () {
     Route::put('/home/cart/sync', [CustomerHomeController::class, 'cartSync'])
         ->name('home.cart.sync');
 
+    Route::get('/home/cart/print-center', [CustomerHomeController::class, 'cartPrintCenter'])
+        ->name('home.cart.print-center');
+
     Route::get('/home/cart/print-bridge', [CustomerHomeController::class, 'launchCartPrinterBridge'])
         ->name('home.cart.print-bridge');
 

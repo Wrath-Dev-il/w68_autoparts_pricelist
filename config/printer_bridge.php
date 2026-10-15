@@ -12,7 +12,10 @@ return [
     */
     'install' => [
         'ios' => env('W68_PRINTER_BRIDGE_IOS_INSTALL_URL', ''),
-        'android' => env('W68_PRINTER_BRIDGE_ANDROID_INSTALL_URL', ''),
+        'android' => env(
+            'W68_PRINTER_BRIDGE_ANDROID_INSTALL_URL',
+            'https://github.com/Wrath-Dev-il/w68_autoparts_pricelist/releases/download/printer-bridge-android-latest/w68-printer-bridge.apk'
+        ),
         'windows' => env('W68_PRINTER_BRIDGE_WINDOWS_INSTALL_URL', ''),
     ],
 ];

@@ -85,11 +85,21 @@
     /* =====================================================
        W68 v64 — iPad / iOS reliable touch + visual viewport
        ===================================================== */
-    const isAppleTouchDevice = /iPad|iPhone|iPod/i.test(navigator.userAgent || '')
+    const appleUa = navigator.userAgent || '';
+    const isAppleTouchDevice = /iPad|iPhone|iPod/i.test(appleUa)
         || (navigator.platform === 'MacIntel' && Number(navigator.maxTouchPoints || 0) > 1);
+    const isIPadDevice = /iPad/i.test(appleUa)
+        || (
+            /Macintosh/i.test(appleUa)
+            && Number(navigator.maxTouchPoints || 0) > 1
+            && Math.min(window.screen?.width || window.innerWidth || 0, window.screen?.height || window.innerHeight || 0) >= 700
+        );
 
     if (isAppleTouchDevice) {
         document.documentElement.classList.add('w68-apple-touch');
+    }
+    if (isIPadDevice) {
+        document.documentElement.classList.add('w68-ipad');
     }
 
     const syncVisualViewport = () => {

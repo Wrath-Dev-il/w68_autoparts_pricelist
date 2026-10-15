@@ -1965,6 +1965,43 @@ html.w68-ipad .orders-cart-drawer.open .orders-cart-print-button {
     }
 }
 
+/* Pure-CSS iPadOS fallback for Safari desktop-UA variations.
+   -webkit-touch-callout is iOS/iPadOS WebKit-specific; the width floor keeps
+   this off the working iPhone layout. */
+@supports (-webkit-touch-callout: none) {
+    @media (min-width: 700px) and (max-width: 1366px) {
+        .cart-drawer.open ~ .w68-ipad-cart-print-launcher,
+        .orders-cart-drawer.open ~ .w68-ipad-cart-print-launcher {
+            position: fixed !important;
+            right: 270px !important;
+            bottom: max(16px, env(safe-area-inset-bottom)) !important;
+            z-index: 2147482500 !important;
+            width: 230px !important;
+            min-height: 46px !important;
+            display: flex !important;
+            align-items: center !important;
+            justify-content: center !important;
+            border: 1px solid var(--green) !important;
+            border-radius: 9px !important;
+            background: var(--green) !important;
+            color: #ffe35c !important;
+            font-size: 10px !important;
+            font-weight: 1000 !important;
+            text-decoration: none !important;
+            pointer-events: auto !important;
+            touch-action: manipulation !important;
+            -webkit-tap-highlight-color: rgba(255, 227, 92, .28) !important;
+            box-shadow: 0 8px 22px rgba(0,0,0,.22) !important;
+        }
+
+        .cart-drawer.open .cart-print-list-button,
+        .orders-cart-drawer.open .orders-cart-print-button {
+            visibility: hidden !important;
+            pointer-events: none !important;
+        }
+    }
+}
+
 .cart-print-choice-modal[hidden],
 .cart-print-sheet[hidden] {
     display: none !important;

@@ -399,7 +399,7 @@
             </div>
             {{-- W68_CART_PRINT_LIST_20261012 --}}
             <div class="orders-cart-footer-actions">
-                <button type="button" class="orders-cart-print-button" data-cart-print-open disabled>PRINT CART LIST</button>
+                <button type="button" class="orders-cart-print-button" data-cart-print-open>PRINT CART LIST</button>
                 <a href="{{ route('process-order') }}" class="orders-cart-shop">PROCESS ORDER</a>
             </div>
         </footer>

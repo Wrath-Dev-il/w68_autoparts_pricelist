@@ -56,7 +56,9 @@
     const cartPrintButton = document.querySelector('[data-cart-print-open]');
     const cartPrintModal = document.querySelector('[data-cart-print-modal]');
     const cartPrintSheet = document.querySelector('[data-cart-print-sheet]');
+    const cartPrintAllButton = document.querySelector('[data-cart-print-all]');
     const cartPrintSelectedButton = document.querySelector('[data-cart-print-selected]');
+    const cartPrintCloseButtons = Array.from(document.querySelectorAll('[data-cart-print-close]'));
     const brandDiscounts = (() => {
         try {
             const parsed = JSON.parse(document.body?.dataset.brandDiscounts || '{}');
@@ -140,11 +142,7 @@
             '[data-quantity-plus]',
             '[data-process-order]',
             '[data-process-order-close]',
-            '[data-process-proceed]',
-            '[data-cart-print-open]',
-            '[data-cart-print-close]',
-            '[data-cart-print-all]',
-            '[data-cart-print-selected]'
+            '[data-process-proceed]'
         ].join(',');
 
         document.addEventListener('touchstart', (event) => {
@@ -197,27 +195,6 @@
 
             if (Date.now() < bridgeLockedUntil) return;
             bridgeLockedUntil = Date.now() + 420;
-
-            // W68_IPAD_PRINT_TRUSTED_TOUCH_20261015
-            // Keep print actions inside the real iPad touch gesture. Safari can
-            // block the AirPrint window when a delayed synthetic click opens it.
-            if (clickTarget.matches?.('[data-cart-print-open]')) {
-                syncVisualViewport();
-                openCartPrintModal();
-                return;
-            }
-            if (clickTarget.matches?.('[data-cart-print-close]')) {
-                closeCartPrintModal();
-                return;
-            }
-            if (clickTarget.matches?.('[data-cart-print-all]')) {
-                printCartList(false);
-                return;
-            }
-            if (clickTarget.matches?.('[data-cart-print-selected]')) {
-                if (!clickTarget.disabled) printCartList(true);
-                return;
-            }
 
             window.setTimeout(() => {
                 syncVisualViewport();
@@ -2236,6 +2213,55 @@
         const printHtml = buildCartPrintDocument(printItems);
         printCartDocument(printHtml);
     };
+
+    // W68_IPAD_PRINT_DIRECT_CONTROL_BINDING_20261015
+    // Bind print controls at the element itself. Do not send these taps through
+    // the global iPad capture bridge; Safari can swallow/retarget that path.
+    const bindDirectCartPrintControl = (node, handler) => {
+        if (!node || typeof handler !== 'function') return;
+
+        let lastTouchAt = 0;
+
+        node.addEventListener('touchend', (event) => {
+            lastTouchAt = Date.now();
+            event.preventDefault();
+            event.stopPropagation();
+            handler(event);
+        }, { passive: false });
+
+        node.addEventListener('click', (event) => {
+            if (Date.now() - lastTouchAt < 700) {
+                event.preventDefault();
+                event.stopPropagation();
+                return;
+            }
+
+            event.preventDefault();
+            event.stopPropagation();
+            handler(event);
+        });
+    };
+
+    bindDirectCartPrintControl(cartPrintButton, () => {
+        syncVisualViewport();
+        openCartPrintModal();
+    });
+
+    bindDirectCartPrintControl(cartPrintAllButton, () => {
+        printCartList(false);
+    });
+
+    bindDirectCartPrintControl(cartPrintSelectedButton, () => {
+        if (!cartPrintSelectedButton?.disabled) printCartList(true);
+    });
+
+    cartPrintCloseButtons.forEach((button) => {
+        bindDirectCartPrintControl(button, closeCartPrintModal);
+    });
+
+    window.W68CartPrintOpen = openCartPrintModal;
+    window.W68CartPrintAll = () => printCartList(false);
+    window.W68CartPrintSelected = () => printCartList(true);
 
     /* =====================================================
        Process Order review page

@@ -3,7 +3,7 @@
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-    <title>W68 Printer Bridge | {{ $invoiceNo ?: 'Invoice' }}</title>
+    <title>W68 Printer Bridge | {{ $documentLabel ?? ($invoiceNo ?: 'Print') }}</title>
     <style>
         * { box-sizing: border-box; }
         html, body { margin: 0; min-height: 100%; font-family: Arial, Helvetica, sans-serif; }
@@ -200,10 +200,10 @@
         </div>
 
         <h1>W68 PRINTER BRIDGE</h1>
-        <div class="subtitle">INVOICE {{ $invoiceNo ?: 'W68' }}</div>
+        <div class="subtitle">{{ $documentLabel ?? ('INVOICE ' . ($invoiceNo ?: 'W68')) }}</div>
         <p>
-            W68 Printer Bridge is required for printer discovery and direct printing.
-            Browser printing has been disabled for W68 receipts.
+            W68 Printer Bridge scans available printers and sends the W68 print job
+            directly to the selected printer without using the Xiaomi/browser print screen.
         </p>
 
         <div class="actions">
@@ -229,8 +229,8 @@
 
             <h2 id="install-title">W68 PRINTER BRIDGE REQUIRED</h2>
             <p>
-                To use PRINT RECEIPT, install W68 Printer Bridge once on this device.
-                After installation, W68 can scan available printers and print directly without the browser print window.
+                Install W68 Printer Bridge once on this device.
+                After installation, W68 can scan available printers and print directly without the browser or Xiaomi system print window.
             </p>
 
             <a
@@ -329,8 +329,12 @@
             }
 
             function showNoInstallerMessage() {
-                var message =
-                    'W68 Printer Bridge for iPad has not been published to TestFlight/App Store yet. Safari will not open the W68 bridge until a valid Apple installer is configured.';
+                var targetPlatform = platform();
+                var message = targetPlatform === 'ios'
+                    ? 'W68 Printer Bridge for iPhone/iPad has not been published to TestFlight/App Store yet.'
+                    : targetPlatform === 'android'
+                        ? 'W68 Printer Bridge Android APK is not available yet.'
+                        : 'W68 Printer Bridge installer is not available yet for this device.';
 
                 if (installError) {
                     installError.hidden = false;

@@ -13,6 +13,13 @@ class W68PrintJob {
 
   String get invoiceNo => receipt.invoiceNo;
   String get orderCode => _string(job['order_code']);
+  String get documentType => _string(job['document_type']).trim().toLowerCase();
+  bool get isCartList => documentType == 'cart_list';
+  String get title {
+    final value = _string(job['title']).trim();
+    if (value.isNotEmpty) return value;
+    return isCartList ? 'W68 SPECIAL STORE CART LIST' : 'W68 INVOICE';
+  }
 
   factory W68PrintJob.fromJson(Map<String, dynamic> json) {
     final rows = (json['items'] as List<dynamic>? ?? const <dynamic>[])

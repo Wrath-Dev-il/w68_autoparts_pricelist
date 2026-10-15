@@ -1654,7 +1654,11 @@
         }
         if (cartEmptyNode) cartEmptyNode.style.display = cart.length ? 'none' : 'block';
         if (processOrderButton) processOrderButton.disabled = selected.length === 0;
-        if (cartPrintButton) cartPrintButton.disabled = cart.length === 0;
+        // W68_IPAD_PRINT_BUTTON_ALWAYS_TAPPABLE_20261015
+        // Safari can suppress touch/click events on a form control that was
+        // initially disabled. Keep PRINT CART LIST tappable and validate the
+        // cart inside openCartPrintModal instead.
+        if (cartPrintButton) cartPrintButton.disabled = false;
         if (cartPrintSelectedButton) cartPrintSelectedButton.disabled = selected.length === 0;
 
         if (cartSelectAll) {

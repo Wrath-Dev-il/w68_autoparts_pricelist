@@ -660,7 +660,7 @@
                 </div>
                 {{-- W68_CART_PRINT_LIST_20261012 --}}
                 <div class="cart-footer-actions">
-                    <a href="#w68-cart-print-choice" class="cart-print-list-button" data-cart-print-open role="button">PRINT CART LIST</a>
+                    <a href="{{ route('home.cart.print-center') }}" class="cart-print-list-button" data-cart-print-center role="button">PRINT CART LIST</a>
                     <button type="button" class="process-order-button" data-process-order disabled>PROCESS ORDER</button>
                 </div>
             </footer>
@@ -669,7 +669,7 @@
 
     {{-- W68_IPAD_CART_PRINT_BODY_LAUNCHER_20261015
          iPad-only launcher outside the transformed cart panel. --}}
-    <a href="#w68-cart-print-choice"
+    <a href="{{ route('home.cart.print-center') }}"
        class="w68-ipad-cart-print-launcher"
        data-ipad-cart-print-launcher
        role="button">PRINT CART LIST</a>

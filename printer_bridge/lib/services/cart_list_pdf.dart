@@ -52,7 +52,6 @@ class CartListPdf {
             ),
             pw.SizedBox(height: 14),
             pw.Table(
-              border: const pw.TableBorder(),
               columnWidths: {
                 0: const pw.FlexColumnWidth(14),
                 1: const pw.FlexColumnWidth(14),
@@ -90,6 +89,7 @@ class CartListPdf {
                               : '',
                           base,
                           right: true,
+                          dashWhenEmpty: false,
                         ),
                       _cell(_money(item.printSubtotal), base, right: true),
                     ],
@@ -142,6 +142,7 @@ class CartListPdf {
     pw.TextStyle style, {
     bool center = false,
     bool right = false,
+    bool dashWhenEmpty = true,
   }) =>
       pw.Padding(
         padding: const pw.EdgeInsets.symmetric(horizontal: 3, vertical: 4),
@@ -152,7 +153,7 @@ class CartListPdf {
                   ? pw.Alignment.center
                   : pw.Alignment.centerLeft,
           child: pw.Text(
-            value.trim().isEmpty ? '—' : value,
+            value.trim().isEmpty && dashWhenEmpty ? '—' : value,
             style: style,
           ),
         ),

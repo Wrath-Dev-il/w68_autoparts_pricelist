@@ -525,15 +525,55 @@
     }
 
     function printCartDocument(html) {
-        // W68_CART_PRINT_TABLET_POPUP_20261013
-        // Tablets use a full-screen in-page popup, so Xiaomi/Android Desktop
-        // Site mode does not navigate away to a separate print area.
+        // W68_IPAD_CART_PRINT_RESTORE_20261015
         var ua = navigator.userAgent || '';
+        var appleTouch = /iPad|iPhone|iPod/i.test(ua)
+            || (/Macintosh/i.test(ua) && Number(navigator.maxTouchPoints || 0) > 1);
+
+        if (appleTouch) {
+            var applePrintWindow = window.open('', '_blank');
+
+            if (!applePrintWindow) {
+                alert('Safari blocked the cart print window. Please allow pop-ups for this site and try again.');
+                return;
+            }
+
+            try {
+                applePrintWindow.document.open();
+                applePrintWindow.document.write(html);
+                applePrintWindow.document.close();
+
+                var runApplePrint = function () {
+                    try {
+                        applePrintWindow.focus();
+                        applePrintWindow.print();
+                    } catch (ignore) {
+                        alert('Unable to open AirPrint on this iPad.');
+                    }
+                };
+
+                if (typeof applePrintWindow.requestAnimationFrame === 'function') {
+                    applePrintWindow.requestAnimationFrame(function () {
+                        applePrintWindow.requestAnimationFrame(function () {
+                            applePrintWindow.setTimeout(runApplePrint, 180);
+                        });
+                    });
+                } else {
+                    applePrintWindow.setTimeout(runApplePrint, 250);
+                }
+            } catch (ignore2) {
+                try { applePrintWindow.close(); } catch (ignore3) {}
+                alert('Unable to prepare the cart print page on this iPad.');
+            }
+
+            return;
+        }
+
         var isWindows = /Windows NT/i.test(ua);
         var coarsePointer = false;
         try {
             coarsePointer = Boolean(window.matchMedia && window.matchMedia('(pointer: coarse)').matches);
-        } catch (ignore) {}
+        } catch (ignore4) {}
         var hasTouch = Number(navigator.maxTouchPoints || 0) > 1 || coarsePointer;
         var useTabletPopup = hasTouch && !isWindows;
 
@@ -572,7 +612,6 @@
             backButton.style.background = '#ffffff';
             backButton.style.color = '#800020';
             backButton.style.font = '700 13px Arial, sans-serif';
-            backButton.style.cursor = 'pointer';
             backButton.style.touchAction = 'manipulation';
 
             var printButton = document.createElement('button');
@@ -586,7 +625,6 @@
             printButton.style.background = '#800020';
             printButton.style.color = '#ffd633';
             printButton.style.font = '700 13px Arial, sans-serif';
-            printButton.style.cursor = 'pointer';
             printButton.style.touchAction = 'manipulation';
 
             var frame = document.createElement('iframe');
@@ -622,7 +660,7 @@
                 try {
                     frame.contentWindow.focus();
                     frame.contentWindow.print();
-                } catch (ignore3) {
+                } catch (ignore5) {
                     alert('Unable to open the printer from this tablet.');
                 }
             });
@@ -630,7 +668,6 @@
             return;
         }
 
-        // PCs/laptops keep the existing separate print-preview page.
         var printWindow = window.open('', '_blank');
         if (!printWindow) {
             alert('The browser blocked the cart print preview. Please allow pop-ups for this site and try again.');
@@ -642,8 +679,8 @@
             printWindow.document.write(html);
             printWindow.document.close();
             printWindow.focus();
-        } catch (error) {
-            try { printWindow.close(); } catch (ignore2) {}
+        } catch (ignore6) {
+            try { printWindow.close(); } catch (ignore7) {}
             alert('Unable to open the cart print preview on this device.');
         }
     }

@@ -10,6 +10,7 @@
     var itemBaseUrl = body.getAttribute('data-cart-item-base-url') || '';
     var selectionUrl = body.getAttribute('data-cart-selection-url') || '';
     var homeUrl = body.getAttribute('data-home-url') || '/home';
+    var cartPrintBridgeUrl = body.getAttribute('data-cart-print-bridge-url') || '';
 
     var drawer = document.querySelector('[data-orders-cart-drawer]');
     var itemsNode = document.querySelector('[data-orders-cart-items]');
@@ -647,6 +648,22 @@
         }
     }
 
+    function shouldUseNativePrinterBridge() {
+        if (!cartPrintBridgeUrl) return false;
+
+        var ua = navigator.userAgent || '';
+        if (/Windows NT/i.test(ua)) return false;
+
+        var coarsePointer = false;
+        try {
+            coarsePointer = Boolean(window.matchMedia && window.matchMedia('(pointer: coarse)').matches);
+        } catch (ignore) {}
+
+        return Number(navigator.maxTouchPoints || 0) > 1
+            || coarsePointer
+            || /Android|Xiaomi|MIUI/i.test(ua);
+    }
+
     function printCartList(selectedOnly, event) {
         if (event) {
             if (event.preventDefault) event.preventDefault();
@@ -664,8 +681,37 @@
             return false;
         }
 
-        var printHtml = buildCartPrintDocument(printItems);
         closeCartPrintModal();
+
+        // W68_CART_PRINTER_BRIDGE_20261015
+        if (shouldUseNativePrinterBridge()) {
+            var startedAt = Date.now ? Date.now() : new Date().getTime();
+
+            var launchBridge = function () {
+                var now = Date.now ? Date.now() : new Date().getTime();
+                if (pendingMutationCount > 0 && now - startedAt < 5000) {
+                    window.setTimeout(launchBridge, 40);
+                    return;
+                }
+
+                try {
+                    var target = new URL(cartPrintBridgeUrl, window.location.href);
+                    target.searchParams.set('mode', selectedOnly ? 'selected' : 'all');
+                    window.location.href = target.toString();
+                } catch (error) {
+                    var separator = cartPrintBridgeUrl.indexOf('?') >= 0 ? '&' : '?';
+                    window.location.href = cartPrintBridgeUrl
+                        + separator
+                        + 'mode='
+                        + (selectedOnly ? 'selected' : 'all');
+                }
+            };
+
+            launchBridge();
+            return false;
+        }
+
+        var printHtml = buildCartPrintDocument(printItems);
         printCartDocument(printHtml);
         return false;
     }

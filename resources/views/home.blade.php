@@ -660,7 +660,7 @@
                 </div>
                 {{-- W68_CART_PRINT_LIST_20261012 --}}
                 <div class="cart-footer-actions">
-                    <button type="button" class="cart-print-list-button" data-cart-print-open>PRINT CART LIST</button>
+                    <button type="button" class="cart-print-list-button" data-cart-print-open onclick="event.preventDefault(); event.stopPropagation(); var m=document.querySelector('[data-cart-print-modal]'); if(m){m.hidden=false;m.setAttribute('aria-hidden','false');document.body.classList.add('w68-cart-print-choice-open');} return false;" ontouchend="event.preventDefault(); event.stopPropagation(); var m=document.querySelector('[data-cart-print-modal]'); if(m){m.hidden=false;m.setAttribute('aria-hidden','false');document.body.classList.add('w68-cart-print-choice-open');} return false;">PRINT CART LIST</button>
                     <button type="button" class="process-order-button" data-process-order disabled>PROCESS ORDER</button>
                 </div>
             </footer>

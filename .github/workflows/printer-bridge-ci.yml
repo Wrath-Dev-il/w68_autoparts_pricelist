@@ -1,4 +1,4 @@
-name: W68 Printer Bridge CI
+name: W68 Printer Bridge Android
 
 on:
   push:
@@ -7,13 +7,23 @@ on:
       - ".github/workflows/printer-bridge-ci.yml"
   workflow_dispatch:
 
+permissions:
+  contents: write
+
 jobs:
-  analyze:
+  android:
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 30
+
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+
+      - name: Install Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
 
       - name: Install Flutter
         uses: subosito/flutter-action@v2
@@ -24,6 +34,14 @@ jobs:
       - name: Flutter version
         run: flutter --version
 
+      - name: Generate Android runner
+        working-directory: printer_bridge
+        run: flutter create --platforms=android --org com.w68autoparts --project-name w68_printer_bridge .
+
+      - name: Apply W68 Android configuration
+        working-directory: printer_bridge
+        run: dart run ./scripts/configure_platforms.dart
+
       - name: Get packages
         working-directory: printer_bridge
         run: flutter pub get
@@ -31,3 +49,33 @@ jobs:
       - name: Analyze
         working-directory: printer_bridge
         run: flutter analyze
+
+      - name: Build Android APK
+        working-directory: printer_bridge
+        run: flutter build apk --release
+
+      - name: Prepare APK
+        run: cp printer_bridge/build/app/outputs/flutter-apk/app-release.apk printer_bridge/w68-printer-bridge.apk
+
+      - name: Upload workflow artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: w68-printer-bridge-android
+          path: printer_bridge/w68-printer-bridge.apk
+          if-no-files-found: error
+
+      - name: Publish stable APK download
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          TAG="printer-bridge-android-latest"
+          APK="printer_bridge/w68-printer-bridge.apk"
+
+          if gh release view "$TAG" >/dev/null 2>&1; then
+            gh release upload "$TAG" "$APK" --clobber
+          else
+            gh release create "$TAG" "$APK" \
+              --title "W68 Printer Bridge Android" \
+              --notes "Install this APK on the W68 Android/Xiaomi tablet. The asset is replaced automatically when the Printer Bridge source changes." \
+              --prerelease
+          fi

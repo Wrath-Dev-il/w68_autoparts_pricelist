@@ -660,7 +660,7 @@
                 </div>
                 {{-- W68_CART_PRINT_LIST_20261012 --}}
                 <div class="cart-footer-actions">
-                    <button type="button" class="cart-print-list-button" data-cart-print-open onclick="event.preventDefault(); event.stopPropagation(); var m=document.querySelector('[data-cart-print-modal]'); if(m){m.hidden=false;m.setAttribute('aria-hidden','false');document.body.classList.add('w68-cart-print-choice-open');} return false;" ontouchend="event.preventDefault(); event.stopPropagation(); var m=document.querySelector('[data-cart-print-modal]'); if(m){m.hidden=false;m.setAttribute('aria-hidden','false');document.body.classList.add('w68-cart-print-choice-open');} return false;">PRINT CART LIST</button>
+                    <a href="#w68-cart-print-choice" class="cart-print-list-button" data-cart-print-open role="button">PRINT CART LIST</a>
                     <button type="button" class="process-order-button" data-process-order disabled>PROCESS ORDER</button>
                 </div>
             </footer>
@@ -668,8 +668,8 @@
     </aside>
 
     {{-- W68_CART_PRINT_LIST_20261012: choose all cart rows or checkbox-selected rows. --}}
-    <div class="cart-print-choice-modal" data-cart-print-modal hidden aria-hidden="true">
-        <button type="button" class="cart-print-choice-backdrop" data-cart-print-close aria-label="Close print cart list"></button>
+    <div id="w68-cart-print-choice" class="cart-print-choice-modal" data-cart-print-modal hidden aria-hidden="true">
+        <a href="#" class="cart-print-choice-backdrop" data-cart-print-close aria-label="Close print cart list"></a>
         <section class="cart-print-choice-card" role="dialog" aria-modal="true" aria-labelledby="cart-print-choice-title">
             <span class="cart-print-choice-kicker">ERW SPECIAL STORE</span>
             <h2 id="cart-print-choice-title">PRINT CART LIST</h2>
@@ -677,7 +677,7 @@
             <div class="cart-print-choice-actions">
                 <button type="button" class="cart-print-choice-all" data-cart-print-all>PRINT ALL</button>
                 <button type="button" class="cart-print-choice-selected" data-cart-print-selected>PRINT SELECTED ONLY</button>
-                <button type="button" class="cart-print-choice-cancel" data-cart-print-close>CANCEL</button>
+                <a href="#" role="button" class="cart-print-choice-cancel" data-cart-print-close>CANCEL</a>
             </div>
         </section>
     </div>

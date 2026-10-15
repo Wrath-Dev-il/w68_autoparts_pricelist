@@ -7,6 +7,7 @@ import 'package:pdf/pdf.dart';
 import 'package:printing/printing.dart';
 
 import 'models/print_job.dart';
+import 'services/cart_list_pdf.dart';
 import 'services/job_client.dart';
 import 'services/printer_discovery_service.dart';
 import 'services/receipt_pdf.dart';
@@ -62,7 +63,7 @@ class _PrinterBridgeHomeState extends State<PrinterBridgeHome>
   List<BridgePrinter> printers = const [];
   String? selectedPrinterKey;
   String? error;
-  String status = 'Waiting for a W68 invoice…';
+  String status = 'Waiting for a W68 print job…';
   bool loadingJob = false;
   bool scanning = false;
   bool printing = false;
@@ -113,7 +114,7 @@ class _PrinterBridgeHomeState extends State<PrinterBridgeHome>
     setState(() {
       loadingJob = true;
       error = null;
-      status = 'Loading secured invoice…';
+      status = 'Loading secured W68 print job…';
     });
 
     try {
@@ -248,20 +249,22 @@ class _PrinterBridgeHomeState extends State<PrinterBridgeHome>
                       color: green,
                       child: Row(
                         children: [
-                          const Expanded(
+                          Expanded(
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 Text(
-                                  'PRINT RECEIPT',
-                                  style: TextStyle(
+                                  currentJob.isCartList
+                                      ? 'PRINT CART LIST'
+                                      : 'PRINT RECEIPT',
+                                  style: const TextStyle(
                                     color: gold,
                                     fontSize: 17,
                                     fontWeight: FontWeight.w900,
                                   ),
                                 ),
-                                SizedBox(height: 2),
-                                Text(
+                                const SizedBox(height: 2),
+                                const Text(
                                   'A4 PORTRAIT • 10 MM W68 DOCUMENT MARGINS',
                                   style: TextStyle(
                                     color: Color(0xFFD8EEE6),
@@ -487,19 +490,30 @@ class _PrinterBridgeHomeState extends State<PrinterBridgeHome>
     setState(() {
       printing = true;
       error = null;
-      status = 'Printing ${currentJob.invoiceNo} to ${target.displayName}…';
+      status = currentJob.isCartList
+          ? 'Printing cart list to ${target.displayName}…'
+          : 'Printing ${currentJob.invoiceNo} to ${target.displayName}…';
     });
 
     try {
-      final bytes = await ReceiptPdf.build(
-        currentJob,
-        PdfPageFormat.a4,
-        copies: copies,
-      );
+      // W68_CART_PRINTER_BRIDGE_20261015
+      final bytes = currentJob.isCartList
+          ? await CartListPdf.build(
+              currentJob,
+              PdfPageFormat.a4,
+              copies: copies,
+            )
+          : await ReceiptPdf.build(
+              currentJob,
+              PdfPageFormat.a4,
+              copies: copies,
+            );
 
       final sent = await Printing.directPrintPdf(
         printer: target.printer,
-        name: 'W68 Invoice ${currentJob.invoiceNo}',
+        name: currentJob.isCartList
+            ? 'W68 Special Store Cart List'
+            : 'W68 Invoice ${currentJob.invoiceNo}',
         format: PdfPageFormat.a4,
         usePrinterSettings: false,
         onLayout: (_) async => bytes,
@@ -637,10 +651,12 @@ class _PrinterBridgeHomeState extends State<PrinterBridgeHome>
                   borderRadius: BorderRadius.circular(10),
                   border: Border.all(color: const Color(0xFFE8D98F)),
                 ),
-                child: const Text(
-                  'RECEIPT FORMAT: A4 PORTRAIT • 10 MM W68 DOCUMENT MARGINS',
+                child: Text(
+                  currentJob?.isCartList == true
+                      ? 'CART LIST FORMAT: A4 PORTRAIT • 10 MM W68 DOCUMENT MARGINS'
+                      : 'RECEIPT FORMAT: A4 PORTRAIT • 10 MM W68 DOCUMENT MARGINS',
                   textAlign: TextAlign.center,
-                  style: TextStyle(
+                  style: const TextStyle(
                     color: green,
                     fontSize: 9,
                     fontWeight: FontWeight.w900,
@@ -659,7 +675,9 @@ class _PrinterBridgeHomeState extends State<PrinterBridgeHome>
                 label: Text(
                   printers.isEmpty
                       ? 'NO PRINTER AVAILABLE'
-                      : 'PRINT RECEIPT',
+                      : currentJob?.isCartList == true
+                          ? 'PRINT CART LIST'
+                          : 'PRINT RECEIPT',
                   style: const TextStyle(
                     fontWeight: FontWeight.w900,
                     letterSpacing: .5,
@@ -774,8 +792,8 @@ class _PrinterBridgeHomeState extends State<PrinterBridgeHome>
                 Expanded(
                   child: Text(
                     loadingJob
-                        ? 'Loading W68 invoice…'
-                        : 'Open an invoice in W68 and press PRINT.',
+                        ? 'Loading W68 print job…'
+                        : 'Open a W68 invoice or cart list and press PRINT.',
                     style: const TextStyle(
                       color: green,
                       fontWeight: FontWeight.w800,
@@ -793,7 +811,9 @@ class _PrinterBridgeHomeState extends State<PrinterBridgeHome>
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        'INVOICE ${currentJob.invoiceNo}',
+                        currentJob.isCartList
+                            ? 'CART LIST'
+                            : 'INVOICE ${currentJob.invoiceNo}',
                         style: const TextStyle(
                           color: green,
                           fontSize: 14,
@@ -802,7 +822,9 @@ class _PrinterBridgeHomeState extends State<PrinterBridgeHome>
                       ),
                       const SizedBox(height: 2),
                       Text(
-                        '${currentJob.receipt.customerName} • ${currentJob.orderCode}',
+                        currentJob.isCartList
+                            ? '${currentJob.job['print_mode'] == 'selected' ? 'SELECTED ITEMS' : 'ALL ITEMS'} • ${currentJob.items.length} PRODUCTS'
+                            : '${currentJob.receipt.customerName} • ${currentJob.orderCode}',
                         style: const TextStyle(
                           color: Color(0xFF6E7D75),
                           fontSize: 10,

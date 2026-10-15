@@ -6,10 +6,10 @@
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>W68 Autoparts | Orders</title>
     <link rel="icon" href="{{ asset('images/sidebar_logo.png') }}">
-    <link rel="stylesheet" href="{{ asset('css/w68-orders.css') }}?v=20261012-v143">
+    <link rel="stylesheet" href="{{ asset('css/w68-orders.css') }}?v=20261015-v144">
     <link rel="stylesheet" href="{{ asset('css/w68-notifications.css') }}?v=20260916-v102">
     <script src="{{ asset('js/w68-orders.js') }}?v=20261001-v129" defer></script>
-    <script src="{{ asset('js/w68-orders-cart.js') }}?v=20261015-v153" defer></script>
+    <script src="{{ asset('js/w68-orders-cart.js') }}?v=20261015-v154" defer></script>
     <script src="{{ asset('js/w68-notifications.js') }}?v=20261001-v131" defer></script>
 </head>
 {{-- W68_ORDERS_UNSERVED_SEARCH_V109_20260930 --}}

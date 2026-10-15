@@ -2124,6 +2124,10 @@
         const ua = navigator.userAgent || '';
         if (/Windows NT/i.test(ua)) return false;
 
+        const appleTouch = /iPad|iPhone|iPod/i.test(ua)
+            || (/Macintosh/i.test(ua) && Number(navigator.maxTouchPoints || 0) > 1);
+        if (appleTouch) return false;
+
         let coarsePointer = false;
         try {
             coarsePointer = Boolean(window.matchMedia?.('(pointer: coarse)')?.matches);

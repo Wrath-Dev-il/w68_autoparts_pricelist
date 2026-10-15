@@ -2242,11 +2242,9 @@
         });
     };
 
-    bindDirectCartPrintControl(cartPrintButton, () => {
-        syncVisualViewport();
-        openCartPrintModal();
-    });
-
+    // W68_IPAD_PRINT_NATIVE_OPENER_20261015
+    // Do not bind/preventDefault on the PRINT CART LIST anchor. Safari owns
+    // that first tap and opens #w68-cart-print-choice through native :target.
     bindDirectCartPrintControl(cartPrintAllButton, () => {
         printCartList(false);
     });

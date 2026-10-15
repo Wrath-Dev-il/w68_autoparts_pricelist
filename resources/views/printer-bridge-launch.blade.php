@@ -303,6 +303,23 @@
                 return installerUrl() !== '';
             }
 
+            function androidIntentUrl(deepLink) {
+                if (platform() !== 'android') return deepLink;
+
+                var prefix = 'w68print://';
+                if (deepLink.indexOf(prefix) !== 0) return deepLink;
+
+                var fallback = installerUrl();
+                var target = 'intent://' + deepLink.slice(prefix.length)
+                    + '#Intent;scheme=w68print;package=com.w68autoparts.w68_printer_bridge;';
+
+                if (fallback) {
+                    target += 'S.browser_fallback_url=' + encodeURIComponent(fallback) + ';';
+                }
+
+                return target + 'end';
+            }
+
             function isConfirmedInstalled() {
                 try {
                     return localStorage.getItem('w68PrinterBridgeInstalled') === '1';
@@ -389,15 +406,20 @@
                 var published = hasPublishedInstaller();
                 var confirmed = isConfirmedInstalled();
 
-                // Clear stale flags left by earlier W68 versions. Without a
-                // published Apple installer, an iPad must never attempt the
-                // w68print:// scheme because Safari reports an invalid address
-                // when the native app is absent.
+                // iPad/iPhone still require a published Apple build. Android uses
+                // an intent:// handoff with the APK as browser fallback, so the
+                // OPEN button can be used immediately on Xiaomi/Android tablets.
                 if (targetPlatform === 'ios' && !published) {
                     setConfirmedInstalled(false);
                     confirmed = false;
                     setBridgeLocked(true);
                     showNoInstallerMessage();
+                    return;
+                }
+
+                if (targetPlatform === 'android' && published) {
+                    setBridgeLocked(false);
+                    clearMessages();
                     return;
                 }
 
@@ -462,9 +484,10 @@
                         return;
                     }
 
-                    // Only navigate after the user has explicitly confirmed
-                    // installation and W68 has a published installer path.
-                    window.location.href = deepLink;
+                    // W68_ANDROID_PRINTER_BRIDGE_INTENT_20261015
+                    // Android launches the installed bridge directly; if it is
+                    // not installed yet, Chrome falls back to the published APK.
+                    window.location.href = androidIntentUrl(deepLink);
                 }, false);
             }
 

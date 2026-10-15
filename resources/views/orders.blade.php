@@ -399,7 +399,7 @@
             </div>
             {{-- W68_CART_PRINT_LIST_20261012 --}}
             <div class="orders-cart-footer-actions">
-                <a href="#w68-cart-print-choice" class="orders-cart-print-button" data-cart-print-open role="button">PRINT CART LIST</a>
+                <a href="{{ route('home.cart.print-center') }}" class="orders-cart-print-button" data-cart-print-center role="button">PRINT CART LIST</a>
                 <a href="{{ route('process-order') }}" class="orders-cart-shop">PROCESS ORDER</a>
             </div>
         </footer>
@@ -407,7 +407,7 @@
 </aside>
 
 {{-- W68_IPAD_CART_PRINT_BODY_LAUNCHER_20261015 --}}
-<a href="#w68-cart-print-choice"
+<a href="{{ route('home.cart.print-center') }}"
    class="w68-ipad-cart-print-launcher"
    data-ipad-cart-print-launcher
    role="button">PRINT CART LIST</a>

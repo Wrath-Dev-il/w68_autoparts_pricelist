@@ -654,6 +654,10 @@
         var ua = navigator.userAgent || '';
         if (/Windows NT/i.test(ua)) return false;
 
+        var appleTouch = /iPad|iPhone|iPod/i.test(ua)
+            || (/Macintosh/i.test(ua) && Number(navigator.maxTouchPoints || 0) > 1);
+        if (appleTouch) return false;
+
         var coarsePointer = false;
         try {
             coarsePointer = Boolean(window.matchMedia && window.matchMedia('(pointer: coarse)').matches);

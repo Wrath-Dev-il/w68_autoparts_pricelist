@@ -667,6 +667,13 @@
         </section>
     </aside>
 
+    {{-- W68_IPAD_CART_PRINT_BODY_LAUNCHER_20261015
+         iPad-only launcher outside the transformed cart panel. --}}
+    <a href="#w68-cart-print-choice"
+       class="w68-ipad-cart-print-launcher"
+       data-ipad-cart-print-launcher
+       role="button">PRINT CART LIST</a>
+
     {{-- W68_CART_PRINT_LIST_20261012: choose all cart rows or checkbox-selected rows. --}}
     <div id="w68-cart-print-choice" class="cart-print-choice-modal" data-cart-print-modal hidden aria-hidden="true">
         <a href="#" class="cart-print-choice-backdrop" data-cart-print-close aria-label="Close print cart list"></a>

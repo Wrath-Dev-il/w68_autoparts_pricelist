@@ -314,6 +314,12 @@
             color: var(--gold);
         }
 
+        .action-fallback {
+            background: #fff;
+            color: var(--maroon);
+            border-color: var(--maroon);
+        }
+
         .action-back {
             background: #a90008;
             color: #ffd33d;
@@ -544,7 +550,8 @@
                 </label>
             </div>
 
-            <button type="button" class="action action-print" data-print>PRINT</button>
+            <button type="button" class="action action-print" data-print>PRINT WITH W68 BRIDGE</button>
+            <button type="button" class="action action-fallback" data-system-print hidden>USE SYSTEM PRINT / AIRPRINT</button>
             <a href="{{ $homeUrl }}" class="action action-back">GO BACK TO HOME</a>
 
             <p class="device-note" data-device-note>
@@ -563,12 +570,15 @@
             var source = document.querySelector('[data-print-document]');
             var output = document.getElementById('browser-print-output');
             var printButton = document.querySelector('[data-print]');
+            var systemPrintButton = document.querySelector('[data-system-print]');
             var copiesInput = document.querySelector('[data-copies]');
             var destination = document.querySelector('[data-destination]');
             var note = document.querySelector('[data-device-note]');
 
             if (!center || !source || !output || !printButton) return;
 
+            // W68_PRINT_CENTER_BRIDGE_ONLY_20261015
+            // The primary PRINT action must never call window.print().
             var ua = navigator.userAgent || '';
             var platform = navigator.userAgentData && navigator.userAgentData.platform
                 ? String(navigator.userAgentData.platform)
@@ -581,16 +591,31 @@
                 || /Android/i.test(platform)
                 || (/Linux/i.test(ua) && touchPoints > 1)
             );
+            var windowsLike = /Windows NT/i.test(ua) || /Windows/i.test(platform);
+
+            destination.textContent = 'W68 PRINTER BRIDGE';
 
             if (appleTouch) {
-                destination.textContent = 'AIRPRINT / IOS PRINTER';
-                note.textContent = 'PRINT opens the iPhone/iPad AirPrint screen. Choose the actual printer there.';
+                note.textContent =
+                    'W68 Bridge is the primary print method. AirPrint is available only from the separate fallback button below.';
+                if (systemPrintButton) {
+                    systemPrintButton.hidden = false;
+                    systemPrintButton.textContent = 'AIRPRINT FALLBACK';
+                }
+            } else if (windowsLike) {
+                note.textContent =
+                    'PRINT uses W68 Printer Bridge. Windows system print will not open automatically.';
+                if (systemPrintButton) {
+                    systemPrintButton.hidden = false;
+                    systemPrintButton.textContent = 'WINDOWS PRINT FALLBACK';
+                }
             } else if (androidLike) {
-                destination.textContent = 'W68 PRINTER BRIDGE';
-                note.textContent = 'PRINT opens W68 Printer Bridge so you can choose the reachable printer directly.';
+                note.textContent =
+                    'PRINT opens W68 Printer Bridge and sends directly to the selected reachable printer.';
             } else {
-                destination.textContent = 'SYSTEM PRINTER';
-                note.textContent = 'PRINT opens the browser/system printer screen on this computer.';
+                note.textContent =
+                    'PRINT uses W68 Printer Bridge. Browser/system printing is available only as a fallback.';
+                if (systemPrintButton) systemPrintButton.hidden = false;
             }
 
             function safeCopies() {
@@ -612,28 +637,39 @@
                 }
             }
 
-            function browserPrint() {
+            function systemPrintFallback() {
                 buildBrowserPrintOutput();
-
                 try {
                     window.focus();
                     window.print();
                 } catch (error) {
-                    alert('Unable to open the printer on this device.');
+                    alert('Unable to open the system printer on this device.');
                 }
             }
 
-            printButton.addEventListener('click', function () {
-                if (androidLike && center.dataset.bridgeUrl) {
-                    var target = new URL(center.dataset.bridgeUrl, window.location.href);
-                    target.searchParams.set('mode', center.dataset.mode || 'all');
-                    target.searchParams.set('copies', String(safeCopies()));
-                    window.location.href = target.toString();
+            function openBridge() {
+                if (!center.dataset.bridgeUrl) {
+                    alert('W68 Printer Bridge is not configured for this device.');
                     return;
                 }
 
-                browserPrint();
+                var target = new URL(center.dataset.bridgeUrl, window.location.href);
+                target.searchParams.set('mode', center.dataset.mode || 'all');
+                target.searchParams.set('copies', String(safeCopies()));
+                window.location.href = target.toString();
+            }
+
+            printButton.addEventListener('click', function (event) {
+                event.preventDefault();
+                openBridge();
             }, false);
+
+            if (systemPrintButton) {
+                systemPrintButton.addEventListener('click', function (event) {
+                    event.preventDefault();
+                    systemPrintFallback();
+                }, false);
+            }
 
             window.addEventListener('afterprint', function () {
                 output.innerHTML = '';

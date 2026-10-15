@@ -823,7 +823,7 @@ class _PrinterBridgeHomeState extends State<PrinterBridgeHome>
                       const SizedBox(height: 2),
                       Text(
                         currentJob.isCartList
-                            ? '${currentJob.job['print_mode'] == 'selected' ? 'SELECTED ITEMS' : 'ALL ITEMS'} • ${currentJob.items.length} PRODUCTS'
+                            ? "${currentJob.job['print_mode'] == 'selected' ? 'SELECTED ITEMS' : 'ALL ITEMS'} • ${currentJob.items.length} PRODUCTS"
                             : '${currentJob.receipt.customerName} • ${currentJob.orderCode}',
                         style: const TextStyle(
                           color: Color(0xFF6E7D75),

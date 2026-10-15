@@ -9,13 +9,14 @@
     <link rel="stylesheet" href="{{ asset('css/w68-orders.css') }}?v=20261012-v143">
     <link rel="stylesheet" href="{{ asset('css/w68-notifications.css') }}?v=20260916-v102">
     <script src="{{ asset('js/w68-orders.js') }}?v=20261001-v129" defer></script>
-    <script src="{{ asset('js/w68-orders-cart.js') }}?v=20261013-v149" defer></script>
+    <script src="{{ asset('js/w68-orders-cart.js') }}?v=20261015-v150" defer></script>
     <script src="{{ asset('js/w68-notifications.js') }}?v=20261001-v131" defer></script>
 </head>
 {{-- W68_ORDERS_UNSERVED_SEARCH_V109_20260930 --}}
 {{-- W68_ORDERS_INVOICE_PARTIAL_UNSERVED_V110_20260930 --}}
 <body
     data-home-url="{{ route('home') }}"
+    data-cart-print-bridge-url="{{ route('home.cart.print-bridge') }}"
     data-order-update-base="{{ rtrim(request()->getSchemeAndHttpHost(), '/') }}{{ preg_replace('#/index\.php$#i', '', rtrim(str_replace('\\', '/', (string) request()->getBaseUrl()), '/')) }}/orders"
     data-cart-state-url="{{ route('home.cart.state', [], false) }}"
     data-cart-item-base-url="{{ rtrim(request()->getSchemeAndHttpHost(), '/') }}{{ preg_replace('#/index\.php$#i', '', rtrim(str_replace('\\', '/', (string) request()->getBaseUrl()), '/')) }}/home/cart/items"

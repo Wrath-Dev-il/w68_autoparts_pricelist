@@ -219,8 +219,8 @@ class _PrinterBridgeHomeState extends State<PrinterBridgeHome>
 
     if (currentJob == null || target == null || printing) return;
 
-    var copies = 1;
-    final controller = TextEditingController(text: '1');
+    var copies = currentJob.defaultCopies;
+    final controller = TextEditingController(text: copies.toString());
 
     await showDialog<void>(
       context: context,

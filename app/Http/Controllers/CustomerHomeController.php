@@ -560,6 +560,7 @@ class CustomerHomeController extends Controller
 
         $mode = strtolower(trim((string) $request->query('mode', 'all')));
         abort_unless(in_array($mode, ['all', 'selected'], true), 422, 'Invalid cart print mode.');
+        $defaultCopies = max(1, min(20, (int) $request->query('copies', 1)));
 
         $brandDiscounts = $this->customerBrandDiscounts($customerId);
         $cartItems = collect($this->customerCartItems($loginId, $customerId, $brandDiscounts));
@@ -627,6 +628,7 @@ class CustomerHomeController extends Controller
                 'document_type' => 'cart_list',
                 'title' => 'W68 SPECIAL STORE CART LIST',
                 'print_mode' => $mode,
+                'default_copies' => $defaultCopies,
                 'portal_order_id' => 0,
                 'order_code' => 'CART LIST',
                 'sales_order_id' => 0,

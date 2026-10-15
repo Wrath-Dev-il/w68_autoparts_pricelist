@@ -14,6 +14,7 @@
         state: String(body?.dataset.cartStateUrl || ''),
     };
     const homeUrl = String(body?.dataset.homeUrl || window.location.href);
+    const cartPrintBridgeUrl = String(body?.dataset.cartPrintBridgeUrl || '');
     const orderApi = {
         process: String(body?.dataset.orderProcessUrl || ''),
         review: String(body?.dataset.processOrderReviewUrl || ''),
@@ -2117,7 +2118,23 @@
         }
     };
 
-    const printCartList = (selectedOnly = false) => {
+    const shouldUseNativePrinterBridge = () => {
+        if (!cartPrintBridgeUrl) return false;
+
+        const ua = navigator.userAgent || '';
+        if (/Windows NT/i.test(ua)) return false;
+
+        let coarsePointer = false;
+        try {
+            coarsePointer = Boolean(window.matchMedia?.('(pointer: coarse)')?.matches);
+        } catch (_) {}
+
+        return Number(navigator.maxTouchPoints || 0) > 1
+            || coarsePointer
+            || /Android|Xiaomi|MIUI/i.test(ua);
+    };
+
+    const printCartList = async (selectedOnly = false) => {
         const cart = readCart();
         const printItems = selectedOnly
             ? cart.filter((item) => item.selected)
@@ -2130,8 +2147,21 @@
             return;
         }
 
-        const printHtml = buildCartPrintDocument(printItems);
         closeCartPrintModal();
+
+        // W68_CART_PRINTER_BRIDGE_20261015
+        // Xiaomi/Android/non-Windows touch tablets hand the cart to the native
+        // bridge instead of opening Android's browser/system print interface.
+        if (shouldUseNativePrinterBridge()) {
+            await cartMutationQueue.catch(() => null);
+
+            const target = new URL(cartPrintBridgeUrl, window.location.href);
+            target.searchParams.set('mode', selectedOnly ? 'selected' : 'all');
+            window.location.href = target.toString();
+            return;
+        }
+
+        const printHtml = buildCartPrintDocument(printItems);
         printCartDocument(printHtml);
     };
 

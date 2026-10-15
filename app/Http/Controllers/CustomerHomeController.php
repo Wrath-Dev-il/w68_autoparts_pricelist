@@ -460,6 +460,159 @@ class CustomerHomeController extends Controller
         ]);
     }
 
+    /**
+     * W68_CART_PRINTER_BRIDGE_20261015
+     *
+     * Create a short-lived secure Printer Bridge job from the current cart.
+     * The raw job token is never stored; only its SHA-256 hash is persisted.
+     */
+    public function launchCartPrinterBridge(Request $request): View|RedirectResponse
+    {
+        [$account, $loginId, $customerId] = $this->cartIdentity($request);
+        $this->ensureCartTable();
+        $this->ensurePrinterBridgeJobsTable();
+
+        $mode = strtolower(trim((string) $request->query('mode', 'all')));
+        abort_unless(in_array($mode, ['all', 'selected'], true), 422, 'Invalid cart print mode.');
+
+        $brandDiscounts = $this->customerBrandDiscounts($customerId);
+        $cartItems = collect($this->customerCartItems($loginId, $customerId, $brandDiscounts));
+
+        if ($mode === 'selected') {
+            $cartItems = $cartItems
+                ->filter(fn (array $item): bool => !empty($item['selected']))
+                ->values();
+        }
+
+        abort_if(
+            $cartItems->isEmpty(),
+            422,
+            $mode === 'selected'
+                ? 'Select at least one cart item before printing.'
+                : 'Your cart is empty.'
+        );
+
+        $items = $cartItems->map(function (array $item): array {
+            $qty = max(1, min(9999, (int) ($item['qty'] ?? 1)));
+            $unitPrice = round(max(0, (float) ($item['price'] ?? 0)), 2);
+            $discountPercent = max(0, min(100, (float) ($item['discountPercent'] ?? 0)));
+            $discountedPrice = round(
+                max(0, (float) ($item['discountedPrice'] ?? $unitPrice)),
+                2
+            );
+            $subtotal = round($discountedPrice * $qty, 2);
+
+            return [
+                'product_id' => (int) ($item['id'] ?? 0),
+                'product_code' => trim((string) ($item['productCode'] ?? '')),
+                'price_code' => '',
+                'part_number' => trim((string) ($item['partNumber'] ?? '')),
+                'description' => trim((string) ($item['description'] ?? '')),
+                'application' => trim((string) ($item['application'] ?? '')),
+                'position' => '',
+                'brand' => trim((string) ($item['brand'] ?? '')),
+                'oum' => '',
+                'qty' => $qty,
+                'additional_qty' => 0,
+                'unit_price' => $unitPrice,
+                'discount_percent' => $discountPercent,
+                'additional_discount_percent' => 0,
+                'print_subtotal' => $subtotal,
+                'additional_less' => 0,
+                'net_total' => $subtotal,
+            ];
+        })->values();
+
+        $totalQty = (float) $items->sum('qty');
+        $totalAmount = round((float) $items->sum('net_total'), 2);
+        $accountName = trim(
+            (string) ($account->User_First_Name ?? '')
+            . ' '
+            . (string) ($account->User_Last_Name ?? '')
+        );
+
+        if ($accountName === '') {
+            $accountName = trim((string) ($account->User_ID ?? ''));
+        }
+
+        $payload = [
+            'version' => 2,
+            'job' => [
+                'document_type' => 'cart_list',
+                'title' => 'W68 SPECIAL STORE CART LIST',
+                'print_mode' => $mode,
+                'portal_order_id' => 0,
+                'order_code' => 'CART LIST',
+                'sales_order_id' => 0,
+                'sales_note_id' => 0,
+                'customer_id' => $customerId,
+            ],
+            'receipt' => [
+                'invoice_no' => 'CART LIST',
+                'customer_name' => $accountName,
+                'customer_address' => '',
+                'customer_tin' => '',
+                'sales_number' => '',
+                'date' => now()->format('Y-m-d'),
+                'terms' => '',
+                'salesman' => '',
+                'rush_text' => '',
+                'prepared_by' => '',
+                'packed_by' => '',
+                'checked_by' => '',
+                'invoice_amount' => $totalAmount,
+                'additional_less' => 0,
+                'net_amount' => $totalAmount,
+                'total_qty' => $totalQty,
+            ],
+            'items' => $items->all(),
+        ];
+
+        $rawToken = bin2hex(random_bytes(32));
+        $expiresAt = now()->addMinutes(10);
+
+        DB::connection('sales_order')
+            ->table('w68_printer_bridge_jobs')
+            ->where('expires_at', '<', now())
+            ->delete();
+
+        DB::connection('sales_order')
+            ->table('w68_printer_bridge_jobs')
+            ->insert([
+                'token_hash' => hash('sha256', $rawToken),
+                'login_id' => $loginId,
+                'customer_id' => $customerId,
+                'portal_order_id' => 0,
+                'sales_order_id' => 0,
+                'payload_json' => json_encode(
+                    $payload,
+                    JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR
+                ),
+                'expires_at' => $expiresAt,
+                'last_accessed_at' => null,
+                'access_count' => 0,
+                'created_at' => now(),
+                'updated_at' => now(),
+            ]);
+
+        $jobUrl = route('printer-bridge.job', ['token' => $rawToken]);
+        $deepLink = 'w68print://job?url=' . rawurlencode($jobUrl);
+
+        return view('printer-bridge-launch', [
+            'deepLink' => $deepLink,
+            'invoiceNo' => '',
+            'documentLabel' => $mode === 'selected'
+                ? 'CART LIST • SELECTED ITEMS'
+                : 'CART LIST • ALL ITEMS',
+            'expiresAt' => $expiresAt,
+            'installUrls' => [
+                'ios' => trim((string) config('printer_bridge.install.ios', '')),
+                'android' => trim((string) config('printer_bridge.install.android', '')),
+                'windows' => trim((string) config('printer_bridge.install.windows', '')),
+            ],
+        ]);
+    }
+
     public function cartUpdate(Request $request, int $product): JsonResponse
     {
         [, $loginId, $customerId] = $this->cartIdentity($request);
@@ -1124,6 +1277,33 @@ class CustomerHomeController extends Controller
         $product->has_discount = $hasDiscount;
 
         return $product;
+    }
+
+    private function ensurePrinterBridgeJobsTable(): void
+    {
+        if (Schema::connection('sales_order')->hasTable('w68_printer_bridge_jobs')) {
+            return;
+        }
+
+        try {
+            Schema::connection('sales_order')->create('w68_printer_bridge_jobs', function ($table): void {
+                $table->bigIncrements('id');
+                $table->char('token_hash', 64)->unique();
+                $table->unsignedBigInteger('login_id')->index();
+                $table->unsignedBigInteger('customer_id')->index();
+                $table->unsignedBigInteger('portal_order_id')->index();
+                $table->unsignedBigInteger('sales_order_id')->index();
+                $table->longText('payload_json');
+                $table->dateTime('expires_at')->index();
+                $table->dateTime('last_accessed_at')->nullable();
+                $table->unsignedInteger('access_count')->default(0);
+                $table->timestamps();
+            });
+        } catch (Throwable $exception) {
+            if (!Schema::connection('sales_order')->hasTable('w68_printer_bridge_jobs')) {
+                throw $exception;
+            }
+        }
     }
 
     private function normalizeBrand(string $brand): string

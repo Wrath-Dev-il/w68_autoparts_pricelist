@@ -550,7 +550,7 @@
                 </label>
             </div>
 
-            <button type="button" class="action action-print" data-print>PRINT WITH W68 BRIDGE</button>
+            <button type="button" class="action action-print" data-print>PRINT</button>
             <button type="button" class="action action-fallback" data-system-print hidden>USE SYSTEM PRINT / AIRPRINT</button>
             <a href="{{ $homeUrl }}" class="action action-back">GO BACK TO HOME</a>
 

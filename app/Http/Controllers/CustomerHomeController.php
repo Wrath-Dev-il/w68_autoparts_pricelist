@@ -461,6 +461,92 @@ class CustomerHomeController extends Controller
     }
 
     /**
+     * W68_UNIFIED_CART_PRINT_CENTER_20261015
+     *
+     * A top-level print page for iPad/iPhone/Android/desktop. iOS prints the
+     * document in this page directly; Android can hand the same cart snapshot
+     * to W68 Printer Bridge without relying on a cart drawer popup.
+     */
+    public function cartPrintCenter(Request $request): View|RedirectResponse
+    {
+        [, $loginId, $customerId] = $this->cartIdentity($request);
+        $this->ensureCartTable();
+
+        $mode = strtolower(trim((string) $request->query('mode', 'all')));
+        if (!in_array($mode, ['all', 'selected'], true)) {
+            $mode = 'all';
+        }
+
+        $brandDiscounts = $this->customerBrandDiscounts($customerId);
+        $allItems = collect(
+            $this->customerCartItems($loginId, $customerId, $brandDiscounts)
+        )->values();
+
+        if ($allItems->isEmpty()) {
+            return redirect()
+                ->route('home')
+                ->withErrors(['cart' => 'Your cart is empty.']);
+        }
+
+        $selectedItems = $allItems
+            ->filter(fn (array $item): bool => !empty($item['selected']))
+            ->values();
+
+        if ($mode === 'selected' && $selectedItems->isEmpty()) {
+            $mode = 'all';
+        }
+
+        $printItems = ($mode === 'selected' ? $selectedItems : $allItems)
+            ->map(function (array $item): array {
+                $qty = max(1, min(9999, (int) ($item['qty'] ?? 1)));
+                $unitPrice = round(max(0, (float) ($item['price'] ?? 0)), 2);
+                $discountPercent = max(
+                    0,
+                    min(100, (float) ($item['discountPercent'] ?? 0))
+                );
+                $discountedPrice = round(
+                    max(0, (float) ($item['discountedPrice'] ?? $unitPrice)),
+                    2
+                );
+                $subtotal = round($discountedPrice * $qty, 2);
+
+                $descriptionParts = collect([
+                    trim((string) ($item['description'] ?? '')),
+                    trim((string) ($item['application'] ?? '')),
+                    trim((string) ($item['brand'] ?? '')),
+                ])->filter()->unique(fn (string $value) => mb_strtolower($value));
+
+                return [
+                    'product_code' => trim((string) ($item['productCode'] ?? '')),
+                    'part_number' => trim((string) ($item['partNumber'] ?? '')),
+                    'description' => $descriptionParts->implode(' + '),
+                    'qty' => $qty,
+                    'unit_price' => $unitPrice,
+                    'discount_percent' => $discountPercent,
+                    'subtotal' => $subtotal,
+                ];
+            })
+            ->values();
+
+        $showLess = $printItems->contains(
+            fn (array $item): bool => (float) $item['discount_percent'] > 0
+        );
+
+        return view('cart-print-center', [
+            'mode' => $mode,
+            'items' => $printItems,
+            'allCount' => $allItems->count(),
+            'selectedCount' => $selectedItems->count(),
+            'showLess' => $showLess,
+            'total' => round((float) $printItems->sum('subtotal'), 2),
+            'bridgeUrl' => route('home.cart.print-bridge'),
+            'homeUrl' => route('home'),
+            'allUrl' => route('home.cart.print-center', ['mode' => 'all']),
+            'selectedUrl' => route('home.cart.print-center', ['mode' => 'selected']),
+        ]);
+    }
+
+    /**
      * W68_CART_PRINTER_BRIDGE_20261015
      *
      * Create a short-lived secure Printer Bridge job from the current cart.

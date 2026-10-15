@@ -322,7 +322,10 @@
         if (processOrderLink) {
             processOrderLink.setAttribute('aria-disabled', selectedCount > 0 ? 'false' : 'true');
         }
-        if (cartPrintButton) cartPrintButton.disabled = items.length === 0;
+        // W68_IPAD_PRINT_BUTTON_ALWAYS_TAPPABLE_20261015
+        // Keep PRINT CART LIST active on Safari; openCartPrintModal performs
+        // the authoritative empty-cart check.
+        if (cartPrintButton) cartPrintButton.disabled = false;
         if (cartPrintSelectedButton) cartPrintSelectedButton.disabled = selectedCount === 0;
     }
 

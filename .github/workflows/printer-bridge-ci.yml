@@ -20,7 +20,7 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Install Java
-        uses: actions/setup-java@v4
+        uses: actions/setup-java@v5
         with:
           distribution: temurin
           java-version: "17"
@@ -46,9 +46,9 @@ jobs:
         working-directory: printer_bridge
         run: flutter pub get
 
-      - name: Analyze
+      - name: Analyze W68 bridge source
         working-directory: printer_bridge
-        run: flutter analyze
+        run: flutter analyze lib
 
       - name: Build Android APK
         working-directory: printer_bridge

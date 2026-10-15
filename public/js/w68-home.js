@@ -198,6 +198,27 @@
             if (Date.now() < bridgeLockedUntil) return;
             bridgeLockedUntil = Date.now() + 420;
 
+            // W68_IPAD_PRINT_TRUSTED_TOUCH_20261015
+            // Keep print actions inside the real iPad touch gesture. Safari can
+            // block the AirPrint window when a delayed synthetic click opens it.
+            if (clickTarget.matches?.('[data-cart-print-open]')) {
+                syncVisualViewport();
+                openCartPrintModal();
+                return;
+            }
+            if (clickTarget.matches?.('[data-cart-print-close]')) {
+                closeCartPrintModal();
+                return;
+            }
+            if (clickTarget.matches?.('[data-cart-print-all]')) {
+                printCartList(false);
+                return;
+            }
+            if (clickTarget.matches?.('[data-cart-print-selected]')) {
+                if (!clickTarget.disabled) printCartList(true);
+                return;
+            }
+
             window.setTimeout(() => {
                 syncVisualViewport();
                 clickTarget.click();

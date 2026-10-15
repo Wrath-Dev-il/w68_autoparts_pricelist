@@ -34,6 +34,13 @@ Route::get('/authorized-access/{token}', AuthorizedAccessController::class)
     ->where('token', '[A-Fa-f0-9]{64}')
     ->name('authorized-access');
 
+// W68_CART_PRINTER_BRIDGE_20261015
+// Token-authenticated endpoint consumed by the native W68 Printer Bridge.
+// This route intentionally does not require the browser session.
+Route::get('/printer-bridge/job/{token}', [CustomerOrderController::class, 'printerBridgeJob'])
+    ->where('token', '[A-Fa-f0-9]{64}')
+    ->name('printer-bridge.job');
+
 /*
 |--------------------------------------------------------------------------
 | Account Type 5 Customer Home
@@ -103,6 +110,9 @@ Route::middleware(['portal.access', 'auth'])->group(function () {
 
     Route::put('/home/cart/sync', [CustomerHomeController::class, 'cartSync'])
         ->name('home.cart.sync');
+
+    Route::get('/home/cart/print-bridge', [CustomerHomeController::class, 'launchCartPrinterBridge'])
+        ->name('home.cart.print-bridge');
 
 
     Route::get('/process-order', [CustomerOrderController::class, 'processOrderPage'])

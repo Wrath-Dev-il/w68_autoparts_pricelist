@@ -1985,11 +1985,54 @@
     };
 
     const printCartDocument = (html) => {
-        // W68_CART_PRINT_TABLET_POPUP_20261013
-        // Tablets use an in-page full-screen preview instead of opening a new
-        // tab. The printable iframe is visible at full size before PRINT is
-        // tapped, which is reliable on Android/Xiaomi landscape printing.
+        // W68_IPAD_CART_PRINT_RESTORE_20261015
         const ua = navigator.userAgent || '';
+        const appleTouch = /iPad|iPhone|iPod/i.test(ua)
+            || (/Macintosh/i.test(ua) && Number(navigator.maxTouchPoints || 0) > 1);
+
+        if (appleTouch) {
+            // Safari/AirPrint needs a real rendered document. Do not use the
+            // Android tablet iframe popup or Printer Bridge on iPad/iPhone.
+            const printWindow = window.open('', '_blank');
+
+            if (!printWindow) {
+                alert('Safari blocked the cart print window. Please allow pop-ups for this site and try again.');
+                return;
+            }
+
+            try {
+                printWindow.document.open();
+                printWindow.document.write(html);
+                printWindow.document.close();
+
+                const runPrint = () => {
+                    try {
+                        printWindow.focus();
+                        printWindow.print();
+                    } catch (_) {
+                        alert('Unable to open AirPrint on this iPad.');
+                    }
+                };
+
+                if (typeof printWindow.requestAnimationFrame === 'function') {
+                    printWindow.requestAnimationFrame(() => {
+                        printWindow.requestAnimationFrame(() => {
+                            printWindow.setTimeout(runPrint, 180);
+                        });
+                    });
+                } else {
+                    printWindow.setTimeout(runPrint, 250);
+                }
+            } catch (_) {
+                try { printWindow.close(); } catch (__ignore) {}
+                alert('Unable to prepare the cart print page on this iPad.');
+            }
+
+            return;
+        }
+
+        // Non-Apple touch tablets may still use the visible in-page preview
+        // when the native Android Printer Bridge is not selected.
         const isWindows = /Windows NT/i.test(ua);
         let coarsePointer = false;
         try {
@@ -2100,7 +2143,7 @@
             return;
         }
 
-        // PCs/laptops keep the existing separate print-preview page.
+        // Windows/desktop browser flow.
         const printWindow = window.open('', '_blank');
         if (!printWindow) {
             alert('The browser blocked the cart print preview. Please allow pop-ups for this site and try again.');
@@ -2112,8 +2155,8 @@
             printWindow.document.write(html);
             printWindow.document.close();
             printWindow.focus();
-        } catch (error) {
-            try { printWindow.close(); } catch (_) {}
+        } catch (_) {
+            try { printWindow.close(); } catch (__ignore) {}
             alert('Unable to open the cart print preview on this device.');
         }
     };

@@ -6439,6 +6439,52 @@ main,
     opacity: .45;
 }
 
+/* W68_IPAD_CART_PRINT_BODY_LAUNCHER_20261015
+   Keep iPad's print hit target outside the transformed/fixed cart panel.
+   iPhone keeps the normal in-panel link. */
+.w68-ipad-cart-print-launcher {
+    display: none;
+}
+
+html.w68-ipad .cart-drawer.open ~ .w68-ipad-cart-print-launcher,
+html.w68-ipad .orders-cart-drawer.open ~ .w68-ipad-cart-print-launcher {
+    position: fixed !important;
+    right: 270px !important;
+    bottom: max(16px, env(safe-area-inset-bottom)) !important;
+    z-index: 2147482500 !important;
+    width: 230px !important;
+    min-height: 46px !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    border: 1px solid var(--green) !important;
+    border-radius: 9px !important;
+    background: var(--green) !important;
+    color: var(--yellow) !important;
+    font-size: 10px !important;
+    font-weight: 1000 !important;
+    letter-spacing: .3px !important;
+    text-decoration: none !important;
+    pointer-events: auto !important;
+    touch-action: manipulation !important;
+    -webkit-tap-highlight-color: rgba(255, 227, 92, .28) !important;
+    box-shadow: 0 8px 22px rgba(0,0,0,.22) !important;
+}
+
+html.w68-ipad .cart-drawer.open .cart-print-list-button,
+html.w68-ipad .orders-cart-drawer.open .orders-cart-print-button {
+    visibility: hidden !important;
+    pointer-events: none !important;
+}
+
+@media (max-width: 620px) {
+    html.w68-ipad .cart-drawer.open ~ .w68-ipad-cart-print-launcher,
+    html.w68-ipad .orders-cart-drawer.open ~ .w68-ipad-cart-print-launcher {
+        right: 51vw !important;
+        width: 43vw !important;
+    }
+}
+
 .cart-print-choice-modal[hidden],
 .cart-print-sheet[hidden] {
     display: none !important;

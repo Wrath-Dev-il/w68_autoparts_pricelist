@@ -1880,10 +1880,13 @@ a.view-order-button:visited {
    Orders-page cart print selector + ERW Special Store list
    ========================================================= */
 .orders-cart-footer-actions {
+    position: relative;
+    z-index: 120;
     display: grid;
     grid-template-columns: 1fr 1fr;
     gap: 8px;
     margin-top: 10px;
+    pointer-events: auto !important;
 }
 
 .orders-cart-footer-actions .orders-cart-shop {
@@ -1891,7 +1894,12 @@ a.view-order-button:visited {
 }
 
 .orders-cart-print-button {
+    position: relative;
+    z-index: 121;
     min-height: 42px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
     border: 1px solid var(--green);
     border-radius: 9px;
     background: var(--green);
@@ -1899,8 +1907,11 @@ a.view-order-button:visited {
     font-size: 9px;
     font-weight: 1000;
     letter-spacing: .45px;
+    text-decoration: none;
     cursor: pointer;
     touch-action: manipulation;
+    pointer-events: auto !important;
+    -webkit-tap-highlight-color: rgba(255, 227, 92, .22);
 }
 
 .orders-cart-print-button:disabled {
@@ -1911,6 +1922,14 @@ a.view-order-button:visited {
 .cart-print-choice-modal[hidden],
 .cart-print-sheet[hidden] {
     display: none !important;
+}
+
+/* W68_IPAD_CART_PRINT_NATIVE_TARGET_20261015
+   Native Safari fallback: the PRINT CART LIST href targets this modal.
+   Higher specificity intentionally overrides [hidden] when :target is active. */
+#w68-cart-print-choice:target[hidden],
+#w68-cart-print-choice:target {
+    display: grid !important;
 }
 
 .cart-print-choice-modal {
@@ -1971,11 +1990,16 @@ a.view-order-button:visited {
     gap: 9px;
 }
 
-.cart-print-choice-actions button {
+.cart-print-choice-actions button,
+.cart-print-choice-actions a {
     min-height: 46px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
     border-radius: 8px;
     font-size: 10px;
     font-weight: 1000;
+    text-decoration: none;
     cursor: pointer;
     touch-action: manipulation;
 }

@@ -15,6 +15,13 @@ class W68PrintJob {
   String get orderCode => _string(job['order_code']);
   String get documentType => _string(job['document_type']).trim().toLowerCase();
   bool get isCartList => documentType == 'cart_list';
+  int get defaultCopies {
+    final value = _int(job['default_copies'], 1);
+    if (value < 1) return 1;
+    if (value > 20) return 20;
+    return value;
+  }
+
   String get title {
     final value = _string(job['title']).trim();
     if (value.isNotEmpty) return value;

@@ -86,26 +86,30 @@ return [
 
         'system' => [
             'driver' => env('SYSTEM_DB_CONNECTION', 'mysql'),
-            'url' => env('SYSTEM_DB_URL', env('CORE_SYSTEM_DB_URL')),
+            // Prefer the main W68 CORE_SYSTEM_DB_* namespace first.
+            // HostForge may still inject stale SYSTEM_DB_* values after a
+            // database reprovision, while the repaired credentials are stored
+            // in the shared CORE_SYSTEM_DB_* variables.
+            'url' => env('CORE_SYSTEM_DB_URL', env('SYSTEM_DB_URL')),
             'host' => env(
-                'SYSTEM_DB_HOST',
-                env('CORE_SYSTEM_DB_HOST', env('DB_HOST', '127.0.0.1'))
+                'CORE_SYSTEM_DB_HOST',
+                env('SYSTEM_DB_HOST', env('DB_HOST', '127.0.0.1'))
             ),
             'port' => env(
-                'SYSTEM_DB_PORT',
-                env('CORE_SYSTEM_DB_PORT', env('DB_PORT', '3306'))
+                'CORE_SYSTEM_DB_PORT',
+                env('SYSTEM_DB_PORT', env('DB_PORT', '3306'))
             ),
             'database' => env(
-                'SYSTEM_DB_DATABASE',
-                env('CORE_SYSTEM_DB_DATABASE', 'core4_system_proposal')
+                'CORE_SYSTEM_DB_DATABASE',
+                env('SYSTEM_DB_DATABASE', 'core4_system_proposal')
             ),
             'username' => env(
-                'SYSTEM_DB_USERNAME',
-                env('CORE_SYSTEM_DB_USERNAME', env('DB_USERNAME', 'root'))
+                'CORE_SYSTEM_DB_USERNAME',
+                env('SYSTEM_DB_USERNAME', env('DB_USERNAME', 'root'))
             ),
             'password' => env(
-                'SYSTEM_DB_PASSWORD',
-                env('CORE_SYSTEM_DB_PASSWORD', env('DB_PASSWORD', ''))
+                'CORE_SYSTEM_DB_PASSWORD',
+                env('SYSTEM_DB_PASSWORD', env('DB_PASSWORD', ''))
             ),
             'unix_socket' => env('SYSTEM_DB_SOCKET', env('DB_SOCKET', '')),
             'charset' => env('SYSTEM_DB_CHARSET', 'utf8mb4'),

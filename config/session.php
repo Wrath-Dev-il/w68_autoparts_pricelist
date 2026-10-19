@@ -16,21 +16,11 @@ return [
     |
     */
 
-    /*
-     * W68_HOSTFORGE_DATABASE_SESSIONS_20261019
-     *
-     * HostForge may restart/reprovision the app process. File-backed sessions
-     * can disappear between the authorization request and the /login redirect,
-     * which makes a valid generated link appear unauthorized. Production uses
-     * the shared core4_system_proposal sessions table instead; local/XAMPP
-     * continues using file sessions.
-     */
-    'driver' => (
-        env('APP_ENV', 'production') === 'production'
-        || str_contains((string) env('APP_URL', ''), 'hostforgeplatforms.com')
-    )
-        ? 'database'
-        : env('SESSION_DRIVER', 'file'),
+    // W68_HOSTFORGE_FILE_SESSIONS_RECOVERY_20261019
+    // The dedicated HostForge SYSTEM_DB service is currently unavailable.
+    // Keep authorization/login sessions on the application filesystem until
+    // core4_system_proposal is restored onto a reachable MariaDB service.
+    'driver' => 'file',
 
     /*
     |--------------------------------------------------------------------------
@@ -85,12 +75,7 @@ return [
     |
     */
 
-    'connection' => (
-        env('APP_ENV', 'production') === 'production'
-        || str_contains((string) env('APP_URL', ''), 'hostforgeplatforms.com')
-    )
-        ? 'system'
-        : env('SESSION_CONNECTION'),
+    'connection' => env('SESSION_CONNECTION'),
 
     /*
     |--------------------------------------------------------------------------

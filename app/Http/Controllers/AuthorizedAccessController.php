@@ -65,9 +65,25 @@ class AuthorizedAccessController extends Controller
                         ->first();
                 }
 
-                if (
-                    $linkedAccount
-                    && (int) $linkedAccount->customer_id !== (int) $authorization->customer_id
+                if (!$linkedAccount) {
+                    /*
+                     * W68_AUTH_LINK_REPROVISIONED_ACCOUNT_RECOVERY_20261019
+                     *
+                     * After core4_system_proposal is reprovisioned/restored, a
+                     * browser can still carry an authenticated login session
+                     * whose permanent customer_portal_accounts row no longer
+                     * exists in the restored database. If that stale login is
+                     * allowed to survive this request, portal.access will reject
+                     * /login even though the customer just opened a VALID newly
+                     * generated authorization link.
+                     *
+                     * Treat an authenticated-but-unlinked login as stale here
+                     * and continue the valid authorization flow as a guest.
+                     */
+                    Auth::logout();
+                    $request->session()->regenerate();
+                } elseif (
+                    (int) $linkedAccount->customer_id !== (int) $authorization->customer_id
                 ) {
                     /*
                      * W68_AUTH_LINK_ACCOUNT_OWNER_GUARD_20261006
@@ -76,7 +92,7 @@ class AuthorizedAccessController extends Controller
                      */
                     Auth::logout();
                     $request->session()->regenerate();
-                } elseif ($linkedAccount) {
+                } else {
                     /*
                      * A newly generated token for the SAME customer replaces
                      * the old/expired authorization reference while keeping the

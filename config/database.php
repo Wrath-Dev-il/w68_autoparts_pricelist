@@ -90,26 +90,29 @@ return [
             // HostForge may still inject stale SYSTEM_DB_* values after a
             // database reprovision, while the repaired credentials are stored
             // in the shared CORE_SYSTEM_DB_* variables.
-            'url' => env('CORE_SYSTEM_DB_URL', env('SYSTEM_DB_URL')),
+            'url' => env(
+                'W68_CORE_SYSTEM_DB_URL',
+                env('CORE_SYSTEM_DB_URL', env('SYSTEM_DB_URL'))
+            ),
             'host' => env(
-                'CORE_SYSTEM_DB_HOST',
-                env('SYSTEM_DB_HOST', env('DB_HOST', '127.0.0.1'))
+                'W68_CORE_SYSTEM_DB_HOST',
+                env('CORE_SYSTEM_DB_HOST', env('SYSTEM_DB_HOST', env('DB_HOST', '127.0.0.1')))
             ),
             'port' => env(
-                'CORE_SYSTEM_DB_PORT',
-                env('SYSTEM_DB_PORT', env('DB_PORT', '3306'))
+                'W68_CORE_SYSTEM_DB_PORT',
+                env('CORE_SYSTEM_DB_PORT', env('SYSTEM_DB_PORT', env('DB_PORT', '3306')))
             ),
             'database' => env(
-                'CORE_SYSTEM_DB_DATABASE',
-                env('SYSTEM_DB_DATABASE', 'core4_system_proposal')
+                'W68_CORE_SYSTEM_DB_DATABASE',
+                env('CORE_SYSTEM_DB_DATABASE', env('SYSTEM_DB_DATABASE', 'core4_system_proposal'))
             ),
             'username' => env(
-                'CORE_SYSTEM_DB_USERNAME',
-                env('SYSTEM_DB_USERNAME', env('DB_USERNAME', 'root'))
+                'W68_CORE_SYSTEM_DB_USERNAME',
+                env('CORE_SYSTEM_DB_USERNAME', env('SYSTEM_DB_USERNAME', env('DB_USERNAME', 'root')))
             ),
             'password' => env(
-                'CORE_SYSTEM_DB_PASSWORD',
-                env('SYSTEM_DB_PASSWORD', env('DB_PASSWORD', ''))
+                'W68_CORE_SYSTEM_DB_PASSWORD',
+                env('CORE_SYSTEM_DB_PASSWORD', env('SYSTEM_DB_PASSWORD', env('DB_PASSWORD', '')))
             ),
             'unix_socket' => env('SYSTEM_DB_SOCKET', env('DB_SOCKET', '')),
             'charset' => env('SYSTEM_DB_CHARSET', 'utf8mb4'),

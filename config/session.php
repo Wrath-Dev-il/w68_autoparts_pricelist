@@ -16,11 +16,16 @@ return [
     |
     */
 
-    // W68_HOSTFORGE_FILE_SESSIONS_RECOVERY_20261019
-    // The dedicated HostForge SYSTEM_DB service is currently unavailable.
-    // Keep authorization/login sessions on the application filesystem until
-    // core4_system_proposal is restored onto a reachable MariaDB service.
-    'driver' => 'file',
+    /*
+     * W68_HOSTFORGE_RECOVERED_DATABASE_SESSIONS_20261019
+     *
+     * The replacement System DB is now live and contains the Laravel sessions
+     * table. Persist authorization/login sessions in that shared DB on
+     * HostForge so the accepted authorization survives the redirect to /login.
+     */
+    'driver' => str_contains((string) env('APP_URL', ''), 'hostforgeplatforms.com')
+        ? 'database'
+        : env('SESSION_DRIVER', 'file'),
 
     /*
     |--------------------------------------------------------------------------
@@ -75,7 +80,9 @@ return [
     |
     */
 
-    'connection' => env('SESSION_CONNECTION'),
+    'connection' => str_contains((string) env('APP_URL', ''), 'hostforgeplatforms.com')
+        ? 'system'
+        : env('SESSION_CONNECTION'),
 
     /*
     |--------------------------------------------------------------------------
@@ -133,7 +140,10 @@ return [
     // Never reuse Laravel's default `laravel-session` cookie name here,
     // otherwise opening the main Hatdog system can overwrite the customer
     // portal session cookie and make W68 look logged out.
-    'cookie' => env('SESSION_COOKIE', 'w68_pricelist_customer_session'),
+    // New HostForge cookie name intentionally discards stale pre-outage file-session IDs.
+    'cookie' => str_contains((string) env('APP_URL', ''), 'hostforgeplatforms.com')
+        ? 'w68_pricelist_customer_session_v2'
+        : env('SESSION_COOKIE', 'w68_pricelist_customer_session'),
 
     /*
     |--------------------------------------------------------------------------
@@ -170,7 +180,10 @@ return [
     |
     */
 
-    'domain' => env('SESSION_DOMAIN'),
+    // Host-only cookie avoids stale/wrong SESSION_DOMAIN values after HostForge recovery.
+    'domain' => str_contains((string) env('APP_URL', ''), 'hostforgeplatforms.com')
+        ? null
+        : env('SESSION_DOMAIN'),
 
     /*
     |--------------------------------------------------------------------------

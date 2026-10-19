@@ -86,13 +86,28 @@ return [
 
         'system' => [
             'driver' => env('SYSTEM_DB_CONNECTION', 'mysql'),
-            'url' => env('SYSTEM_DB_URL'),
-            'host' => env('SYSTEM_DB_HOST', env('DB_HOST', '127.0.0.1')),
-            'port' => env('SYSTEM_DB_PORT', env('DB_PORT', '3306')),
-            'database' => env('SYSTEM_DB_DATABASE', 'core4_system_proposal'),
-            'username' => env('SYSTEM_DB_USERNAME', env('DB_USERNAME', 'root')),
-            'password' => env('SYSTEM_DB_PASSWORD', env('DB_PASSWORD', '')),
-            'unix_socket' => env('SYSTEM_DB_SOCKET', ''),
+            'url' => env('SYSTEM_DB_URL', env('CORE_SYSTEM_DB_URL')),
+            'host' => env(
+                'SYSTEM_DB_HOST',
+                env('CORE_SYSTEM_DB_HOST', env('DB_HOST', '127.0.0.1'))
+            ),
+            'port' => env(
+                'SYSTEM_DB_PORT',
+                env('CORE_SYSTEM_DB_PORT', env('DB_PORT', '3306'))
+            ),
+            'database' => env(
+                'SYSTEM_DB_DATABASE',
+                env('CORE_SYSTEM_DB_DATABASE', 'core4_system_proposal')
+            ),
+            'username' => env(
+                'SYSTEM_DB_USERNAME',
+                env('CORE_SYSTEM_DB_USERNAME', env('DB_USERNAME', 'root'))
+            ),
+            'password' => env(
+                'SYSTEM_DB_PASSWORD',
+                env('CORE_SYSTEM_DB_PASSWORD', env('DB_PASSWORD', ''))
+            ),
+            'unix_socket' => env('SYSTEM_DB_SOCKET', env('DB_SOCKET', '')),
             'charset' => env('SYSTEM_DB_CHARSET', 'utf8mb4'),
             'collation' => env('SYSTEM_DB_COLLATION', 'utf8mb4_unicode_ci'),
             'prefix' => '',
@@ -100,7 +115,10 @@ return [
             'strict' => true,
             'engine' => null,
             'options' => extension_loaded('pdo_mysql') ? array_filter([
-                Mysql::ATTR_SSL_CA => env('SYSTEM_MYSQL_ATTR_SSL_CA'),
+                Mysql::ATTR_SSL_CA => env(
+                    'SYSTEM_MYSQL_ATTR_SSL_CA',
+                    env('MYSQL_ATTR_SSL_CA')
+                ),
             ]) : [],
         ],
 

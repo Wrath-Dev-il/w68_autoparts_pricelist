@@ -111,8 +111,25 @@ class EnsureCustomerPortalAccess
 
     private function deny(Request $request, string $message): Response
     {
-        if (Auth::check()) {
-            Auth::logout();
+        /*
+         * W68_AUTH_LINK_STALE_SYSTEM_SESSION_RECOVERY_20261019
+         * Auth::check() can query core4_system_proposal when an old browser
+         * session still contains a login ID. If that DB was reprovisioned or
+         * its HostForge endpoint changed, never call Auth::check() a second
+         * time while rendering the authorization error page.
+         */
+        try {
+            if (Auth::check()) {
+                Auth::logout();
+            }
+        } catch (Throwable $exception) {
+            report($exception);
+
+            try {
+                $request->session()->forget(Auth::guard()->getName());
+            } catch (Throwable $sessionException) {
+                report($sessionException);
+            }
         }
 
         $request->session()->forget([

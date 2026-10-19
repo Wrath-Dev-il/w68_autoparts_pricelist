@@ -84,6 +84,7 @@
                 </div>
 
                 <div class="settings-info-row settings-password-row">
+                    {{-- W68_SETTINGS_ENCODING_FIX_20261019 --}}
                     <span>Password</span>
                     <strong class="settings-password-mask" aria-label="Password hidden">&#8226;&#8226;&#8226;&#8226;&#8226;&#8226;&#8226;&#8226;&#8226;&#8226;&#8226;&#8226;</strong>
                     <button type="button" data-password-modal-open>CHANGE PASS</button>

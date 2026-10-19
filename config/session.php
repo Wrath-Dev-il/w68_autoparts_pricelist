@@ -16,9 +16,14 @@ return [
     |
     */
 
-    // W68 local/XAMPP: keep auth + OTP sessions on disk.
-    // This prevents Laravel from falling back to SQLite/database-backed sessions.
-    'driver' => 'file',
+    // Keep local/XAMPP sessions on disk, while allowing production to use
+    // durable database sessions from the repaired core system database.
+    'driver' => (
+        env('APP_ENV', 'production') === 'production'
+        || str_contains((string) env('APP_URL', ''), 'hostforgeplatforms.com')
+    )
+        ? 'database'
+        : env('SESSION_DRIVER', 'file'),
 
     /*
     |--------------------------------------------------------------------------
@@ -73,7 +78,10 @@ return [
     |
     */
 
-    'connection' => env('SESSION_CONNECTION'),
+    // W68 customer authentication lives in core4_system_proposal.
+    // Bind database-backed sessions to the same named connection instead of
+    // the generic default (which may still be sqlite on the Pricelist app).
+    'connection' => env('SESSION_CONNECTION', 'system'),
 
     /*
     |--------------------------------------------------------------------------
@@ -150,12 +158,18 @@ return [
     // always keep the cookie available to /authorized-access, /login, /home,
     // /process-order, and password-reset routes even if an old SESSION_PATH
     // value is still injected by the hosting environment.
-    'path' => (
-        env('APP_ENV', 'production') === 'production'
-        || str_contains((string) env('APP_URL', ''), 'hostforgeplatforms.com')
-    )
-        ? '/'
-        : env('SESSION_PATH', '/w68_Pricelist/public'),
+    // W68_SESSION_PATH is a Pricelist-only override. HostForge can inject an
+    // old SESSION_PATH=/w68_Pricelist/public value from the former subfolder
+    // deployment; the dedicated production domain is served from /.
+    'path' => env(
+        'W68_SESSION_PATH',
+        (
+            env('APP_ENV', 'production') === 'production'
+            || str_contains((string) env('APP_URL', ''), 'hostforgeplatforms.com')
+        )
+            ? '/'
+            : env('SESSION_PATH', '/w68_Pricelist/public')
+    ),
 
     /*
     |--------------------------------------------------------------------------
@@ -182,9 +196,12 @@ return [
     */
 
     'secure' => env(
-        'SESSION_SECURE_COOKIE',
-        env('APP_ENV', 'production') === 'production'
-            || str_starts_with((string) env('APP_URL', ''), 'https://')
+        'W68_SESSION_SECURE_COOKIE',
+        env(
+            'SESSION_SECURE_COOKIE',
+            env('APP_ENV', 'production') === 'production'
+                || str_starts_with((string) env('APP_URL', ''), 'https://')
+        )
     ),
 
     /*

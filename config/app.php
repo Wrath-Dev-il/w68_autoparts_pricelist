@@ -97,7 +97,16 @@ return [
 
     'cipher' => 'AES-256-CBC',
 
-    'key' => env('APP_KEY'),
+    // HostForge may inject an empty/stale APP_KEY into the web process even
+    // while CLI Artisan correctly reads .env. Prefer a Pricelist-only override,
+    // then APP_KEY, then a private local fallback written during deployment.
+    'key' => env('W68_APP_KEY')
+        ?: env('APP_KEY')
+        ?: (
+            is_file(storage_path('app/w68_app_key'))
+                ? trim((string) file_get_contents(storage_path('app/w68_app_key')))
+                : null
+        ),
 
     'previous_keys' => [
         ...array_filter(

@@ -86,13 +86,35 @@ return [
 
         'system' => [
             'driver' => env('SYSTEM_DB_CONNECTION', 'mysql'),
-            'url' => env('SYSTEM_DB_URL'),
-            'host' => env('SYSTEM_DB_HOST', env('DB_HOST', '127.0.0.1')),
-            'port' => env('SYSTEM_DB_PORT', env('DB_PORT', '3306')),
-            'database' => env('SYSTEM_DB_DATABASE', 'core4_system_proposal'),
-            'username' => env('SYSTEM_DB_USERNAME', env('DB_USERNAME', 'root')),
-            'password' => env('SYSTEM_DB_PASSWORD', env('DB_PASSWORD', '')),
-            'unix_socket' => env('SYSTEM_DB_SOCKET', ''),
+            // Prefer the main W68 CORE_SYSTEM_DB_* namespace first.
+            // HostForge may still inject stale SYSTEM_DB_* values after a
+            // database reprovision, while the repaired credentials are stored
+            // in the shared CORE_SYSTEM_DB_* variables.
+            'url' => env(
+                'W68_CORE_SYSTEM_DB_URL',
+                env('CORE_SYSTEM_DB_URL', env('SYSTEM_DB_URL'))
+            ),
+            'host' => env(
+                'W68_CORE_SYSTEM_DB_HOST',
+                env('CORE_SYSTEM_DB_HOST', env('SYSTEM_DB_HOST', env('DB_HOST', '127.0.0.1')))
+            ),
+            'port' => env(
+                'W68_CORE_SYSTEM_DB_PORT',
+                env('CORE_SYSTEM_DB_PORT', env('SYSTEM_DB_PORT', env('DB_PORT', '3306')))
+            ),
+            'database' => env(
+                'W68_CORE_SYSTEM_DB_DATABASE',
+                env('CORE_SYSTEM_DB_DATABASE', env('SYSTEM_DB_DATABASE', 'core4_system_proposal'))
+            ),
+            'username' => env(
+                'W68_CORE_SYSTEM_DB_USERNAME',
+                env('CORE_SYSTEM_DB_USERNAME', env('SYSTEM_DB_USERNAME', env('DB_USERNAME', 'root')))
+            ),
+            'password' => env(
+                'W68_CORE_SYSTEM_DB_PASSWORD',
+                env('CORE_SYSTEM_DB_PASSWORD', env('SYSTEM_DB_PASSWORD', env('DB_PASSWORD', '')))
+            ),
+            'unix_socket' => env('SYSTEM_DB_SOCKET', env('DB_SOCKET', '')),
             'charset' => env('SYSTEM_DB_CHARSET', 'utf8mb4'),
             'collation' => env('SYSTEM_DB_COLLATION', 'utf8mb4_unicode_ci'),
             'prefix' => '',
@@ -100,19 +122,40 @@ return [
             'strict' => true,
             'engine' => null,
             'options' => extension_loaded('pdo_mysql') ? array_filter([
-                Mysql::ATTR_SSL_CA => env('SYSTEM_MYSQL_ATTR_SSL_CA'),
+                Mysql::ATTR_SSL_CA => env(
+                    'SYSTEM_MYSQL_ATTR_SSL_CA',
+                    env('MYSQL_ATTR_SSL_CA')
+                ),
             ]) : [],
         ],
 
         'masterlist' => [
             'driver' => env('MASTERLIST_DB_CONNECTION', 'mysql'),
-            'url' => env('MASTERLIST_DB_URL'),
-            'host' => env('MASTERLIST_DB_HOST', env('DB_HOST', '127.0.0.1')),
-            'port' => env('MASTERLIST_DB_PORT', env('DB_PORT', '3306')),
-            'database' => env('MASTERLIST_DB_DATABASE', 'core4_masterlist'),
-            'username' => env('MASTERLIST_DB_USERNAME', env('DB_USERNAME', 'root')),
-            'password' => env('MASTERLIST_DB_PASSWORD', env('DB_PASSWORD', '')),
-            'unix_socket' => env('MASTERLIST_DB_SOCKET', ''),
+            'url' => env(
+                'W68_MASTERLIST_DB_URL',
+                env('DB_MASTERLIST_URL', env('MASTERLIST_DB_URL'))
+            ),
+            'host' => env(
+                'W68_MASTERLIST_DB_HOST',
+                env('DB_MASTERLIST_HOST', env('MASTERLIST_DB_HOST', env('DB_HOST', '127.0.0.1')))
+            ),
+            'port' => env(
+                'W68_MASTERLIST_DB_PORT',
+                env('DB_MASTERLIST_PORT', env('MASTERLIST_DB_PORT', env('DB_PORT', '3306')))
+            ),
+            'database' => env(
+                'W68_MASTERLIST_DB_DATABASE',
+                env('DB_MASTERLIST_DATABASE', env('MASTERLIST_DB_DATABASE', 'core4_masterlist'))
+            ),
+            'username' => env(
+                'W68_MASTERLIST_DB_USERNAME',
+                env('DB_MASTERLIST_USERNAME', env('MASTERLIST_DB_USERNAME', env('DB_USERNAME', 'root')))
+            ),
+            'password' => env(
+                'W68_MASTERLIST_DB_PASSWORD',
+                env('DB_MASTERLIST_PASSWORD', env('MASTERLIST_DB_PASSWORD', env('DB_PASSWORD', '')))
+            ),
+            'unix_socket' => env('MASTERLIST_DB_SOCKET', env('DB_SOCKET', '')),
             'charset' => env('MASTERLIST_DB_CHARSET', 'utf8mb4'),
             'collation' => env('MASTERLIST_DB_COLLATION', 'utf8mb4_unicode_ci'),
             'prefix' => '',
@@ -120,19 +163,40 @@ return [
             'strict' => true,
             'engine' => null,
             'options' => extension_loaded('pdo_mysql') ? array_filter([
-                Mysql::ATTR_SSL_CA => env('MASTERLIST_MYSQL_ATTR_SSL_CA'),
+                Mysql::ATTR_SSL_CA => env(
+                    'MASTERLIST_MYSQL_ATTR_SSL_CA',
+                    env('MYSQL_ATTR_SSL_CA')
+                ),
             ]) : [],
         ],
 
         'sales_order' => [
             'driver' => env('SALES_ORDER_DB_CONNECTION', 'mysql'),
-            'url' => env('SALES_ORDER_DB_URL'),
-            'host' => env('DB_SALES_HOST', env('SALES_ORDER_DB_HOST', env('DB_HOST', '127.0.0.1'))),
-            'port' => env('DB_SALES_PORT', env('SALES_ORDER_DB_PORT', env('DB_PORT', '3306'))),
-            'database' => env('DB_SALES_DATABASE', env('SALES_ORDER_DB_DATABASE', 'core4_sales_order')),
-            'username' => env('DB_SALES_USERNAME', env('SALES_ORDER_DB_USERNAME', env('DB_USERNAME', 'root'))),
-            'password' => env('DB_SALES_PASSWORD', env('SALES_ORDER_DB_PASSWORD', env('DB_PASSWORD', ''))),
-            'unix_socket' => env('SALES_ORDER_DB_SOCKET', ''),
+            'url' => env(
+                'W68_SALES_ORDER_DB_URL',
+                env('DB_SALES_URL', env('SALES_ORDER_DB_URL'))
+            ),
+            'host' => env(
+                'W68_SALES_ORDER_DB_HOST',
+                env('DB_SALES_HOST', env('SALES_ORDER_DB_HOST', env('DB_HOST', '127.0.0.1')))
+            ),
+            'port' => env(
+                'W68_SALES_ORDER_DB_PORT',
+                env('DB_SALES_PORT', env('SALES_ORDER_DB_PORT', env('DB_PORT', '3306')))
+            ),
+            'database' => env(
+                'W68_SALES_ORDER_DB_DATABASE',
+                env('DB_SALES_DATABASE', env('SALES_ORDER_DB_DATABASE', 'core4_sales_order'))
+            ),
+            'username' => env(
+                'W68_SALES_ORDER_DB_USERNAME',
+                env('DB_SALES_USERNAME', env('SALES_ORDER_DB_USERNAME', env('DB_USERNAME', 'root')))
+            ),
+            'password' => env(
+                'W68_SALES_ORDER_DB_PASSWORD',
+                env('DB_SALES_PASSWORD', env('SALES_ORDER_DB_PASSWORD', env('DB_PASSWORD', '')))
+            ),
+            'unix_socket' => env('SALES_ORDER_DB_SOCKET', env('DB_SOCKET', '')),
             'charset' => env('SALES_ORDER_DB_CHARSET', 'utf8mb4'),
             'collation' => env('SALES_ORDER_DB_COLLATION', 'utf8mb4_unicode_ci'),
             'prefix' => '',
@@ -140,7 +204,10 @@ return [
             'strict' => true,
             'engine' => null,
             'options' => extension_loaded('pdo_mysql') ? array_filter([
-                Mysql::ATTR_SSL_CA => env('SALES_ORDER_MYSQL_ATTR_SSL_CA'),
+                Mysql::ATTR_SSL_CA => env(
+                    'SALES_ORDER_MYSQL_ATTR_SSL_CA',
+                    env('MYSQL_ATTR_SSL_CA')
+                ),
             ]) : [],
         ],
 

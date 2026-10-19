@@ -85,13 +85,30 @@ return [
         ],
 
         'system' => [
+            // W68_SYSTEM_DB_HOSTFORGE_RECOVERY_20261019
+            // The original HostForge system DB service (mariadb-lmm0c28g.internal)
+            // is no longer resolvable. The app's default HostForge MariaDB is
+            // reachable and currently empty, so use it as the replacement
+            // system schema until the dedicated service is rebuilt.
             'driver' => env('SYSTEM_DB_CONNECTION', 'mysql'),
-            'url' => env('SYSTEM_DB_URL'),
-            'host' => env('SYSTEM_DB_HOST', env('DB_HOST', '127.0.0.1')),
-            'port' => env('SYSTEM_DB_PORT', env('DB_PORT', '3306')),
-            'database' => env('SYSTEM_DB_DATABASE', 'core4_system_proposal'),
-            'username' => env('SYSTEM_DB_USERNAME', env('DB_USERNAME', 'root')),
-            'password' => env('SYSTEM_DB_PASSWORD', env('DB_PASSWORD', '')),
+            'url' => str_contains((string) env('APP_URL', ''), 'hostforgeplatforms.com')
+                ? env('DATABASE_URL')
+                : env('SYSTEM_DB_URL'),
+            'host' => str_contains((string) env('APP_URL', ''), 'hostforgeplatforms.com')
+                ? env('DB_HOST', '127.0.0.1')
+                : env('SYSTEM_DB_HOST', env('DB_HOST', '127.0.0.1')),
+            'port' => str_contains((string) env('APP_URL', ''), 'hostforgeplatforms.com')
+                ? env('DB_PORT', '3306')
+                : env('SYSTEM_DB_PORT', env('DB_PORT', '3306')),
+            'database' => str_contains((string) env('APP_URL', ''), 'hostforgeplatforms.com')
+                ? env('DB_DATABASE', env('DB_NAME', 'laravel'))
+                : env('SYSTEM_DB_DATABASE', 'core4_system_proposal'),
+            'username' => str_contains((string) env('APP_URL', ''), 'hostforgeplatforms.com')
+                ? env('DB_USERNAME', env('DB_USER', 'root'))
+                : env('SYSTEM_DB_USERNAME', env('DB_USERNAME', 'root')),
+            'password' => str_contains((string) env('APP_URL', ''), 'hostforgeplatforms.com')
+                ? env('DB_PASSWORD', '')
+                : env('SYSTEM_DB_PASSWORD', env('DB_PASSWORD', '')),
             'unix_socket' => env('SYSTEM_DB_SOCKET', ''),
             'charset' => env('SYSTEM_DB_CHARSET', 'utf8mb4'),
             'collation' => env('SYSTEM_DB_COLLATION', 'utf8mb4_unicode_ci'),

@@ -3,6 +3,10 @@
 use Illuminate\Support\Str;
 use Pdo\Mysql;
 
+
+$isHostForge = str_contains((string) ($_SERVER['HTTP_HOST'] ?? ''), 'hostforgeplatforms.com')
+    || $isHostForge;
+
 return [
 
     /*
@@ -91,22 +95,22 @@ return [
             // reachable and currently empty, so use it as the replacement
             // system schema until the dedicated service is rebuilt.
             'driver' => env('SYSTEM_DB_CONNECTION', 'mysql'),
-            'url' => str_contains((string) env('APP_URL', ''), 'hostforgeplatforms.com')
+            'url' => $isHostForge
                 ? env('DATABASE_URL')
                 : env('SYSTEM_DB_URL'),
-            'host' => str_contains((string) env('APP_URL', ''), 'hostforgeplatforms.com')
+            'host' => $isHostForge
                 ? env('DB_HOST', '127.0.0.1')
                 : env('SYSTEM_DB_HOST', env('DB_HOST', '127.0.0.1')),
-            'port' => str_contains((string) env('APP_URL', ''), 'hostforgeplatforms.com')
+            'port' => $isHostForge
                 ? env('DB_PORT', '3306')
                 : env('SYSTEM_DB_PORT', env('DB_PORT', '3306')),
-            'database' => str_contains((string) env('APP_URL', ''), 'hostforgeplatforms.com')
+            'database' => $isHostForge
                 ? env('DB_DATABASE', env('DB_NAME', 'laravel'))
                 : env('SYSTEM_DB_DATABASE', 'core4_system_proposal'),
-            'username' => str_contains((string) env('APP_URL', ''), 'hostforgeplatforms.com')
+            'username' => $isHostForge
                 ? env('DB_USERNAME', env('DB_USER', 'root'))
                 : env('SYSTEM_DB_USERNAME', env('DB_USERNAME', 'root')),
-            'password' => str_contains((string) env('APP_URL', ''), 'hostforgeplatforms.com')
+            'password' => $isHostForge
                 ? env('DB_PASSWORD', '')
                 : env('SYSTEM_DB_PASSWORD', env('DB_PASSWORD', '')),
             'unix_socket' => env('SYSTEM_DB_SOCKET', ''),

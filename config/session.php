@@ -1,5 +1,8 @@
 <?php
 
+$isHostForge = str_contains((string) ($_SERVER['HTTP_HOST'] ?? ''), 'hostforgeplatforms.com')
+    || $isHostForge;
+
 return [
 
     /*
@@ -23,7 +26,7 @@ return [
      * table. Persist authorization/login sessions in that shared DB on
      * HostForge so the accepted authorization survives the redirect to /login.
      */
-    'driver' => str_contains((string) env('APP_URL', ''), 'hostforgeplatforms.com')
+    'driver' => $isHostForge
         ? 'database'
         : env('SESSION_DRIVER', 'file'),
 
@@ -80,7 +83,7 @@ return [
     |
     */
 
-    'connection' => str_contains((string) env('APP_URL', ''), 'hostforgeplatforms.com')
+    'connection' => $isHostForge
         ? 'system'
         : env('SESSION_CONNECTION'),
 
@@ -141,7 +144,7 @@ return [
     // otherwise opening the main Hatdog system can overwrite the customer
     // portal session cookie and make W68 look logged out.
     // New HostForge cookie name intentionally discards stale pre-outage file-session IDs.
-    'cookie' => str_contains((string) env('APP_URL', ''), 'hostforgeplatforms.com')
+    'cookie' => $isHostForge
         ? 'w68_pricelist_customer_session_v2'
         : env('SESSION_COOKIE', 'w68_pricelist_customer_session'),
 
@@ -164,7 +167,7 @@ return [
     // value is still injected by the hosting environment.
     'path' => (
         env('APP_ENV', 'production') === 'production'
-        || str_contains((string) env('APP_URL', ''), 'hostforgeplatforms.com')
+        || $isHostForge
     )
         ? '/'
         : env('SESSION_PATH', '/w68_Pricelist/public'),
@@ -181,7 +184,7 @@ return [
     */
 
     // Host-only cookie avoids stale/wrong SESSION_DOMAIN values after HostForge recovery.
-    'domain' => str_contains((string) env('APP_URL', ''), 'hostforgeplatforms.com')
+    'domain' => $isHostForge
         ? null
         : env('SESSION_DOMAIN'),
 

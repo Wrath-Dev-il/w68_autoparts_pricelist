@@ -1,4 +1,4 @@
-name: W68 Printer Bridge Android
+name: W68 Printer Bridge Android + iOS
 
 on:
   push:
@@ -79,3 +79,67 @@ jobs:
               --notes "Install this APK on the W68 Android/Xiaomi tablet. The asset is replaced automatically when the Printer Bridge source changes." \
               --prerelease
           fi
+
+
+  ios:
+    runs-on: macos-latest
+    timeout-minutes: 40
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+
+      - name: Flutter version
+        run: flutter --version
+
+      - name: Generate iOS runner
+        working-directory: printer_bridge
+        run: flutter create --platforms=ios --org com.w68autoparts --project-name w68_printer_bridge .
+
+      - name: Apply W68 iOS configuration
+        working-directory: printer_bridge
+        run: dart run ./scripts/configure_platforms.dart
+
+      - name: Get packages
+        working-directory: printer_bridge
+        run: flutter pub get
+
+      - name: Install CocoaPods
+        working-directory: printer_bridge/ios
+        run: pod install
+
+      - name: Analyze W68 bridge source
+        working-directory: printer_bridge
+        run: flutter analyze lib
+
+      - name: Verify W68 iOS URL scheme and Bonjour permissions
+        working-directory: printer_bridge
+        run: |
+          grep -q "<string>w68print</string>" ios/Runner/Info.plist
+          grep -q "<key>NSLocalNetworkUsageDescription</key>" ios/Runner/Info.plist
+          grep -q "<string>_ipp._tcp</string>" ios/Runner/Info.plist
+          grep -q "<string>_ipps._tcp</string>" ios/Runner/Info.plist
+          grep -q "<string>_printer._tcp</string>" ios/Runner/Info.plist
+          echo "W68 iOS bridge configuration verified."
+
+      - name: Build unsigned iOS app for validation
+        working-directory: printer_bridge
+        run: flutter build ios --release --no-codesign
+
+      - name: Package unsigned validation artifact
+        run: |
+          cd printer_bridge/build/ios/iphoneos
+          ditto -c -k --sequesterRsrc --keepParent Runner.app ../../../../w68-printer-bridge-ios-unsigned.zip
+
+      - name: Upload unsigned iOS validation artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: w68-printer-bridge-ios-unsigned
+          path: w68-printer-bridge-ios-unsigned.zip
+          if-no-files-found: error

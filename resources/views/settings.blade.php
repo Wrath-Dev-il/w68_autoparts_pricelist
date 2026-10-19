@@ -25,11 +25,11 @@
                 <img src="{{ $logo }}" alt="W68 Autoparts & Service Center">
                 <span>
                     <strong>W68 AUTOPARTS</strong>
-                    <small>Service Center â€¢ Account Settings</small>
+                    <small>Service Center &bull; Account Settings</small>
                 </span>
             </a>
 
-            <a class="settings-home-link" href="{{ route('home') }}">â† BACK TO HOME</a>
+            <a class="settings-home-link" href="{{ route('home') }}">&larr; BACK TO HOME</a>
         </div>
     </header>
 
@@ -75,17 +75,17 @@
             <div class="settings-account-info">
                 <div class="settings-info-row">
                     <span>User Name</span>
-                    <strong>{{ $account->User_ID ?: 'â€”' }}</strong>
+                    <strong>@if($account->User_ID){{ $account->User_ID }}@else&mdash;@endif</strong>
                 </div>
 
                 <div class="settings-info-row">
                     <span>Email</span>
-                    <strong>{{ $account->Email ?: 'â€”' }}</strong>
+                    <strong>@if($account->Email){{ $account->Email }}@else&mdash;@endif</strong>
                 </div>
 
                 <div class="settings-info-row settings-password-row">
                     <span>Password</span>
-                    <strong>â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢</strong>
+                    <strong class="settings-password-mask" aria-label="Password hidden">&#8226;&#8226;&#8226;&#8226;&#8226;&#8226;&#8226;&#8226;&#8226;&#8226;&#8226;&#8226;</strong>
                     <button type="button" data-password-modal-open>CHANGE PASS</button>
                 </div>
             </div>
@@ -114,7 +114,7 @@
                                 <td>
                                     <a href="{{ route('home', ['brand' => $brand['brand']]) }}#products">
                                         <strong>{{ $brand['brand'] }}</strong>
-                                        <small>VIEW PRODUCTS â†’</small>
+                                        <small>VIEW PRODUCTS &rarr;</small>
                                     </a>
                                 </td>
                                 <td>

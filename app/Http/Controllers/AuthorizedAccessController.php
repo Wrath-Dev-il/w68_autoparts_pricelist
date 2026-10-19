@@ -66,13 +66,23 @@ class AuthorizedAccessController extends Controller
                 }
 
                 if (
-                    $linkedAccount
-                    && (int) $linkedAccount->customer_id !== (int) $authorization->customer_id
+                    !$linkedAccount
+                    || (int) $linkedAccount->customer_id !== (int) $authorization->customer_id
                 ) {
                     /*
-                     * W68_AUTH_LINK_ACCOUNT_OWNER_GUARD_20261006
-                     * A logged-in account must never carry an authorization
-                     * belonging to another customer.
+                     * W68_AUTH_LINK_RESTORED_DB_RECOVERY_20261019
+                     *
+                     * After restoring an older core4_system_proposal backup,
+                     * the browser may still carry a newer authenticated login
+                     * whose customer_portal_accounts row is not present in the
+                     * restored database. Keeping that authentication active
+                     * makes EnsureCustomerPortalAccess reject /login before the
+                     * newly accepted authorization can be used.
+                     *
+                     * Drop only the stale/unlinked authentication identity.
+                     * The valid authorization/customer IDs are written to the
+                     * session immediately below, so the customer can continue
+                     * through Login/Register normally.
                      */
                     Auth::logout();
                     $request->session()->regenerate();

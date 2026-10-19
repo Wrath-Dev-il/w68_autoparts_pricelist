@@ -131,13 +131,31 @@ return [
 
         'masterlist' => [
             'driver' => env('MASTERLIST_DB_CONNECTION', 'mysql'),
-            'url' => env('MASTERLIST_DB_URL'),
-            'host' => env('MASTERLIST_DB_HOST', env('DB_HOST', '127.0.0.1')),
-            'port' => env('MASTERLIST_DB_PORT', env('DB_PORT', '3306')),
-            'database' => env('MASTERLIST_DB_DATABASE', 'core4_masterlist'),
-            'username' => env('MASTERLIST_DB_USERNAME', env('DB_USERNAME', 'root')),
-            'password' => env('MASTERLIST_DB_PASSWORD', env('DB_PASSWORD', '')),
-            'unix_socket' => env('MASTERLIST_DB_SOCKET', ''),
+            'url' => env(
+                'W68_MASTERLIST_DB_URL',
+                env('DB_MASTERLIST_URL', env('MASTERLIST_DB_URL'))
+            ),
+            'host' => env(
+                'W68_MASTERLIST_DB_HOST',
+                env('DB_MASTERLIST_HOST', env('MASTERLIST_DB_HOST', env('DB_HOST', '127.0.0.1')))
+            ),
+            'port' => env(
+                'W68_MASTERLIST_DB_PORT',
+                env('DB_MASTERLIST_PORT', env('MASTERLIST_DB_PORT', env('DB_PORT', '3306')))
+            ),
+            'database' => env(
+                'W68_MASTERLIST_DB_DATABASE',
+                env('DB_MASTERLIST_DATABASE', env('MASTERLIST_DB_DATABASE', 'core4_masterlist'))
+            ),
+            'username' => env(
+                'W68_MASTERLIST_DB_USERNAME',
+                env('DB_MASTERLIST_USERNAME', env('MASTERLIST_DB_USERNAME', env('DB_USERNAME', 'root')))
+            ),
+            'password' => env(
+                'W68_MASTERLIST_DB_PASSWORD',
+                env('DB_MASTERLIST_PASSWORD', env('MASTERLIST_DB_PASSWORD', env('DB_PASSWORD', '')))
+            ),
+            'unix_socket' => env('MASTERLIST_DB_SOCKET', env('DB_SOCKET', '')),
             'charset' => env('MASTERLIST_DB_CHARSET', 'utf8mb4'),
             'collation' => env('MASTERLIST_DB_COLLATION', 'utf8mb4_unicode_ci'),
             'prefix' => '',
@@ -145,7 +163,10 @@ return [
             'strict' => true,
             'engine' => null,
             'options' => extension_loaded('pdo_mysql') ? array_filter([
-                Mysql::ATTR_SSL_CA => env('MASTERLIST_MYSQL_ATTR_SSL_CA'),
+                Mysql::ATTR_SSL_CA => env(
+                    'MASTERLIST_MYSQL_ATTR_SSL_CA',
+                    env('MYSQL_ATTR_SSL_CA')
+                ),
             ]) : [],
         ],
 

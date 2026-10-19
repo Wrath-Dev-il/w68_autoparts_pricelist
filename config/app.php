@@ -97,7 +97,10 @@ return [
 
     'cipher' => 'AES-256-CBC',
 
-    'key' => env('APP_KEY'),
+    // HostForge may inject an empty/stale APP_KEY into the web process even
+    // while CLI Artisan correctly reads .env. A Pricelist-only override keeps
+    // HTTP cookie/session encryption stable after a deployment reprovision.
+    'key' => env('W68_APP_KEY', env('APP_KEY')),
 
     'previous_keys' => [
         ...array_filter(

@@ -16,9 +16,21 @@ return [
     |
     */
 
-    // W68 local/XAMPP: keep auth + OTP sessions on disk.
-    // This prevents Laravel from falling back to SQLite/database-backed sessions.
-    'driver' => 'file',
+    /*
+     * W68_HOSTFORGE_DATABASE_SESSIONS_20261019
+     *
+     * HostForge may restart/reprovision the app process. File-backed sessions
+     * can disappear between the authorization request and the /login redirect,
+     * which makes a valid generated link appear unauthorized. Production uses
+     * the shared core4_system_proposal sessions table instead; local/XAMPP
+     * continues using file sessions.
+     */
+    'driver' => (
+        env('APP_ENV', 'production') === 'production'
+        || str_contains((string) env('APP_URL', ''), 'hostforgeplatforms.com')
+    )
+        ? 'database'
+        : env('SESSION_DRIVER', 'file'),
 
     /*
     |--------------------------------------------------------------------------
@@ -73,7 +85,12 @@ return [
     |
     */
 
-    'connection' => env('SESSION_CONNECTION'),
+    'connection' => (
+        env('APP_ENV', 'production') === 'production'
+        || str_contains((string) env('APP_URL', ''), 'hostforgeplatforms.com')
+    )
+        ? 'system'
+        : env('SESSION_CONNECTION'),
 
     /*
     |--------------------------------------------------------------------------

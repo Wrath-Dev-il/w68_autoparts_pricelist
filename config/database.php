@@ -5,7 +5,7 @@ use Pdo\Mysql;
 
 
 $isHostForge = str_contains((string) ($_SERVER['HTTP_HOST'] ?? ''), 'hostforgeplatforms.com')
-    || $isHostForge;
+    || str_contains((string) env('APP_URL', ''), 'hostforgeplatforms.com');
 
 return [
 

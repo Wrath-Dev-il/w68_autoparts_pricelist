@@ -172,13 +172,31 @@ return [
 
         'sales_order' => [
             'driver' => env('SALES_ORDER_DB_CONNECTION', 'mysql'),
-            'url' => env('SALES_ORDER_DB_URL'),
-            'host' => env('DB_SALES_HOST', env('SALES_ORDER_DB_HOST', env('DB_HOST', '127.0.0.1'))),
-            'port' => env('DB_SALES_PORT', env('SALES_ORDER_DB_PORT', env('DB_PORT', '3306'))),
-            'database' => env('DB_SALES_DATABASE', env('SALES_ORDER_DB_DATABASE', 'core4_sales_order')),
-            'username' => env('DB_SALES_USERNAME', env('SALES_ORDER_DB_USERNAME', env('DB_USERNAME', 'root'))),
-            'password' => env('DB_SALES_PASSWORD', env('SALES_ORDER_DB_PASSWORD', env('DB_PASSWORD', ''))),
-            'unix_socket' => env('SALES_ORDER_DB_SOCKET', ''),
+            'url' => env(
+                'W68_SALES_ORDER_DB_URL',
+                env('DB_SALES_URL', env('SALES_ORDER_DB_URL'))
+            ),
+            'host' => env(
+                'W68_SALES_ORDER_DB_HOST',
+                env('DB_SALES_HOST', env('SALES_ORDER_DB_HOST', env('DB_HOST', '127.0.0.1')))
+            ),
+            'port' => env(
+                'W68_SALES_ORDER_DB_PORT',
+                env('DB_SALES_PORT', env('SALES_ORDER_DB_PORT', env('DB_PORT', '3306')))
+            ),
+            'database' => env(
+                'W68_SALES_ORDER_DB_DATABASE',
+                env('DB_SALES_DATABASE', env('SALES_ORDER_DB_DATABASE', 'core4_sales_order'))
+            ),
+            'username' => env(
+                'W68_SALES_ORDER_DB_USERNAME',
+                env('DB_SALES_USERNAME', env('SALES_ORDER_DB_USERNAME', env('DB_USERNAME', 'root')))
+            ),
+            'password' => env(
+                'W68_SALES_ORDER_DB_PASSWORD',
+                env('DB_SALES_PASSWORD', env('SALES_ORDER_DB_PASSWORD', env('DB_PASSWORD', '')))
+            ),
+            'unix_socket' => env('SALES_ORDER_DB_SOCKET', env('DB_SOCKET', '')),
             'charset' => env('SALES_ORDER_DB_CHARSET', 'utf8mb4'),
             'collation' => env('SALES_ORDER_DB_COLLATION', 'utf8mb4_unicode_ci'),
             'prefix' => '',
@@ -186,7 +204,10 @@ return [
             'strict' => true,
             'engine' => null,
             'options' => extension_loaded('pdo_mysql') ? array_filter([
-                Mysql::ATTR_SSL_CA => env('SALES_ORDER_MYSQL_ATTR_SSL_CA'),
+                Mysql::ATTR_SSL_CA => env(
+                    'SALES_ORDER_MYSQL_ATTR_SSL_CA',
+                    env('MYSQL_ATTR_SSL_CA')
+                ),
             ]) : [],
         ],
 

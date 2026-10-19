@@ -6765,3 +6765,222 @@ html.w68-ipad .orders-cart-drawer.open .orders-cart-print-button {
         padding-right: 12px;
     }
 }
+
+
+/* =========================================================
+   W68_MOBILE_FOLDED_NAV_LAYOUT_20261019
+   Final phone-only folded navbar layout.
+   Keep the search summary readable and place Discounts / Orders / Cart
+   in one equal-width action row instead of squeezing them beside the summary.
+   ========================================================= */
+@media (max-width: 620px) {
+    .customer-nav.is-collapsed {
+        min-height: 0 !important;
+        height: auto !important;
+        padding: 6px 0 !important;
+    }
+
+    .customer-nav.is-collapsed .customer-nav-shell {
+        width: calc(100% - 16px) !important;
+        max-width: calc(100% - 16px) !important;
+        min-height: 0 !important;
+        margin: 0 auto !important;
+        padding: 0 !important;
+        box-sizing: border-box !important;
+    }
+
+    .customer-nav.is-collapsed .nav-collapsed-content {
+        width: 100% !important;
+        min-width: 0 !important;
+        display: grid !important;
+        grid-template-columns: minmax(0, 1fr) !important;
+        grid-template-rows: auto auto !important;
+        gap: 7px !important;
+        margin: 0 !important;
+        padding: 7px !important;
+        box-sizing: border-box !important;
+        border: 1px solid rgba(255, 214, 51, .52) !important;
+        border-radius: 12px !important;
+        background: #064e3b !important;
+        box-shadow: 0 5px 16px rgba(0, 0, 0, .16) !important;
+    }
+
+    .customer-nav.is-collapsed .nav-collapsed-expand {
+        grid-column: 1 !important;
+        grid-row: 1 !important;
+        width: 100% !important;
+        min-width: 0 !important;
+        min-height: 38px !important;
+        margin: 0 !important;
+        padding: 7px 10px !important;
+        display: block !important;
+        border: 0 !important;
+        border-radius: 8px !important;
+        background: #ffd633 !important;
+        color: #6f091b !important;
+        text-align: left !important;
+        box-sizing: border-box !important;
+        overflow: hidden !important;
+    }
+
+    .customer-nav.is-collapsed .collapsed-summary-copy {
+        width: 100% !important;
+        min-width: 0 !important;
+        display: grid !important;
+        grid-template-columns: auto minmax(0, 1fr) !important;
+        align-items: center !important;
+        gap: 4px 7px !important;
+        color: #6f091b !important;
+    }
+
+    .customer-nav.is-collapsed .collapsed-summary-copy > small {
+        grid-column: 1 !important;
+        grid-row: 1 !important;
+        margin: 0 !important;
+        color: #6f091b !important;
+        font-size: 7px !important;
+        font-weight: 1000 !important;
+        letter-spacing: .45px !important;
+        line-height: 1 !important;
+        white-space: nowrap !important;
+    }
+
+    .customer-nav.is-collapsed .collapsed-summary-values {
+        grid-column: 2 !important;
+        grid-row: 1 !important;
+        min-width: 0 !important;
+        display: flex !important;
+        align-items: center !important;
+        gap: 4px !important;
+        overflow: hidden !important;
+    }
+
+    .customer-nav.is-collapsed .collapsed-summary-values strong {
+        min-width: 0 !important;
+        max-width: 100% !important;
+        margin: 0 !important;
+        color: #6f091b !important;
+        font-size: 8px !important;
+        font-weight: 1000 !important;
+        line-height: 1.15 !important;
+        white-space: nowrap !important;
+        overflow: hidden !important;
+        text-overflow: ellipsis !important;
+    }
+
+    .customer-nav.is-collapsed .collapsed-summary-values strong > span {
+        margin-right: 4px !important;
+        color: rgba(111, 9, 27, .72) !important;
+        font-size: 6.5px !important;
+    }
+
+    .customer-nav.is-collapsed .collapsed-summary-copy > em {
+        grid-column: 1 / -1 !important;
+        grid-row: 2 !important;
+        margin: 0 !important;
+        color: rgba(111, 9, 27, .72) !important;
+        font-size: 7px !important;
+        font-style: normal !important;
+        line-height: 1 !important;
+    }
+
+    .customer-nav.is-collapsed .collapsed-click-hint {
+        display: none !important;
+    }
+
+    .customer-nav.is-collapsed .nav-collapsed-commerce {
+        grid-column: 1 !important;
+        grid-row: 2 !important;
+        width: 100% !important;
+        min-width: 0 !important;
+        margin: 0 !important;
+        padding: 0 !important;
+        display: flex !important;
+        align-items: stretch !important;
+        justify-content: stretch !important;
+        gap: 6px !important;
+        column-gap: 6px !important;
+        row-gap: 0 !important;
+        box-sizing: border-box !important;
+    }
+
+    .customer-nav.is-collapsed .nav-collapsed-commerce .nav-cart-button-collapsed,
+    .customer-nav.is-collapsed .nav-collapsed-commerce .nav-orders-button-collapsed,
+    .customer-nav.is-collapsed .nav-collapsed-commerce .nav-discounts-button-collapsed {
+        position: relative !important;
+        inset: auto !important;
+        flex: 1 1 0 !important;
+        width: auto !important;
+        min-width: 0 !important;
+        max-width: none !important;
+        height: 42px !important;
+        min-height: 42px !important;
+        margin: 0 !important;
+        padding: 0 6px !important;
+        display: inline-flex !important;
+        flex-direction: row !important;
+        align-items: center !important;
+        justify-content: center !important;
+        gap: 5px !important;
+        border-radius: 9px !important;
+        box-sizing: border-box !important;
+        transform: none !important;
+        overflow: visible !important;
+        text-decoration: none !important;
+        touch-action: manipulation !important;
+    }
+
+    .customer-nav.is-collapsed .nav-collapsed-commerce .nav-cart-button-collapsed span,
+    .customer-nav.is-collapsed .nav-collapsed-commerce .nav-discounts-button-collapsed > span {
+        display: inline-block !important;
+        visibility: visible !important;
+        opacity: 1 !important;
+        width: auto !important;
+        max-width: 100% !important;
+        overflow: hidden !important;
+        color: inherit !important;
+        font-size: 7px !important;
+        font-weight: 1000 !important;
+        letter-spacing: .15px !important;
+        line-height: 1 !important;
+        white-space: nowrap !important;
+        text-overflow: ellipsis !important;
+    }
+
+    .customer-nav.is-collapsed .nav-collapsed-commerce .nav-cart-button-collapsed svg {
+        width: 16px !important;
+        height: 16px !important;
+        min-width: 16px !important;
+        flex: 0 0 16px !important;
+        margin: 0 !important;
+    }
+
+    .customer-nav.is-collapsed .nav-collapsed-commerce .nav-cart-button-collapsed > b {
+        top: -5px !important;
+        right: -4px !important;
+        min-width: 18px !important;
+        height: 18px !important;
+        padding: 0 4px !important;
+        border-width: 2px !important;
+        font-size: 7px !important;
+    }
+}
+
+@media (max-width: 360px) {
+    .customer-nav.is-collapsed .nav-collapsed-commerce {
+        gap: 4px !important;
+        column-gap: 4px !important;
+    }
+
+    .customer-nav.is-collapsed .nav-collapsed-commerce .nav-cart-button-collapsed,
+    .customer-nav.is-collapsed .nav-collapsed-commerce .nav-orders-button-collapsed,
+    .customer-nav.is-collapsed .nav-collapsed-commerce .nav-discounts-button-collapsed {
+        padding-inline: 4px !important;
+        gap: 3px !important;
+    }
+
+    .customer-nav.is-collapsed .nav-collapsed-commerce .nav-cart-button-collapsed span,
+    .customer-nav.is-collapsed .nav-collapsed-commerce .nav-discounts-button-collapsed > span {
+        font-size: 6.4px !important;
+    }
+}

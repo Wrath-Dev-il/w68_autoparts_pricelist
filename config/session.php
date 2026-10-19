@@ -18,10 +18,12 @@ return [
 
     // Keep local/XAMPP sessions on disk, while allowing production to use
     // durable database sessions from the repaired core system database.
-    'driver' => env(
-        'SESSION_DRIVER',
-        env('APP_ENV', 'production') === 'production' ? 'database' : 'file'
-    ),
+    'driver' => (
+        env('APP_ENV', 'production') === 'production'
+        || str_contains((string) env('APP_URL', ''), 'hostforgeplatforms.com')
+    )
+        ? 'database'
+        : env('SESSION_DRIVER', 'file'),
 
     /*
     |--------------------------------------------------------------------------

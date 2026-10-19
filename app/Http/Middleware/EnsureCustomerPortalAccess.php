@@ -36,10 +36,34 @@ class EnsureCustomerPortalAccess
                     ->first();
 
                 if (!$link) {
-                    return $this->deny($request, 'This Pricelist account is not linked to a W68 customer.');
+                    /*
+                     * W68_AUTH_LINK_REPROVISIONED_ACCOUNT_RECOVERY_20261019
+                     *
+                     * A restored core4_system_proposal can leave the browser
+                     * carrying an authenticated login session whose old
+                     * customer_portal_accounts row no longer exists. When the
+                     * customer has JUST opened a valid generated authorization
+                     * link, do not reject that fresh authorization because of
+                     * the stale login. Drop the stale login and continue through
+                     * the normal guest authorization validation below.
+                     */
+                    $authorizationId = (int) $request->session()->get('w68_customer_authorization_id', 0);
+                    $customerId = (int) $request->session()->get('w68_customer_id', 0);
+
+                    if ($authorizationId > 0 && $customerId > 0) {
+                        Auth::logout();
+                        $request->session()->regenerate();
+                        $request->session()->put([
+                            'w68_customer_authorization_id' => $authorizationId,
+                            'w68_customer_id' => $customerId,
+                        ]);
+                    } else {
+                        return $this->deny($request, 'This Pricelist account is not linked to a W68 customer.');
+                    }
                 }
 
-                $linkedCustomerId = (int) $link->customer_id;
+                if ($link) {
+                    $linkedCustomerId = (int) $link->customer_id;
 
                 $customerExists = DB::connection('masterlist')
                     ->table('customers')
@@ -59,7 +83,8 @@ class EnsureCustomerPortalAccess
                     $request->session()->put('w68_customer_authorization_id', $linkedAuthorizationId);
                 }
 
-                return $next($request);
+                    return $next($request);
+                }
             }
 
             /*

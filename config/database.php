@@ -131,7 +131,7 @@ return [
             // the already-working Masterlist server credentials rather than
             // falling back to the local-development 127.0.0.1/root defaults.
             'driver' => env('SALES_ORDER_DB_CONNECTION', env('MASTERLIST_DB_CONNECTION', 'mysql')),
-            'url' => env('SALES_ORDER_DB_URL', env('MASTERLIST_DB_URL')),
+            'url' => env('SALES_ORDER_DB_URL'),
             'host' => env(
                 'DB_SALES_HOST',
                 env('SALES_ORDER_DB_HOST', env('MASTERLIST_DB_HOST', env('DB_HOST', '127.0.0.1')))

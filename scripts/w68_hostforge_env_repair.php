@@ -30,14 +30,13 @@ function requireProcessEnv(string $key): string
 function dotenvValue(string $value): string
 {
     $value = str_replace(
-        ["\\", """, "$", "\r", "\n"],
-        ["\\\\", "\\"", "\\$", "\\r", "\\n"],
+        ['\\', '"', '$', "\r", "\n"],
+        ['\\\\', '\\"', '\\$', '\\r', '\\n'],
         $value
     );
 
     return '"' . $value . '"';
 }
-
 function setDotenv(string $text, string $key, string $value): string
 {
     $line = $key . '=' . dotenvValue($value);

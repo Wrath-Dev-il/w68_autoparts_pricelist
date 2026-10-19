@@ -577,8 +577,11 @@
 
             if (!center || !source || !output || !printButton) return;
 
-            // W68_PRINT_CENTER_BRIDGE_ONLY_20261015
-            // The primary PRINT action must never call window.print().
+            // W68_PLATFORM_PRINT_ROUTING_20261019
+            // Until the signed iOS bridge exists:
+            // - iPhone/iPad use Safari's standard system/AirPrint flow.
+            // - Android/Xiaomi devices use the installed W68 Printer Bridge.
+            // - Desktop/other devices use their normal browser/system printer.
             var ua = navigator.userAgent || '';
             var platform = navigator.userAgentData && navigator.userAgentData.platform
                 ? String(navigator.userAgentData.platform)
@@ -591,31 +594,22 @@
                 || /Android/i.test(platform)
                 || (/Linux/i.test(ua) && touchPoints > 1)
             );
-            var windowsLike = /Windows NT/i.test(ua) || /Windows/i.test(platform);
-
-            destination.textContent = 'W68 PRINTER BRIDGE';
 
             if (appleTouch) {
+                destination.textContent = 'AIRPRINT / SYSTEM PRINTER';
                 note.textContent =
-                    'W68 Bridge is the primary print method. AirPrint is available only from the separate fallback button below.';
-                if (systemPrintButton) {
-                    systemPrintButton.hidden = false;
-                    systemPrintButton.textContent = 'AIRPRINT FALLBACK';
-                }
-            } else if (windowsLike) {
-                note.textContent =
-                    'PRINT uses W68 Printer Bridge. Windows system print will not open automatically.';
-                if (systemPrintButton) {
-                    systemPrintButton.hidden = false;
-                    systemPrintButton.textContent = 'WINDOWS PRINT FALLBACK';
-                }
+                    'PRINT opens the standard iPhone/iPad printer interface.';
+                if (systemPrintButton) systemPrintButton.hidden = true;
             } else if (androidLike) {
+                destination.textContent = 'W68 PRINTER BRIDGE';
                 note.textContent =
-                    'PRINT opens W68 Printer Bridge and sends directly to the selected reachable printer.';
+                    'PRINT opens W68 Printer Bridge and sends the W68 print job to the selected reachable printer.';
+                if (systemPrintButton) systemPrintButton.hidden = true;
             } else {
+                destination.textContent = 'SYSTEM PRINTER';
                 note.textContent =
-                    'PRINT uses W68 Printer Bridge. Browser/system printing is available only as a fallback.';
-                if (systemPrintButton) systemPrintButton.hidden = false;
+                    'PRINT opens the standard browser/system printer interface.';
+                if (systemPrintButton) systemPrintButton.hidden = true;
             }
 
             function safeCopies() {
@@ -661,7 +655,13 @@
 
             printButton.addEventListener('click', function (event) {
                 event.preventDefault();
-                openBridge();
+
+                if (androidLike) {
+                    openBridge();
+                    return;
+                }
+
+                systemPrintFallback();
             }, false);
 
             if (systemPrintButton) {

@@ -45,13 +45,23 @@ class AuthorizedAccessController extends Controller
                 return $this->denied('The customer assigned to this authorization no longer exists.');
             }
 
-            if (Auth::check()) {
+            /*
+             * W68_AUTH_LINK_STALE_SYSTEM_SESSION_RECOVERY_20261019
+             * The main W68 system database can be reprovisioned independently
+             * from the Pricelist deployment. A browser may still carry an old
+             * authenticated session whose account can no longer be loaded from
+             * the previous system DB. Do not let that stale auth state turn a
+             * valid generated authorization link into an HTTP 500.
+             */
+            $authenticatedLoginId = $this->safeAuthenticatedLoginId($request);
+
+            if ($authenticatedLoginId !== null) {
                 $linkedAccount = null;
 
                 if (Schema::connection('system')->hasTable('customer_portal_accounts')) {
                     $linkedAccount = DB::connection('system')
                         ->table('customer_portal_accounts')
-                        ->where('login_id', Auth::id())
+                        ->where('login_id', $authenticatedLoginId)
                         ->first();
                 }
 
@@ -106,6 +116,34 @@ class AuthorizedAccessController extends Controller
             report($exception);
 
             return $this->denied('The W68 authorization service is temporarily unavailable. Please try again.');
+        }
+    }
+
+    private function safeAuthenticatedLoginId(Request $request): ?int
+    {
+        try {
+            if (!Auth::check()) {
+                return null;
+            }
+
+            $loginId = (int) Auth::id();
+
+            return $loginId > 0 ? $loginId : null;
+        } catch (Throwable $exception) {
+            report($exception);
+
+            /*
+             * Clear only Laravel's authentication key. Keep the current
+             * authorization/customer session so this valid link can continue
+             * as a guest and reach the login/registration page.
+             */
+            try {
+                $request->session()->forget(Auth::guard()->getName());
+            } catch (Throwable $sessionException) {
+                report($sessionException);
+            }
+
+            return null;
         }
     }
 

@@ -158,12 +158,18 @@ return [
     // always keep the cookie available to /authorized-access, /login, /home,
     // /process-order, and password-reset routes even if an old SESSION_PATH
     // value is still injected by the hosting environment.
-    'path' => (
-        env('APP_ENV', 'production') === 'production'
-        || str_contains((string) env('APP_URL', ''), 'hostforgeplatforms.com')
-    )
-        ? '/'
-        : env('SESSION_PATH', '/w68_Pricelist/public'),
+    // W68_SESSION_PATH is a Pricelist-only override. HostForge can inject an
+    // old SESSION_PATH=/w68_Pricelist/public value from the former subfolder
+    // deployment; the dedicated production domain is served from /.
+    'path' => env(
+        'W68_SESSION_PATH',
+        (
+            env('APP_ENV', 'production') === 'production'
+            || str_contains((string) env('APP_URL', ''), 'hostforgeplatforms.com')
+        )
+            ? '/'
+            : env('SESSION_PATH', '/w68_Pricelist/public')
+    ),
 
     /*
     |--------------------------------------------------------------------------
@@ -190,9 +196,12 @@ return [
     */
 
     'secure' => env(
-        'SESSION_SECURE_COOKIE',
-        env('APP_ENV', 'production') === 'production'
-            || str_starts_with((string) env('APP_URL', ''), 'https://')
+        'W68_SESSION_SECURE_COOKIE',
+        env(
+            'SESSION_SECURE_COOKIE',
+            env('APP_ENV', 'production') === 'production'
+                || str_starts_with((string) env('APP_URL', ''), 'https://')
+        )
     ),
 
     /*

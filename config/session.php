@@ -16,9 +16,12 @@ return [
     |
     */
 
-    // W68 local/XAMPP: keep auth + OTP sessions on disk.
-    // This prevents Laravel from falling back to SQLite/database-backed sessions.
-    'driver' => 'file',
+    // Keep local/XAMPP sessions on disk, while allowing production to use
+    // durable database sessions from the repaired core system database.
+    'driver' => env(
+        'SESSION_DRIVER',
+        env('APP_ENV', 'production') === 'production' ? 'database' : 'file'
+    ),
 
     /*
     |--------------------------------------------------------------------------
@@ -73,7 +76,10 @@ return [
     |
     */
 
-    'connection' => env('SESSION_CONNECTION'),
+    // W68 customer authentication lives in core4_system_proposal.
+    // Bind database-backed sessions to the same named connection instead of
+    // the generic default (which may still be sqlite on the Pricelist app).
+    'connection' => env('SESSION_CONNECTION', 'system'),
 
     /*
     |--------------------------------------------------------------------------

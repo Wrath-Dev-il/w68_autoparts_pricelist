@@ -105,13 +105,18 @@ return [
         ],
 
         'masterlist' => [
-            'driver' => env('MASTERLIST_DB_CONNECTION', 'mysql'),
+            // W68_MASTERLIST_HOSTFORGE_FALLBACK_20261019
+            // core4_masterlist and core4_system_proposal are sibling schemas on
+            // the same W68 MySQL service. Keep dedicated MASTERLIST_* values
+            // authoritative, but inherit the working SYSTEM_* endpoint when a
+            // HostForge reprovision drops the masterlist-specific variables.
+            'driver' => env('MASTERLIST_DB_CONNECTION', env('SYSTEM_DB_CONNECTION', 'mysql')),
             'url' => env('MASTERLIST_DB_URL'),
-            'host' => env('MASTERLIST_DB_HOST', env('DB_HOST', '127.0.0.1')),
-            'port' => env('MASTERLIST_DB_PORT', env('DB_PORT', '3306')),
+            'host' => env('MASTERLIST_DB_HOST', env('SYSTEM_DB_HOST', env('DB_HOST', '127.0.0.1'))),
+            'port' => env('MASTERLIST_DB_PORT', env('SYSTEM_DB_PORT', env('DB_PORT', '3306'))),
             'database' => env('MASTERLIST_DB_DATABASE', 'core4_masterlist'),
-            'username' => env('MASTERLIST_DB_USERNAME', env('DB_USERNAME', 'root')),
-            'password' => env('MASTERLIST_DB_PASSWORD', env('DB_PASSWORD', '')),
+            'username' => env('MASTERLIST_DB_USERNAME', env('SYSTEM_DB_USERNAME', env('DB_USERNAME', 'root'))),
+            'password' => env('MASTERLIST_DB_PASSWORD', env('SYSTEM_DB_PASSWORD', env('DB_PASSWORD', ''))),
             'unix_socket' => env('MASTERLIST_DB_SOCKET', ''),
             'charset' => env('MASTERLIST_DB_CHARSET', 'utf8mb4'),
             'collation' => env('MASTERLIST_DB_COLLATION', 'utf8mb4_unicode_ci'),

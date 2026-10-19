@@ -125,13 +125,30 @@ return [
         ],
 
         'sales_order' => [
-            'driver' => env('SALES_ORDER_DB_CONNECTION', 'mysql'),
-            'url' => env('SALES_ORDER_DB_URL'),
-            'host' => env('DB_SALES_HOST', env('SALES_ORDER_DB_HOST', env('DB_HOST', '127.0.0.1'))),
-            'port' => env('DB_SALES_PORT', env('SALES_ORDER_DB_PORT', env('DB_PORT', '3306'))),
+            // W68_SALES_ORDER_HOSTFORGE_FALLBACK_20261019
+            // Production keeps the core4_* schemas on the same MySQL service.
+            // If dedicated sales-order credentials are not configured, inherit
+            // the already-working Masterlist server credentials rather than
+            // falling back to the local-development 127.0.0.1/root defaults.
+            'driver' => env('SALES_ORDER_DB_CONNECTION', env('MASTERLIST_DB_CONNECTION', 'mysql')),
+            'url' => env('SALES_ORDER_DB_URL', env('MASTERLIST_DB_URL')),
+            'host' => env(
+                'DB_SALES_HOST',
+                env('SALES_ORDER_DB_HOST', env('MASTERLIST_DB_HOST', env('DB_HOST', '127.0.0.1')))
+            ),
+            'port' => env(
+                'DB_SALES_PORT',
+                env('SALES_ORDER_DB_PORT', env('MASTERLIST_DB_PORT', env('DB_PORT', '3306')))
+            ),
             'database' => env('DB_SALES_DATABASE', env('SALES_ORDER_DB_DATABASE', 'core4_sales_order')),
-            'username' => env('DB_SALES_USERNAME', env('SALES_ORDER_DB_USERNAME', env('DB_USERNAME', 'root'))),
-            'password' => env('DB_SALES_PASSWORD', env('SALES_ORDER_DB_PASSWORD', env('DB_PASSWORD', ''))),
+            'username' => env(
+                'DB_SALES_USERNAME',
+                env('SALES_ORDER_DB_USERNAME', env('MASTERLIST_DB_USERNAME', env('DB_USERNAME', 'root')))
+            ),
+            'password' => env(
+                'DB_SALES_PASSWORD',
+                env('SALES_ORDER_DB_PASSWORD', env('MASTERLIST_DB_PASSWORD', env('DB_PASSWORD', '')))
+            ),
             'unix_socket' => env('SALES_ORDER_DB_SOCKET', ''),
             'charset' => env('SALES_ORDER_DB_CHARSET', 'utf8mb4'),
             'collation' => env('SALES_ORDER_DB_COLLATION', 'utf8mb4_unicode_ci'),

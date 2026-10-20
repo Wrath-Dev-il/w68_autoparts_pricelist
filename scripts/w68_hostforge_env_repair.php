@@ -27,6 +27,19 @@ function requireProcessEnv(string $key): string
     return (string) $value;
 }
 
+function requireFirstProcessEnv(array $keys): string
+{
+    foreach ($keys as $key) {
+        $value = getenv($key);
+        if ($value !== false && $value !== '') {
+            return (string) $value;
+        }
+    }
+
+    fwrite(STDERR, 'Missing required HostForge environment variable. Expected one of: ' . implode(', ', $keys) . "\n");
+    exit(2);
+}
+
 function dotenvValue(string $value): string
 {
     $value = str_replace(
@@ -62,12 +75,12 @@ $updates = [
     // W68_SHARED_CORE_SYSTEM_DB_20261020
     // System/auth must point to the SAME database used by the main W68 app.
     // Never copy Pricelist DB_* (Managed MySQL) into SYSTEM_DB_*.
-    'SYSTEM_DB_CONNECTION' => requireProcessEnv('CORE_SYSTEM_DB_CONNECTION'),
-    'SYSTEM_DB_HOST' => requireProcessEnv('CORE_SYSTEM_DB_HOST'),
-    'SYSTEM_DB_PORT' => requireProcessEnv('CORE_SYSTEM_DB_PORT'),
-    'SYSTEM_DB_DATABASE' => requireProcessEnv('CORE_SYSTEM_DB_DATABASE'),
-    'SYSTEM_DB_USERNAME' => requireProcessEnv('CORE_SYSTEM_DB_USERNAME'),
-    'SYSTEM_DB_PASSWORD' => requireProcessEnv('CORE_SYSTEM_DB_PASSWORD'),
+    'SYSTEM_DB_CONNECTION' => requireFirstProcessEnv(['W68_CORE_SYSTEM_DB_CONNECTION', 'CORE_SYSTEM_DB_CONNECTION']),
+    'SYSTEM_DB_HOST' => requireFirstProcessEnv(['W68_CORE_SYSTEM_DB_HOST', 'CORE_SYSTEM_DB_HOST']),
+    'SYSTEM_DB_PORT' => requireFirstProcessEnv(['W68_CORE_SYSTEM_DB_PORT', 'CORE_SYSTEM_DB_PORT']),
+    'SYSTEM_DB_DATABASE' => requireFirstProcessEnv(['W68_CORE_SYSTEM_DB_DATABASE', 'CORE_SYSTEM_DB_DATABASE']),
+    'SYSTEM_DB_USERNAME' => requireFirstProcessEnv(['W68_CORE_SYSTEM_DB_USERNAME', 'CORE_SYSTEM_DB_USERNAME']),
+    'SYSTEM_DB_PASSWORD' => requireFirstProcessEnv(['W68_CORE_SYSTEM_DB_PASSWORD', 'CORE_SYSTEM_DB_PASSWORD']),
 
     'MASTERLIST_DB_CONNECTION' => requireProcessEnv('MASTERLIST_DB_CONNECTION'),
     'MASTERLIST_DB_HOST' => requireProcessEnv('MASTERLIST_DB_HOST'),
@@ -100,8 +113,8 @@ file_put_contents($envPath, $envText);
 
 echo "W68 .env repaired successfully.\n";
 echo "APP_URL=https://pricelist-w68autoparts-lisxk.hostforgeplatforms.com\n";
-echo "SYSTEM_DB_HOST=" . requireProcessEnv('CORE_SYSTEM_DB_HOST') . "\n";
-echo "SYSTEM_DB_DATABASE=" . requireProcessEnv('CORE_SYSTEM_DB_DATABASE') . "\n";
+echo "SYSTEM_DB_HOST=" . requireFirstProcessEnv(['W68_CORE_SYSTEM_DB_HOST', 'CORE_SYSTEM_DB_HOST']) . "\n";
+echo "SYSTEM_DB_DATABASE=" . requireFirstProcessEnv(['W68_CORE_SYSTEM_DB_DATABASE', 'CORE_SYSTEM_DB_DATABASE']) . "\n";
 echo "MASTERLIST_DB_HOST=" . requireProcessEnv('MASTERLIST_DB_HOST') . "\n";
 echo "MASTERLIST_DB_DATABASE=" . requireProcessEnv('MASTERLIST_DB_DATABASE') . "\n";
 echo "DB_SALES_HOST=" . requireProcessEnv('DB_SALES_HOST') . "\n";

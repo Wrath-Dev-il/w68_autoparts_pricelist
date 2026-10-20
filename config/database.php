@@ -90,7 +90,7 @@ return [
             // HostForge may still inject stale SYSTEM_DB_* values after a
             // database reprovision, while the repaired credentials are stored
             // in the shared CORE_SYSTEM_DB_* variables.
-            'url' => env('W68_CORE_SYSTEM_DB_URL'),
+            'url' => null,
             'host' => env(
                 'W68_CORE_SYSTEM_DB_HOST',
                 env('CORE_SYSTEM_DB_HOST', env('SYSTEM_DB_HOST', env('DB_HOST', '127.0.0.1')))

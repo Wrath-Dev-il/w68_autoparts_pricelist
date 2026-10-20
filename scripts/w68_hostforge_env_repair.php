@@ -59,13 +59,15 @@ $updates = [
     'DB_USERNAME' => requireProcessEnv('DB_USERNAME'),
     'DB_PASSWORD' => requireProcessEnv('DB_PASSWORD'),
 
-    // Replacement core4_system_proposal now lives in the empty default DB.
-    'SYSTEM_DB_CONNECTION' => requireProcessEnv('DB_CONNECTION'),
-    'SYSTEM_DB_HOST' => requireProcessEnv('DB_HOST'),
-    'SYSTEM_DB_PORT' => requireProcessEnv('DB_PORT'),
-    'SYSTEM_DB_DATABASE' => requireProcessEnv('DB_DATABASE'),
-    'SYSTEM_DB_USERNAME' => requireProcessEnv('DB_USERNAME'),
-    'SYSTEM_DB_PASSWORD' => requireProcessEnv('DB_PASSWORD'),
+    // W68_SHARED_CORE_SYSTEM_DB_20261020
+    // System/auth must point to the SAME database used by the main W68 app.
+    // Never copy Pricelist DB_* (Managed MySQL) into SYSTEM_DB_*.
+    'SYSTEM_DB_CONNECTION' => requireProcessEnv('CORE_SYSTEM_DB_CONNECTION'),
+    'SYSTEM_DB_HOST' => requireProcessEnv('CORE_SYSTEM_DB_HOST'),
+    'SYSTEM_DB_PORT' => requireProcessEnv('CORE_SYSTEM_DB_PORT'),
+    'SYSTEM_DB_DATABASE' => requireProcessEnv('CORE_SYSTEM_DB_DATABASE'),
+    'SYSTEM_DB_USERNAME' => requireProcessEnv('CORE_SYSTEM_DB_USERNAME'),
+    'SYSTEM_DB_PASSWORD' => requireProcessEnv('CORE_SYSTEM_DB_PASSWORD'),
 
     'MASTERLIST_DB_CONNECTION' => requireProcessEnv('MASTERLIST_DB_CONNECTION'),
     'MASTERLIST_DB_HOST' => requireProcessEnv('MASTERLIST_DB_HOST'),
@@ -81,7 +83,9 @@ $updates = [
     'DB_SALES_PASSWORD' => requireProcessEnv('DB_SALES_PASSWORD'),
 
     'SESSION_DRIVER' => 'database',
-    'SESSION_CONNECTION' => 'system',
+    // Sessions remain app-local in Pricelist Managed MySQL. Authentication
+    // records themselves live on the shared core system connection.
+    'SESSION_CONNECTION' => 'mysql',
     'SESSION_COOKIE' => 'w68_pricelist_customer_session_v2',
     'SESSION_PATH' => '/',
     'SESSION_SECURE_COOKIE' => 'true',
@@ -96,13 +100,13 @@ file_put_contents($envPath, $envText);
 
 echo "W68 .env repaired successfully.\n";
 echo "APP_URL=https://pricelist-w68autoparts-lisxk.hostforgeplatforms.com\n";
-echo "SYSTEM_DB_HOST=" . requireProcessEnv('DB_HOST') . "\n";
-echo "SYSTEM_DB_DATABASE=" . requireProcessEnv('DB_DATABASE') . "\n";
+echo "SYSTEM_DB_HOST=" . requireProcessEnv('CORE_SYSTEM_DB_HOST') . "\n";
+echo "SYSTEM_DB_DATABASE=" . requireProcessEnv('CORE_SYSTEM_DB_DATABASE') . "\n";
 echo "MASTERLIST_DB_HOST=" . requireProcessEnv('MASTERLIST_DB_HOST') . "\n";
 echo "MASTERLIST_DB_DATABASE=" . requireProcessEnv('MASTERLIST_DB_DATABASE') . "\n";
 echo "DB_SALES_HOST=" . requireProcessEnv('DB_SALES_HOST') . "\n";
 echo "DB_SALES_DATABASE=" . requireProcessEnv('DB_SALES_DATABASE') . "\n";
 echo "SESSION_DRIVER=database\n";
-echo "SESSION_CONNECTION=system\n";
+echo "SESSION_CONNECTION=mysql\n";
 echo "SESSION_COOKIE=w68_pricelist_customer_session_v2\n";
 echo "Secrets: NOT PRINTED\n";

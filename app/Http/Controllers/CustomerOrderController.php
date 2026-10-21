@@ -592,11 +592,24 @@ class CustomerOrderController extends Controller
             'The W68 cart-to-order link is not installed yet. Run the v93 cart_id database patch first.'
         );
 
+        // W68_PROCESS_ORDER_SIGNOFF_20261021
+        // PREPARED BY / CHECKED BY are collected from the second Process Order
+        // modal and stored on the portal order (and mirrored to Sales Note).
         $delivery = $request->validate([
             'forwarder_id' => ['required', 'integer', 'min:1'],
+            'prepared_by' => ['required', 'string', 'max:191'],
+            'checked_by' => ['required', 'string', 'max:191'],
         ], [
             'forwarder_id.required' => 'Choose a Shipment before processing the order.',
+            'prepared_by.required' => 'Enter PREPARED BY before processing the order.',
+            'checked_by.required' => 'Enter CHECKED BY before processing the order.',
         ]);
+
+        $preparedBy = trim((string) $delivery['prepared_by']);
+        $checkedBy = trim((string) $delivery['checked_by']);
+
+        abort_if($preparedBy === '', 422, 'Enter PREPARED BY before processing the order.');
+        abort_if($checkedBy === '', 422, 'Enter CHECKED BY before processing the order.');
 
         abort_unless(
             Schema::connection('masterlist')->hasTable('forwarders')
@@ -730,7 +743,9 @@ class CustomerOrderController extends Controller
             $netTotal,
             $salesNoteItemsHaveProductCode,
             $deliveryOption,
-            $shipmentRemark
+            $shipmentRemark,
+            $preparedBy,
+            $checkedBy
         ): array {
             $salesNumber = $this->nextSalesNumber();
             $now = now();
@@ -742,8 +757,8 @@ class CustomerOrderController extends Controller
                 'customer_name' => (string) $customer->name,
                 'order_date' => $now->toDateString(),
                 'salesman' => null,
-                'prepared_by' => null,
-                'checked_by' => null,
+                'prepared_by' => $preparedBy,
+                'checked_by' => $checkedBy,
                 'packed_by' => null,
                 'is_rush' => $deliveryOption === 'rush' ? 1 : 0,
                 'gross_total' => $grossTotal,
@@ -765,6 +780,8 @@ class CustomerOrderController extends Controller
                 'discount_total' => $totalDiscount,
                 'total_amount' => $netTotal,
                 'portal_status' => 'Processed',
+                'prepared_by' => $preparedBy,
+                'checked_by' => $checkedBy,
                 'created_at' => $now,
                 'updated_at' => $now,
             ]);
@@ -840,6 +857,8 @@ class CustomerOrderController extends Controller
                 'order_code' => $orderCode,
                 'sales_note_id' => $salesNoteId,
                 'sales_number' => $salesNumber,
+                'prepared_by' => $preparedBy,
+                'checked_by' => $checkedBy,
                 'total' => $netTotal,
             ];
         });
@@ -2233,6 +2252,24 @@ class CustomerOrderController extends Controller
             503,
             'W68 Orders storage is not installed in core4_sales_order yet.'
         );
+
+        // W68_PROCESS_ORDER_SIGNOFF_COLUMNS_20261021
+        // Idempotent fallback so an older HostForge database cannot accept the
+        // new UI without having a place to persist both sign-off names.
+        $schema = Schema::connection('sales_order');
+        $connection = DB::connection('sales_order');
+
+        if (!$schema->hasColumn('w68_portal_orders', 'prepared_by')) {
+            $connection->statement(
+                "ALTER TABLE `w68_portal_orders` ADD COLUMN `prepared_by` VARCHAR(191) NULL AFTER `portal_status`"
+            );
+        }
+
+        if (!$schema->hasColumn('w68_portal_orders', 'checked_by')) {
+            $connection->statement(
+                "ALTER TABLE `w68_portal_orders` ADD COLUMN `checked_by` VARCHAR(191) NULL AFTER `prepared_by`"
+            );
+        }
     }
 
     private function ensureCartTable(): void

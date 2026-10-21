@@ -26,6 +26,14 @@
     var termsZone = document.querySelector('[data-terms-zone]');
     var termsModal = document.querySelector('[data-terms-modal]');
 
+    // W68_PROCESS_ORDER_SIGNOFF_MODAL_20261021
+    var signoffModal = document.querySelector('[data-process-signoff-modal]');
+    var preparedByInput = document.querySelector('[data-prepared-by]');
+    var checkedByInput = document.querySelector('[data-checked-by]');
+    var signoffError = document.querySelector('[data-process-signoff-error]');
+    var signoffSubmit = document.querySelector('[data-process-signoff-submit]');
+    var signoffCloseButtons = Array.prototype.slice.call(document.querySelectorAll('[data-process-signoff-close]'));
+
     // W68 v107 direct Shipment / Delivery Option controls.
     var deliveryZone = document.querySelector('[data-delivery-zone]');
     var deliverySummary = document.querySelector('[data-delivery-summary]');
@@ -133,6 +141,18 @@
         if (!confirmError) return;
         confirmError.hidden = true;
         confirmError.textContent = '';
+    }
+
+    function setSignoffError(message) {
+        if (!signoffError) return;
+        signoffError.textContent = message || 'Enter PREPARED BY and CHECKED BY before processing the order.';
+        signoffError.hidden = false;
+    }
+
+    function clearSignoffError() {
+        if (!signoffError) return;
+        signoffError.hidden = true;
+        signoffError.textContent = '';
     }
 
     function money(value) {
@@ -549,6 +569,38 @@
         loading.setAttribute('aria-hidden', 'true');
     }
 
+    function openSignoffModal() {
+        if (viewMode || !signoffModal || !confirmProcess || !processUrl) return;
+
+        syncDeliveryStateFromDom();
+        updateConfirmProcessState();
+
+        if (confirmProcess.disabled) return;
+
+        clearConfirmError();
+        clearSignoffError();
+
+        signoffModal.hidden = false;
+        signoffModal.setAttribute('aria-hidden', 'false');
+        if (body && body.classList) body.classList.add('process-signoff-open');
+        syncProcessViewport();
+
+        window.setTimeout(function () {
+            if (preparedByInput && preparedByInput.focus) preparedByInput.focus();
+        }, 0);
+    }
+
+    function closeSignoffModal() {
+        if (!signoffModal) return;
+
+        signoffModal.hidden = true;
+        signoffModal.setAttribute('aria-hidden', 'true');
+        if (body && body.classList) body.classList.remove('process-signoff-open');
+        clearSignoffError();
+
+        if (confirmProcess && confirmProcess.focus) confirmProcess.focus();
+    }
+
     function submitOrder() {
         if (viewMode || !confirmProcess || !processUrl) return;
 
@@ -557,13 +609,29 @@
 
         if (confirmProcess.disabled) return;
 
+        var preparedBy = preparedByInput ? String(preparedByInput.value || '').trim() : '';
+        var checkedBy = checkedByInput ? String(checkedByInput.value || '').trim() : '';
+
+        if (!preparedBy) {
+            setSignoffError('Enter PREPARED BY before processing the order.');
+            if (preparedByInput && preparedByInput.focus) preparedByInput.focus();
+            return;
+        }
+
+        if (!checkedBy) {
+            setSignoffError('Enter CHECKED BY before processing the order.');
+            if (checkedByInput && checkedByInput.focus) checkedByInput.focus();
+            return;
+        }
+
         if (!selectedDeliveryType || selectedShipmentId < 1) {
             setConfirmError('Choose a Shipment before processing the order.');
             return;
         }
 
         clearConfirmError();
-        confirmProcess.disabled = true;
+        clearSignoffError();
+        if (signoffSubmit) signoffSubmit.disabled = true;
         showProcessLoader();
 
         // Give Safari/iPad two paint frames so the W68 animation is visibly
@@ -571,7 +639,9 @@
         window.requestAnimationFrame(function () {
             window.requestAnimationFrame(function () {
                 requestJson(processUrl, 'POST', {
-                    forwarder_id: selectedShipmentId
+                    forwarder_id: selectedShipmentId,
+                    prepared_by: preparedBy,
+                    checked_by: checkedBy
                 })
                     .then(function (data) {
                         var redirectUrl = data && data.redirect_url ? String(data.redirect_url) : (ordersUrl || 'orders');
@@ -588,8 +658,9 @@
                     })
                     .catch(function (error) {
                         hideProcessLoader();
+                        if (signoffSubmit) signoffSubmit.disabled = false;
                         setTermsChecked(termsCheckbox && termsCheckbox.checked);
-                        setConfirmError(error && error.message ? error.message : 'Unable to process this order. Please try again.');
+                        setSignoffError(error && error.message ? error.message : 'Unable to process this order. Please try again.');
                     });
             });
         });
@@ -654,6 +725,20 @@
         });
     });
 
+    bindProcessTap(confirmProcess, function () {
+        if (!confirmProcess.disabled) openSignoffModal();
+    });
+
+    bindProcessTap(signoffSubmit, function () {
+        if (!signoffSubmit.disabled) submitOrder();
+    });
+
+    signoffCloseButtons.forEach(function (button) {
+        bindProcessTap(button, function () {
+            closeSignoffModal();
+        });
+    });
+
     document.addEventListener('click', function (event) {
         var remove = closestFrom(event.target, '[data-remove-selected]');
         if (remove) {
@@ -699,7 +784,21 @@
         var submit = closestFrom(event.target, '[data-confirm-process]');
         if (submit) {
             event.preventDefault();
+            openSignoffModal();
+            return;
+        }
+
+        var signoffSubmitButton = closestFrom(event.target, '[data-process-signoff-submit]');
+        if (signoffSubmitButton) {
+            event.preventDefault();
             submitOrder();
+            return;
+        }
+
+        var signoffClose = closestFrom(event.target, '[data-process-signoff-close]');
+        if (signoffClose) {
+            event.preventDefault();
+            closeSignoffModal();
         }
     }, false);
 

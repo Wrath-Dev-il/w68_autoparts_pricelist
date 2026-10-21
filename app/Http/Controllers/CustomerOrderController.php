@@ -593,8 +593,8 @@ class CustomerOrderController extends Controller
         );
 
         // W68_PROCESS_ORDER_SIGNOFF_20261021
-        // PREPARED BY / CHECKED BY are collected from the second Process Order
-        // modal and stored on the portal order (and mirrored to Sales Note).
+        // PREPARED BY / CHECKED BY belong ONLY to w68_portal_orders.
+        // Never copy these customer-entered sign-off values to sales_notes.
         $delivery = $request->validate([
             'forwarder_id' => ['required', 'integer', 'min:1'],
             'prepared_by' => ['required', 'string', 'max:191'],
@@ -757,8 +757,11 @@ class CustomerOrderController extends Controller
                 'customer_name' => (string) $customer->name,
                 'order_date' => $now->toDateString(),
                 'salesman' => null,
-                'prepared_by' => $preparedBy,
-                'checked_by' => $checkedBy,
+                // W68_PORTAL_SIGNOFF_NOT_SALES_NOTE_20261021
+                // Portal PREPARED BY / CHECKED BY are intentionally separate
+                // from the internal Sales Note staff sign-off fields.
+                'prepared_by' => null,
+                'checked_by' => null,
                 'packed_by' => null,
                 'is_rush' => $deliveryOption === 'rush' ? 1 : 0,
                 'gross_total' => $grossTotal,

@@ -17,8 +17,8 @@
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>W68 Autoparts | {{ $returnViewMode ? 'View Return' : ($viewMode ? 'View Order' : 'Process Order') }}</title>
     <link rel="icon" href="{{ asset('images/sidebar_logo.png') }}">
-    <link rel="stylesheet" href="{{ asset('css/w68-process-order.css') }}?v=20261001-v138">
-    <script src="{{ asset('js/w68-process-order.js') }}?v=20261007-v141" defer></script>
+    <link rel="stylesheet" href="{{ asset('css/w68-process-order.css') }}?v=20261021-v142">
+    <script src="{{ asset('js/w68-process-order.js') }}?v=20261021-v142" defer></script>
 </head>
 <body
     data-process-url="{{ $viewMode ? '' : route('home.orders.process') }}"
@@ -537,6 +537,58 @@
     </div>
 
     @unless($viewMode)
+        {{-- W68_PROCESS_ORDER_SIGNOFF_MODAL_20261021 --}}
+        <div class="process-signoff-modal" data-process-signoff-modal hidden aria-hidden="true">
+            <button type="button" class="order-modal-backdrop process-signoff-backdrop" data-process-signoff-close aria-label="Close Prepared By and Checked By form"></button>
+            <section class="process-signoff-card" role="dialog" aria-modal="true" aria-labelledby="process-signoff-title">
+                <header class="process-signoff-header">
+                    <div>
+                        <span>ORDER SIGN-OFF</span>
+                        <h2 id="process-signoff-title">Prepared By / Checked By</h2>
+                        <p>Enter the names that will be recorded with this W68 portal order.</p>
+                    </div>
+                    <button type="button" class="process-signoff-x" data-process-signoff-close aria-label="Close">
+                        <span aria-hidden="true">&#10005;</span>
+                    </button>
+                </header>
+
+                <div class="process-signoff-fields">
+                    <label class="process-signoff-field">
+                        <span>PREPARED BY</span>
+                        <input
+                            type="text"
+                            data-prepared-by
+                            maxlength="191"
+                            autocomplete="off"
+                            autocapitalize="words"
+                            placeholder="Enter prepared by"
+                            required
+                        >
+                    </label>
+
+                    <label class="process-signoff-field">
+                        <span>CHECKED BY</span>
+                        <input
+                            type="text"
+                            data-checked-by
+                            maxlength="191"
+                            autocomplete="off"
+                            autocapitalize="words"
+                            placeholder="Enter checked by"
+                            required
+                        >
+                    </label>
+                </div>
+
+                <div class="process-signoff-error" data-process-signoff-error hidden></div>
+
+                <footer class="process-signoff-actions">
+                    <button type="button" class="process-signoff-cancel" data-process-signoff-close>CANCEL</button>
+                    <button type="button" class="process-signoff-submit" data-process-signoff-submit>FINAL PROCESS ORDER</button>
+                </footer>
+            </section>
+        </div>
+
         {{-- W68_PROCESS_DELIVERY_HIDDEN_UNTIL_CLICK_20261007 --}}
         <dialog class="shipment-modal" data-shipment-modal hidden aria-hidden="true">
             <button type="button" class="order-modal-backdrop shipment-backdrop" data-shipment-cancel aria-label="Close Shipment selection" onclick="return window.W68CloseShipmentModal ? window.W68CloseShipmentModal(event) : false;"></button>

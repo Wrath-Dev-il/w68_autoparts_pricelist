@@ -3314,3 +3314,217 @@ dialog.shipment-modal[open] .shipment-card {
         margin: auto !important;
     }
 }
+
+
+/* =========================================================
+   W68_PROCESS_ORDER_SIGNOFF_MODAL_20261021
+   Second Process Order modal: PREPARED BY / CHECKED BY
+   ========================================================= */
+.process-signoff-modal[hidden] {
+    display: none !important;
+}
+
+.process-signoff-modal {
+    position: fixed;
+    inset: 0;
+    z-index: 5400;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 16px;
+}
+
+.process-signoff-card {
+    position: relative;
+    z-index: 1;
+    width: min(520px, calc(100vw - 28px));
+    max-height: min(88vh, var(--process-viewport-height, 88vh));
+    overflow: auto;
+    -webkit-overflow-scrolling: touch;
+    background: #fff;
+    border: 3px solid var(--w68-gold);
+    border-radius: 18px;
+    box-shadow: 0 24px 70px rgba(0, 0, 0, .34);
+}
+
+.process-signoff-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 14px;
+    padding: 18px 18px 14px;
+    border-bottom: 1px solid #e4ece7;
+}
+
+.process-signoff-header > div {
+    min-width: 0;
+}
+
+.process-signoff-header > div > span {
+    display: block;
+    color: var(--w68-gold);
+    font-size: 10px;
+    font-weight: 1000;
+    letter-spacing: .12em;
+}
+
+.process-signoff-header h2 {
+    margin: 4px 0 0;
+    color: var(--w68-dark);
+    font-size: 24px;
+    line-height: 1.1;
+}
+
+.process-signoff-header p {
+    margin: 7px 0 0;
+    color: #68766f;
+    font-size: 11px;
+    line-height: 1.45;
+    font-weight: 700;
+}
+
+.process-signoff-x {
+    width: 38px;
+    min-width: 38px;
+    height: 38px;
+    padding: 0;
+    border: 0;
+    border-radius: 50%;
+    background: var(--w68-dark);
+    color: #fff;
+    font-size: 24px;
+    line-height: 1;
+    font-weight: 800;
+    cursor: pointer;
+    touch-action: manipulation;
+}
+
+.process-signoff-fields {
+    display: grid;
+    gap: 14px;
+    padding: 18px;
+}
+
+.process-signoff-field {
+    display: grid;
+    gap: 7px;
+}
+
+.process-signoff-field > span {
+    color: var(--w68-green);
+    font-size: 10px;
+    font-weight: 1000;
+    letter-spacing: .08em;
+}
+
+.process-signoff-field input {
+    width: 100%;
+    min-height: 48px;
+    padding: 10px 13px;
+    box-sizing: border-box;
+    border: 2px solid #cfddd5;
+    border-radius: 10px;
+    outline: none;
+    background: #f9fbfa;
+    color: var(--w68-dark);
+    font: inherit;
+    font-size: 14px;
+    font-weight: 800;
+}
+
+.process-signoff-field input:focus {
+    border-color: var(--w68-green);
+    background: #fff;
+    box-shadow: 0 0 0 4px rgba(15, 109, 69, .10);
+}
+
+.process-signoff-error {
+    margin: 0 18px 14px;
+    padding: 10px 12px;
+    border: 1px solid #e9b9b9;
+    border-radius: 9px;
+    background: #fff0f0;
+    color: #8b1d2c;
+    font-size: 10px;
+    font-weight: 800;
+    line-height: 1.4;
+}
+
+.process-signoff-actions {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+    padding: 14px 18px 18px;
+    border-top: 1px solid #e4ece7;
+}
+
+.process-signoff-cancel,
+.process-signoff-submit {
+    min-height: 46px;
+    padding: 9px 12px;
+    border-radius: 10px;
+    font-size: 10px;
+    font-weight: 1000;
+    letter-spacing: .03em;
+    cursor: pointer;
+    touch-action: manipulation;
+}
+
+.process-signoff-cancel {
+    border: 1px solid #cbd8d1;
+    background: #fff;
+    color: var(--w68-dark);
+}
+
+.process-signoff-submit {
+    border: 1px solid var(--w68-gold);
+    background: var(--w68-dark);
+    color: #ffe35c;
+}
+
+.process-signoff-submit:disabled {
+    opacity: .55;
+    cursor: wait;
+}
+
+body.process-signoff-open {
+    overflow: hidden;
+}
+
+@media (max-width: 520px) {
+    .process-signoff-modal {
+        padding: 10px;
+        align-items: flex-end;
+    }
+
+    .process-signoff-card {
+        width: 100%;
+        max-height: calc(var(--process-viewport-height, 100vh) - 20px);
+        border-radius: 16px;
+    }
+
+    .process-signoff-header {
+        padding: 16px 15px 12px;
+    }
+
+    .process-signoff-header h2 {
+        font-size: 21px;
+    }
+
+    .process-signoff-fields {
+        padding: 15px;
+    }
+
+    .process-signoff-actions {
+        padding: 12px 15px max(15px, env(safe-area-inset-bottom));
+        grid-template-columns: 1fr;
+    }
+
+    .process-signoff-submit {
+        order: 1;
+    }
+
+    .process-signoff-cancel {
+        order: 2;
+    }
+}

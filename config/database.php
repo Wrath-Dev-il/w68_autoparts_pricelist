@@ -3,6 +3,10 @@
 use Illuminate\Support\Str;
 use Pdo\Mysql;
 
+
+$isHostForge = str_contains((string) ($_SERVER['HTTP_HOST'] ?? ''), 'hostforgeplatforms.com')
+    || str_contains((string) env('APP_URL', ''), 'hostforgeplatforms.com');
+
 return [
 
     /*
@@ -85,19 +89,27 @@ return [
         ],
 
         'system' => [
-            'driver' => env('SYSTEM_DB_CONNECTION', 'mysql'),
-            // Prefer the main W68 CORE_SYSTEM_DB_* namespace first.
-            // HostForge may still inject stale SYSTEM_DB_* values after a
-            // database reprovision, while the repaired credentials are stored
-            // in the shared CORE_SYSTEM_DB_* variables.
-            'url' => null,
+            // W68_SHARED_CORE_SYSTEM_DB_20261020
+            // Pricelist authentication, customer_portal_accounts and
+            // customer_portal_notifications MUST use the same core system DB
+            // as the main W68 application. The HostForge app's default DB_*
+            // variables belong to the Pricelist Managed MySQL database and
+            // must never silently become the system/auth database.
+            'driver' => env(
+                'W68_CORE_SYSTEM_DB_CONNECTION',
+                env('CORE_SYSTEM_DB_CONNECTION', env('SYSTEM_DB_CONNECTION', 'mysql'))
+            ),
+            'url' => env(
+                'W68_CORE_SYSTEM_DB_URL',
+                env('CORE_SYSTEM_DB_URL', env('SYSTEM_DB_URL'))
+            ),
             'host' => env(
                 'W68_CORE_SYSTEM_DB_HOST',
-                env('CORE_SYSTEM_DB_HOST', env('SYSTEM_DB_HOST', env('DB_HOST', '127.0.0.1')))
+                env('CORE_SYSTEM_DB_HOST', env('SYSTEM_DB_HOST', '127.0.0.1'))
             ),
             'port' => env(
                 'W68_CORE_SYSTEM_DB_PORT',
-                env('CORE_SYSTEM_DB_PORT', env('SYSTEM_DB_PORT', env('DB_PORT', '3306')))
+                env('CORE_SYSTEM_DB_PORT', env('SYSTEM_DB_PORT', '3306'))
             ),
             'database' => env(
                 'W68_CORE_SYSTEM_DB_DATABASE',
@@ -105,13 +117,13 @@ return [
             ),
             'username' => env(
                 'W68_CORE_SYSTEM_DB_USERNAME',
-                env('CORE_SYSTEM_DB_USERNAME', env('SYSTEM_DB_USERNAME', env('DB_USERNAME', 'root')))
+                env('CORE_SYSTEM_DB_USERNAME', env('SYSTEM_DB_USERNAME', 'root'))
             ),
             'password' => env(
                 'W68_CORE_SYSTEM_DB_PASSWORD',
-                env('CORE_SYSTEM_DB_PASSWORD', env('SYSTEM_DB_PASSWORD', env('DB_PASSWORD', '')))
+                env('CORE_SYSTEM_DB_PASSWORD', env('SYSTEM_DB_PASSWORD', ''))
             ),
-            'unix_socket' => env('SYSTEM_DB_SOCKET', env('DB_SOCKET', '')),
+            'unix_socket' => env('SYSTEM_DB_SOCKET', ''),
             'charset' => env('SYSTEM_DB_CHARSET', 'utf8mb4'),
             'collation' => env('SYSTEM_DB_COLLATION', 'utf8mb4_unicode_ci'),
             'prefix' => '',
@@ -119,40 +131,47 @@ return [
             'strict' => true,
             'engine' => null,
             'options' => extension_loaded('pdo_mysql') ? array_filter([
-                Mysql::ATTR_SSL_CA => env(
-                    'SYSTEM_MYSQL_ATTR_SSL_CA',
-                    env('MYSQL_ATTR_SSL_CA')
-                ),
+                Mysql::ATTR_SSL_CA => env('SYSTEM_MYSQL_ATTR_SSL_CA'),
+            ]) : [],
+        ],
+
+        'managed_legacy' => [
+            // Pricelist's own HostForge Managed MySQL database. Keep this
+            // separate for app-local sessions/cache and one-time migration of
+            // customer portal rows that were accidentally written here.
+            'driver' => env('DB_CONNECTION', 'mysql'),
+            'url' => env('DB_URL'),
+            'host' => env('DB_HOST', '127.0.0.1'),
+            'port' => env('DB_PORT', '3306'),
+            'database' => env('DB_DATABASE', 'laravel'),
+            'username' => env('DB_USERNAME', 'root'),
+            'password' => env('DB_PASSWORD', ''),
+            'unix_socket' => env('DB_SOCKET', ''),
+            'charset' => env('DB_CHARSET', 'utf8mb4'),
+            'collation' => env('DB_COLLATION', 'utf8mb4_unicode_ci'),
+            'prefix' => '',
+            'prefix_indexes' => true,
+            'strict' => true,
+            'engine' => null,
+            'options' => extension_loaded('pdo_mysql') ? array_filter([
+                Mysql::ATTR_SSL_CA => env('MYSQL_ATTR_SSL_CA'),
             ]) : [],
         ],
 
         'masterlist' => [
-            'driver' => env('MASTERLIST_DB_CONNECTION', 'mysql'),
-            'url' => env(
-                'W68_MASTERLIST_DB_URL',
-                env('DB_MASTERLIST_URL', env('MASTERLIST_DB_URL'))
-            ),
-            'host' => env(
-                'W68_MASTERLIST_DB_HOST',
-                env('DB_MASTERLIST_HOST', env('MASTERLIST_DB_HOST', env('DB_HOST', '127.0.0.1')))
-            ),
-            'port' => env(
-                'W68_MASTERLIST_DB_PORT',
-                env('DB_MASTERLIST_PORT', env('MASTERLIST_DB_PORT', env('DB_PORT', '3306')))
-            ),
-            'database' => env(
-                'W68_MASTERLIST_DB_DATABASE',
-                env('DB_MASTERLIST_DATABASE', env('MASTERLIST_DB_DATABASE', 'core4_masterlist'))
-            ),
-            'username' => env(
-                'W68_MASTERLIST_DB_USERNAME',
-                env('DB_MASTERLIST_USERNAME', env('MASTERLIST_DB_USERNAME', env('DB_USERNAME', 'root')))
-            ),
-            'password' => env(
-                'W68_MASTERLIST_DB_PASSWORD',
-                env('DB_MASTERLIST_PASSWORD', env('MASTERLIST_DB_PASSWORD', env('DB_PASSWORD', '')))
-            ),
-            'unix_socket' => env('MASTERLIST_DB_SOCKET', env('DB_SOCKET', '')),
+            // W68_MASTERLIST_HOSTFORGE_FALLBACK_20261019
+            // core4_masterlist and core4_system_proposal are sibling schemas on
+            // the same W68 MySQL service. Keep dedicated MASTERLIST_* values
+            // authoritative, but inherit the working SYSTEM_* endpoint when a
+            // HostForge reprovision drops the masterlist-specific variables.
+            'driver' => env('MASTERLIST_DB_CONNECTION', env('SYSTEM_DB_CONNECTION', 'mysql')),
+            'url' => env('MASTERLIST_DB_URL'),
+            'host' => env('MASTERLIST_DB_HOST', env('SYSTEM_DB_HOST', env('DB_HOST', '127.0.0.1'))),
+            'port' => env('MASTERLIST_DB_PORT', env('SYSTEM_DB_PORT', env('DB_PORT', '3306'))),
+            'database' => env('MASTERLIST_DB_DATABASE', 'core4_masterlist'),
+            'username' => env('MASTERLIST_DB_USERNAME', env('SYSTEM_DB_USERNAME', env('DB_USERNAME', 'root'))),
+            'password' => env('MASTERLIST_DB_PASSWORD', env('SYSTEM_DB_PASSWORD', env('DB_PASSWORD', ''))),
+            'unix_socket' => env('MASTERLIST_DB_SOCKET', ''),
             'charset' => env('MASTERLIST_DB_CHARSET', 'utf8mb4'),
             'collation' => env('MASTERLIST_DB_COLLATION', 'utf8mb4_unicode_ci'),
             'prefix' => '',
@@ -160,40 +179,36 @@ return [
             'strict' => true,
             'engine' => null,
             'options' => extension_loaded('pdo_mysql') ? array_filter([
-                Mysql::ATTR_SSL_CA => env(
-                    'MASTERLIST_MYSQL_ATTR_SSL_CA',
-                    env('MYSQL_ATTR_SSL_CA')
-                ),
+                Mysql::ATTR_SSL_CA => env('MASTERLIST_MYSQL_ATTR_SSL_CA'),
             ]) : [],
         ],
 
         'sales_order' => [
-            'driver' => env('SALES_ORDER_DB_CONNECTION', 'mysql'),
-            'url' => env(
-                'W68_SALES_ORDER_DB_URL',
-                env('DB_SALES_URL', env('SALES_ORDER_DB_URL'))
-            ),
+            // W68_SALES_ORDER_HOSTFORGE_FALLBACK_20261019
+            // Production keeps the core4_* schemas on the same MySQL service.
+            // If dedicated sales-order credentials are not configured, inherit
+            // the already-working Masterlist server credentials rather than
+            // falling back to the local-development 127.0.0.1/root defaults.
+            'driver' => env('SALES_ORDER_DB_CONNECTION', env('MASTERLIST_DB_CONNECTION', 'mysql')),
+            'url' => env('SALES_ORDER_DB_URL'),
             'host' => env(
-                'W68_SALES_ORDER_DB_HOST',
-                env('DB_SALES_HOST', env('SALES_ORDER_DB_HOST', env('DB_HOST', '127.0.0.1')))
+                'DB_SALES_HOST',
+                env('SALES_ORDER_DB_HOST', env('MASTERLIST_DB_HOST', env('DB_HOST', '127.0.0.1')))
             ),
             'port' => env(
-                'W68_SALES_ORDER_DB_PORT',
-                env('DB_SALES_PORT', env('SALES_ORDER_DB_PORT', env('DB_PORT', '3306')))
+                'DB_SALES_PORT',
+                env('SALES_ORDER_DB_PORT', env('MASTERLIST_DB_PORT', env('DB_PORT', '3306')))
             ),
-            'database' => env(
-                'W68_SALES_ORDER_DB_DATABASE',
-                env('DB_SALES_DATABASE', env('SALES_ORDER_DB_DATABASE', 'core4_sales_order'))
-            ),
+            'database' => env('DB_SALES_DATABASE', env('SALES_ORDER_DB_DATABASE', 'core4_sales_order')),
             'username' => env(
-                'W68_SALES_ORDER_DB_USERNAME',
-                env('DB_SALES_USERNAME', env('SALES_ORDER_DB_USERNAME', env('DB_USERNAME', 'root')))
+                'DB_SALES_USERNAME',
+                env('SALES_ORDER_DB_USERNAME', env('MASTERLIST_DB_USERNAME', env('DB_USERNAME', 'root')))
             ),
             'password' => env(
-                'W68_SALES_ORDER_DB_PASSWORD',
-                env('DB_SALES_PASSWORD', env('SALES_ORDER_DB_PASSWORD', env('DB_PASSWORD', '')))
+                'DB_SALES_PASSWORD',
+                env('SALES_ORDER_DB_PASSWORD', env('MASTERLIST_DB_PASSWORD', env('DB_PASSWORD', '')))
             ),
-            'unix_socket' => env('SALES_ORDER_DB_SOCKET', env('DB_SOCKET', '')),
+            'unix_socket' => env('SALES_ORDER_DB_SOCKET', ''),
             'charset' => env('SALES_ORDER_DB_CHARSET', 'utf8mb4'),
             'collation' => env('SALES_ORDER_DB_COLLATION', 'utf8mb4_unicode_ci'),
             'prefix' => '',
@@ -201,10 +216,7 @@ return [
             'strict' => true,
             'engine' => null,
             'options' => extension_loaded('pdo_mysql') ? array_filter([
-                Mysql::ATTR_SSL_CA => env(
-                    'SALES_ORDER_MYSQL_ATTR_SSL_CA',
-                    env('MYSQL_ATTR_SSL_CA')
-                ),
+                Mysql::ATTR_SSL_CA => env('SALES_ORDER_MYSQL_ATTR_SSL_CA'),
             ]) : [],
         ],
 

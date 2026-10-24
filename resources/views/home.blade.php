@@ -7,9 +7,9 @@
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>W68 Autoparts & Service Center | Home</title>
     <link rel="icon" href="{{ asset('images/sidebar_logo.png') }}">
-    <link rel="stylesheet" href="{{ asset('css/w68-home.css') }}?v=20261019-v146">
+    <link rel="stylesheet" href="{{ asset('css/w68-home.css') }}?v=20261024-v157">
     <link rel="stylesheet" href="{{ asset('css/w68-notifications.css') }}?v=20260915-v95">
-    <script src="{{ asset('js/w68-home.js') }}?v=20261015-v156" defer></script>
+    <script src="{{ asset('js/w68-home.js') }}?v=20261024-v157" defer></script>
     <script src="{{ asset('js/w68-notifications.js') }}?v=20261001-v131" defer></script>
 </head>
 <body
@@ -20,6 +20,9 @@
     data-brand-discounts="{{ e(json_encode($brandDiscounts ?? [], JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP | JSON_HEX_QUOT)) }}"
     data-cart-account-key="{{ $cartAccountKey ?? 'unknown' }}"
     data-cart-storage-ready="{{ !empty($cartStorageReady) ? '1' : '0' }}"
+    data-first-login-tutorial="{{ !empty($showFirstLoginTutorial) ? '1' : '0' }}"
+    data-tutorial-login-number="{{ (int) ($tutorialLoginNumber ?? 0) }}"
+    data-tutorial-robot-gif="{{ asset('images/w68_robot_tutorial_mascot.gif') }}"
     data-server-cart='{{ json_encode($serverCart ?? [], JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP | JSON_HEX_QUOT) }}'
     data-cart-add-url="{{ rtrim(request()->getSchemeAndHttpHost(), '/') }}{{ preg_replace('#/index\.php$#i', '', rtrim(str_replace('\\', '/', (string) request()->getBaseUrl()), '/')) }}/home/cart/items"
     data-cart-item-base-url="{{ rtrim(request()->getSchemeAndHttpHost(), '/') }}{{ preg_replace('#/index\.php$#i', '', rtrim(str_replace('\\', '/', (string) request()->getBaseUrl()), '/')) }}/home/cart/items"
@@ -816,6 +819,37 @@
             <span data-order-success-text>Your order was registered as an Open Sales Note.</span>
         </div>
     </div>
+    {{-- W68_FIRST_LOGIN_TUTORIAL_20261024 --}}
+    <div class="w68-tutorial-overlay" data-w68-tutorial hidden aria-hidden="true">
+        <div class="w68-tutorial-scrim"></div>
+        <div class="w68-tutorial-spotlight" data-w68-tutorial-spotlight hidden></div>
+        <div class="w68-tutorial-arrow" data-w68-tutorial-arrow hidden><span></span></div>
+
+        <div class="w68-tutorial-robot" data-w68-tutorial-robot>
+            <img src="{{ asset('images/w68_robot_tutorial_mascot.gif') }}" alt="W68 tutorial robot">
+        </div>
+
+        <section
+            class="w68-tutorial-card"
+            data-w68-tutorial-card
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="w68-tutorial-title"
+        >
+            <span class="w68-tutorial-kicker" data-w68-tutorial-kicker>W68 FIRST TIME GUIDE</span>
+            <h2 id="w68-tutorial-title" data-w68-tutorial-title>Welcome to W68</h2>
+            <p data-w68-tutorial-body>
+                I will show you how to add an item, open your cart, review the carted item,
+                and continue to Process Order.
+            </p>
+            <div class="w68-tutorial-actions">
+                <button type="button" class="w68-tutorial-skip" data-w68-tutorial-skip>SKIP</button>
+                <button type="button" class="w68-tutorial-next" data-w68-tutorial-next>NEXT</button>
+                <button type="button" class="w68-tutorial-done" data-w68-tutorial-done hidden>DONE</button>
+            </div>
+        </section>
+    </div>
+
     @include('partials.notification-modal')
 </body>
 </html>

@@ -22,7 +22,7 @@
     data-cart-storage-ready="{{ !empty($cartStorageReady) ? '1' : '0' }}"
     data-first-login-tutorial="{{ !empty($showFirstLoginTutorial) ? '1' : '0' }}"
     data-tutorial-login-number="{{ (int) ($tutorialLoginNumber ?? 0) }}"
-    data-tutorial-robot-gif="{{ asset('images/w68_robot_tutorial_mascot.gif') }}"
+    data-tutorial-robot-gif="{{ $tutorialRobotAsset }}"
     data-tutorial-robot-fallback="{{ asset('images/w68_robot_tutorial_fallback.svg') }}"
     data-server-cart='{{ json_encode($serverCart ?? [], JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP | JSON_HEX_QUOT) }}'
     data-cart-add-url="{{ rtrim(request()->getSchemeAndHttpHost(), '/') }}{{ preg_replace('#/index\.php$#i', '', rtrim(str_replace('\\', '/', (string) request()->getBaseUrl()), '/')) }}/home/cart/items"
@@ -39,6 +39,12 @@
 >
     @php
         $logo = asset('images/sidebar_logo.png');
+        // W68_TUTORIAL_ROBOT_ASSET_FALLBACK_20261024
+        // Prefer the user's GIF when it exists; otherwise use the built-in
+        // animated SVG so first-login onboarding can never break.
+        $tutorialRobotAsset = is_file(public_path('images/w68_robot_tutorial_mascot.gif'))
+            ? asset('images/w68_robot_tutorial_mascot.gif')
+            : asset('images/w68_robot_tutorial_fallback.svg');
 
         /*
          * W68 runs from /w68_Pricelist/public under XAMPP.
@@ -828,7 +834,7 @@
 
         <div class="w68-tutorial-robot" data-w68-tutorial-robot>
             <img
-                src="{{ asset('images/w68_robot_tutorial_mascot.gif') }}"
+                src="{{ $tutorialRobotAsset }}"
                 data-w68-tutorial-robot-image
                 data-fallback="{{ asset('images/w68_robot_tutorial_fallback.svg') }}"
                 onerror="if(this.dataset.fallback && this.src !== this.dataset.fallback){this.src=this.dataset.fallback;}"

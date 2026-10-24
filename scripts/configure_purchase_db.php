@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 // W68_CONFIGURE_PURCHASE_DB_20261024
 // Persist the dedicated core4_purchase connection in /app/.env.
-// The password is read interactively from STDIN and is never printed.
+// The password is supplied through W68_PURCHASE_INPUT_PASSWORD and is never printed.
 
 $envPath = dirname(__DIR__) . '/.env';
 
@@ -13,11 +13,10 @@ $port = '3306';
 $database = 'hf_db_foynozbk';
 $username = 'hf_p2zstvllgp';
 
-fwrite(STDOUT, "Paste core4_purchase DB password: ");
-$password = trim((string) fgets(STDIN));
+$password = (string) (getenv('W68_PURCHASE_INPUT_PASSWORD') ?: '');
 
 if ($password === '') {
-    fwrite(STDERR, "Password cannot be empty.\n");
+    fwrite(STDERR, "W68_PURCHASE_INPUT_PASSWORD is missing.\n");
     exit(2);
 }
 

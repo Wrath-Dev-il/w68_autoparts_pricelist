@@ -65,14 +65,18 @@ class CustomerHomeController extends Controller
                 fn ($product) => $this->applyBrandDiscount($product, $brandDiscounts)
             );
 
-            // New Items use ONLY products selected for this website.
-            $newItems = $this->catalogQuery()
-                ->orderByRaw("CASE WHEN p.status = 'Newly' THEN 0 ELSE 1 END")
-                ->orderByDesc('p.date_added')
-                ->orderByDesc('p.id')
-                ->limit(12)
-                ->get()
-                ->map(fn ($product) => $this->applyBrandDiscount($product, $brandDiscounts));
+            // W68_NEW_ARRIVAL_FROM_PURCHASE_20261024
+            // NEW ARRIVAL is no longer based on products.status/date_added.
+            // It is driven by core4_purchase.purchase_order_items. A product
+            // remains a New Arrival for exactly 3 months from its latest
+            // purchase_order_items.created_at value.
+            try {
+                $newItems = $this->newArrivalProducts($brandDiscounts);
+            } catch (Throwable $newArrivalException) {
+                // Purchase DB downtime must never hide the normal product catalog.
+                report($newArrivalException);
+                $newItems = collect();
+            }
 
         } catch (Throwable $exception) {
             report($exception);
@@ -1021,6 +1025,52 @@ class CustomerHomeController extends Controller
         }
 
         return $this->fallbackLogoResponse();
+    }
+
+    /**
+     * Products purchased within the last 3 months, newest purchase first.
+     *
+     * Cross-database joins are intentionally avoided because core4_purchase
+     * may be hosted on a different HostForge MariaDB service from Masterlist.
+     */
+    private function newArrivalProducts(array $brandDiscounts)
+    {
+        if (!Schema::connection('purchase')->hasTable('purchase_order_items')) {
+            return collect();
+        }
+
+        $cutoff = now()->subMonthsNoOverflow(3);
+
+        $recentPurchases = DB::connection('purchase')
+            ->table('purchase_order_items')
+            ->whereNotNull('product_id')
+            ->where('product_id', '>', 0)
+            ->whereNotNull('created_at')
+            ->where('created_at', '>=', $cutoff)
+            ->select('product_id')
+            ->selectRaw('MAX(created_at) as latest_purchase_at')
+            ->groupBy('product_id')
+            ->orderByDesc('latest_purchase_at')
+            ->get();
+
+        if ($recentPurchases->isEmpty()) {
+            return collect();
+        }
+
+        $purchaseOrder = $recentPurchases
+            ->mapWithKeys(static function ($row): array {
+                return [(int) $row->product_id => (string) $row->latest_purchase_at];
+            });
+
+        return $this->catalogQuery()
+            ->whereIn('p.id', $purchaseOrder->keys()->all())
+            ->get()
+            ->sortByDesc(static function ($product) use ($purchaseOrder): string {
+                return (string) ($purchaseOrder[(int) $product->id] ?? '');
+            })
+            ->take(12)
+            ->values()
+            ->map(fn ($product) => $this->applyBrandDiscount($product, $brandDiscounts));
     }
 
     private function catalogQuery(): Builder

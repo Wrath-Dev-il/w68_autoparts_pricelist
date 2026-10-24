@@ -78,7 +78,18 @@
 
             return [
                 'id' => (string) $product->id,
-                'image' => $currentProductImageBase . rawurlencode((string) $product->id),
+                // W68_PRODUCT_IMAGE_CACHE_FIX_20261024
+                // Product Master updates normally touch products.updated_at.
+                // Use it as the image URL version so replacing a picture gives
+                // the browser a new URL immediately.
+                'image' => $currentProductImageBase
+                    . rawurlencode((string) $product->id)
+                    . '?v='
+                    . rawurlencode(
+                        ($product->updated_at ?? null)
+                            ? (string) strtotime((string) $product->updated_at)
+                            : 'w68-20261024-nocache'
+                    ),
                 'productCode' => (string) ($product->product_code ?? ''),
                 'partNumber' => (string) ($product->part_number ?? ''),
                 'description' => (string) ($product->description ?? ''),
@@ -158,7 +169,7 @@
                         </span>
                     </a>
 
-                    <a class="nav-new-items" href="{{ $currentHomeUrl }}#new-items" data-loading-link>NEW ITEMS</a>
+                    <a class="nav-new-items" href="{{ $currentHomeUrl }}#new-items" data-loading-link>NEW ARRIVAL</a>
 
                     <div class="nav-account">
                         @include('partials.notification-bell')

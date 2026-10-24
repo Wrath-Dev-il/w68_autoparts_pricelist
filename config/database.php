@@ -220,6 +220,29 @@ return [
             ]) : [],
         ],
 
+        'purchase' => [
+            // W68_PURCHASE_DB_CONNECTION_20261024
+            // Dedicated core4_purchase connection used by the customer Home
+            // NEW ARRIVAL section. HostForge variables are DB_PURCHASE_*.
+            'driver' => env('PURCHASE_DB_CONNECTION', 'mysql'),
+            'url' => env('DB_PURCHASE_URL', env('PURCHASE_DB_URL')),
+            'host' => env('DB_PURCHASE_HOST', env('PURCHASE_DB_HOST', '127.0.0.1')),
+            'port' => env('DB_PURCHASE_PORT', env('PURCHASE_DB_PORT', '3306')),
+            'database' => env('DB_PURCHASE_DATABASE', env('PURCHASE_DB_DATABASE', 'core4_purchase')),
+            'username' => env('DB_PURCHASE_USERNAME', env('PURCHASE_DB_USERNAME', 'root')),
+            'password' => env('DB_PURCHASE_PASSWORD', env('PURCHASE_DB_PASSWORD', '')),
+            'unix_socket' => env('PURCHASE_DB_SOCKET', ''),
+            'charset' => env('PURCHASE_DB_CHARSET', 'utf8mb4'),
+            'collation' => env('PURCHASE_DB_COLLATION', 'utf8mb4_unicode_ci'),
+            'prefix' => '',
+            'prefix_indexes' => true,
+            'strict' => true,
+            'engine' => null,
+            'options' => extension_loaded('pdo_mysql') ? array_filter([
+                Mysql::ATTR_SSL_CA => env('PURCHASE_MYSQL_ATTR_SSL_CA'),
+            ]) : [],
+        ],
+
         'ledger' => [
             'driver' => env('LEDGER_DB_CONNECTION', 'mysql'),
             'url' => env('LEDGER_DB_URL'),

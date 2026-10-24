@@ -2583,7 +2583,366 @@
         start();
     };
 
+    /* =====================================================
+       W68_FIRST_LOGIN_TUTORIAL_20261024
+       Server-controlled walkthrough for account login #1, #2 and #3.
+       ===================================================== */
+    const getFirstVisibleTutorialTarget = (selector) => {
+        const nodes = Array.from(document.querySelectorAll(selector));
+
+        return nodes.find((node) => {
+            if (!(node instanceof Element) || node.hidden) return false;
+            if (node.getAttribute('aria-hidden') === 'true') return false;
+
+            const style = window.getComputedStyle(node);
+            if (
+                style.display === 'none'
+                || style.visibility === 'hidden'
+                || Number(style.opacity || 1) === 0
+            ) {
+                return false;
+            }
+
+            const rect = node.getBoundingClientRect();
+            return rect.width > 0 && rect.height > 0;
+        }) || null;
+    };
+
+    const initFirstLoginTutorial = () => {
+        if (String(body?.dataset.firstLoginTutorial || '0') !== '1') return;
+
+        const overlay = document.querySelector('[data-w68-tutorial]');
+        const spotlight = document.querySelector('[data-w68-tutorial-spotlight]');
+        const arrow = document.querySelector('[data-w68-tutorial-arrow]');
+        const robot = document.querySelector('[data-w68-tutorial-robot]');
+        const kickerNode = document.querySelector('[data-w68-tutorial-kicker]');
+        const titleNode = document.querySelector('[data-w68-tutorial-title]');
+        const bodyNode = document.querySelector('[data-w68-tutorial-body]');
+        const nextButton = document.querySelector('[data-w68-tutorial-next]');
+        const doneButton = document.querySelector('[data-w68-tutorial-done]');
+        const skipButton = document.querySelector('[data-w68-tutorial-skip]');
+
+        if (
+            !overlay
+            || !spotlight
+            || !arrow
+            || !robot
+            || !titleNode
+            || !bodyNode
+            || !nextButton
+            || !doneButton
+            || !skipButton
+        ) {
+            return;
+        }
+
+        const loginNumber = Math.max(
+            1,
+            Math.min(3, Number.parseInt(String(body?.dataset.tutorialLoginNumber || '1'), 10) || 1)
+        );
+
+        if (kickerNode) {
+            kickerNode.textContent = `W68 FIRST TIME GUIDE • LOGIN ${loginNumber} OF 3`;
+        }
+
+        const robotImage = robot.querySelector('img');
+        const robotGif = String(body?.dataset.tutorialRobotGif || '');
+        if (robotImage && robotGif) {
+            robotImage.src = robotGif;
+        }
+
+        const steps = [
+            {
+                key: 'welcome',
+                title: 'Welcome to W68!',
+                body: 'I am your W68 robot guide. I will show you how to add an item, open the cart, review your carted item, select it for ordering, and use PROCESS ORDER.',
+                target: null,
+                allowNext: true,
+                showDone: false,
+            },
+            {
+                key: 'add-to-cart',
+                title: 'Step 1: Add an item',
+                body: 'Tap the highlighted ADD TO CART button on a product.',
+                target: () => getFirstVisibleTutorialTarget(
+                    '.product-grid [data-add-cart], .new-items-track [data-add-cart], [data-product-modal-add]'
+                ),
+                allowNext: false,
+                showDone: false,
+            },
+            {
+                key: 'quantity',
+                title: 'Step 2: Confirm the quantity',
+                body: 'Choose the quantity you need, then tap ADD TO CART in this dialog.',
+                target: () => getFirstVisibleTutorialTarget('[data-quantity-confirm]'),
+                allowNext: false,
+                showDone: false,
+            },
+            {
+                key: 'cart-button',
+                title: 'Step 3: Open the cart',
+                body: 'Tap the highlighted cart button. Your saved cart items will appear there.',
+                target: () => getFirstVisibleTutorialTarget('[data-cart-open]'),
+                allowNext: false,
+                showDone: false,
+            },
+            {
+                key: 'carted-item',
+                title: 'Step 4: Review the carted item',
+                body: 'This is the item you added. You can review its picture, quantity, price and total before ordering.',
+                target: () => getFirstVisibleTutorialTarget('[data-cart-row-id]')
+                    || getFirstVisibleTutorialTarget('[data-cart-items]'),
+                allowNext: true,
+                showDone: false,
+            },
+            {
+                key: 'select-item',
+                title: 'Step 5: Select the item',
+                body: 'Tick this checkbox so the carted item is included in PROCESS ORDER.',
+                target: () => getFirstVisibleTutorialTarget(
+                    '[data-cart-row-id] .cart-item-check input, [data-cart-row-id] input[type="checkbox"]'
+                ),
+                allowNext: false,
+                showDone: false,
+            },
+            {
+                key: 'process-order',
+                title: 'Step 6: Process Order',
+                body: 'Now use PROCESS ORDER. The next page will show the order review and the remaining order dialogs before final submission.',
+                target: () => getFirstVisibleTutorialTarget('[data-process-order]'),
+                allowNext: false,
+                showDone: true,
+            },
+        ];
+
+        let currentStepIndex = 0;
+        let currentTarget = null;
+        let active = false;
+        let repositionTimer = null;
+
+        const clearTarget = () => {
+            if (currentTarget instanceof Element) {
+                currentTarget.classList.remove('w68-tutorial-target');
+            }
+            currentTarget = null;
+        };
+
+        const hidePointer = () => {
+            spotlight.hidden = true;
+            arrow.hidden = true;
+        };
+
+        const finishTutorial = () => {
+            active = false;
+            clearTarget();
+            hidePointer();
+            overlay.hidden = true;
+            overlay.setAttribute('aria-hidden', 'true');
+
+            if (repositionTimer !== null) {
+                window.clearTimeout(repositionTimer);
+                repositionTimer = null;
+            }
+        };
+
+        const scrollTargetIntoView = (target) => {
+            if (!(target instanceof Element)) return;
+
+            try {
+                target.scrollIntoView({
+                    behavior: 'smooth',
+                    block: 'center',
+                    inline: 'center',
+                });
+            } catch (_) {
+                target.scrollIntoView();
+            }
+        };
+
+        const positionPointer = (target) => {
+            if (!active || !(target instanceof Element)) {
+                hidePointer();
+                return;
+            }
+
+            const rect = target.getBoundingClientRect();
+
+            if (rect.width <= 0 || rect.height <= 0) {
+                hidePointer();
+                return;
+            }
+
+            const pad = 8;
+            spotlight.hidden = false;
+            spotlight.style.left = `${Math.max(6, rect.left - pad)}px`;
+            spotlight.style.top = `${Math.max(6, rect.top - pad)}px`;
+            spotlight.style.width = `${Math.max(38, rect.width + (pad * 2))}px`;
+            spotlight.style.height = `${Math.max(38, rect.height + (pad * 2))}px`;
+
+            const robotRect = robot.getBoundingClientRect();
+            const sourceX = robotRect.left + (robotRect.width / 2);
+            const sourceY = robotRect.top + (robotRect.height * .62);
+            const targetX = rect.left + (rect.width / 2);
+            const targetY = rect.top + (rect.height / 2);
+            const dx = targetX - sourceX;
+            const dy = targetY - sourceY;
+            const distance = Math.max(68, Math.hypot(dx, dy) - 28);
+            const angle = Math.atan2(dy, dx) * (180 / Math.PI);
+
+            arrow.hidden = false;
+            arrow.style.left = `${sourceX}px`;
+            arrow.style.top = `${sourceY}px`;
+            arrow.style.width = `${distance}px`;
+            arrow.style.transform = `rotate(${angle}deg)`;
+        };
+
+        const targetForStep = (step) => (
+            typeof step?.target === 'function'
+                ? step.target()
+                : null
+        );
+
+        const renderStep = (index) => {
+            const step = steps[index];
+
+            if (!step) {
+                finishTutorial();
+                return;
+            }
+
+            // If the item is already selected, PROCESS ORDER is already ready.
+            if (
+                step.key === 'select-item'
+                && processOrderButton
+                && !processOrderButton.disabled
+            ) {
+                renderStep(index + 1);
+                return;
+            }
+
+            currentStepIndex = index;
+            titleNode.textContent = step.title;
+            bodyNode.textContent = step.body;
+            nextButton.hidden = !step.allowNext;
+            doneButton.hidden = !step.showDone;
+
+            clearTarget();
+
+            const target = targetForStep(step);
+
+            if (!target) {
+                hidePointer();
+
+                // Never trap a customer if the expected control is unavailable.
+                if (!step.showDone) {
+                    nextButton.hidden = false;
+                }
+                return;
+            }
+
+            currentTarget = target;
+            currentTarget.classList.add('w68-tutorial-target');
+
+            scrollTargetIntoView(target);
+
+            if (repositionTimer !== null) {
+                window.clearTimeout(repositionTimer);
+            }
+
+            repositionTimer = window.setTimeout(() => {
+                positionPointer(target);
+            }, 360);
+        };
+
+        nextButton.addEventListener('click', () => {
+            if (!active) return;
+            renderStep(currentStepIndex + 1);
+        });
+
+        doneButton.addEventListener('click', finishTutorial);
+        skipButton.addEventListener('click', finishTutorial);
+
+        const reposition = () => {
+            if (!active || !currentTarget) return;
+
+            if (repositionTimer !== null) {
+                window.clearTimeout(repositionTimer);
+            }
+
+            repositionTimer = window.setTimeout(() => {
+                positionPointer(currentTarget);
+            }, 30);
+        };
+
+        window.addEventListener('resize', reposition, { passive: true });
+        window.addEventListener('scroll', reposition, { passive: true });
+        window.visualViewport?.addEventListener('resize', reposition, { passive: true });
+        window.visualViewport?.addEventListener('scroll', reposition, { passive: true });
+
+        document.addEventListener('click', (event) => {
+            if (!active || !(event.target instanceof Element)) return;
+
+            const step = steps[currentStepIndex];
+            if (!step) return;
+
+            if (
+                step.key === 'add-to-cart'
+                && event.target.closest('[data-add-cart], [data-product-modal-add]')
+            ) {
+                window.setTimeout(() => renderStep(2), 260);
+                return;
+            }
+
+            if (
+                step.key === 'quantity'
+                && event.target.closest('[data-quantity-confirm]')
+            ) {
+                // Let the normal 2-second ADDED TO CART confirmation finish.
+                window.setTimeout(() => renderStep(3), 2100);
+                return;
+            }
+
+            if (
+                step.key === 'cart-button'
+                && event.target.closest('[data-cart-open]')
+            ) {
+                window.setTimeout(() => renderStep(4), 320);
+                return;
+            }
+
+            if (
+                step.key === 'select-item'
+                && event.target.closest(
+                    '[data-cart-row-id] .cart-item-check input, [data-cart-row-id] input[type="checkbox"]'
+                )
+            ) {
+                window.setTimeout(() => renderStep(6), 260);
+                return;
+            }
+
+            if (
+                step.key === 'process-order'
+                && event.target.closest('[data-process-order]')
+            ) {
+                finishTutorial();
+            }
+        }, true);
+
+        const openTutorial = () => {
+            active = true;
+            overlay.hidden = false;
+            overlay.setAttribute('aria-hidden', 'false');
+            renderStep(0);
+        };
+
+        // Wait until cart hydration and the Home loader have had time to settle.
+        cartHydrationPromise.finally(() => {
+            window.setTimeout(openTutorial, 700);
+        });
+    };
+
     initNewItemsCarousel();
+    initFirstLoginTutorial();
 
     renderCart();
     syncProductCardStates();

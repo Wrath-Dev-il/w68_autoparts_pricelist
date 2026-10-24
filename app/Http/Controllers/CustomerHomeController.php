@@ -82,6 +82,18 @@ class CustomerHomeController extends Controller
             report($exception);
         }
 
+        // W68_FIRST_THREE_LOGIN_TUTORIAL_20261024
+        // Consume the login-scoped tutorial flag once so refreshing /home does
+        // not restart the walkthrough during the same authenticated login.
+        $showFirstLoginTutorial = (bool) $request->session()->pull(
+            'w68_show_first_login_tutorial',
+            false
+        );
+        $tutorialLoginNumber = (int) $request->session()->pull(
+            'w68_tutorial_login_number',
+            0
+        );
+
         $profileName = trim(
             (string) ($account->User_First_Name ?? '')
             . ' '
@@ -104,6 +116,8 @@ class CustomerHomeController extends Controller
             'serverCart' => $serverCart,
             'cartAccountKey' => $portalLoginId ? 'login-' . $portalLoginId : 'customer-' . ($customerId ?? 'unknown'),
             'cartStorageReady' => $cartStorageReady,
+            'showFirstLoginTutorial' => $showFirstLoginTutorial,
+            'tutorialLoginNumber' => $tutorialLoginNumber,
         ]);
     }
 

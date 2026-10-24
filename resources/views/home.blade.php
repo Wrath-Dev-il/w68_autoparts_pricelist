@@ -23,6 +23,7 @@
     data-first-login-tutorial="{{ !empty($showFirstLoginTutorial) ? '1' : '0' }}"
     data-tutorial-login-number="{{ (int) ($tutorialLoginNumber ?? 0) }}"
     data-tutorial-robot-gif="{{ asset('images/w68_robot_tutorial_mascot.gif') }}"
+    data-tutorial-robot-fallback="{{ asset('images/w68_robot_tutorial_fallback.svg') }}"
     data-server-cart='{{ json_encode($serverCart ?? [], JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP | JSON_HEX_QUOT) }}'
     data-cart-add-url="{{ rtrim(request()->getSchemeAndHttpHost(), '/') }}{{ preg_replace('#/index\.php$#i', '', rtrim(str_replace('\\', '/', (string) request()->getBaseUrl()), '/')) }}/home/cart/items"
     data-cart-item-base-url="{{ rtrim(request()->getSchemeAndHttpHost(), '/') }}{{ preg_replace('#/index\.php$#i', '', rtrim(str_replace('\\', '/', (string) request()->getBaseUrl()), '/')) }}/home/cart/items"
@@ -826,7 +827,13 @@
         <div class="w68-tutorial-arrow" data-w68-tutorial-arrow hidden><span></span></div>
 
         <div class="w68-tutorial-robot" data-w68-tutorial-robot>
-            <img src="{{ asset('images/w68_robot_tutorial_mascot.gif') }}" alt="W68 tutorial robot">
+            <img
+                src="{{ asset('images/w68_robot_tutorial_mascot.gif') }}"
+                data-w68-tutorial-robot-image
+                data-fallback="{{ asset('images/w68_robot_tutorial_fallback.svg') }}"
+                onerror="if(this.dataset.fallback && this.src !== this.dataset.fallback){this.src=this.dataset.fallback;}"
+                alt="W68 tutorial robot"
+            >
         </div>
 
         <section

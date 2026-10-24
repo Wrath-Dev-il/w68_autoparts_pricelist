@@ -130,6 +130,7 @@ class LoginController extends Controller
          */
         Auth::login($account, false);
         $request->session()->regenerate();
+        $this->markFirstLoginTutorial($request, (int) $account->login_ID);
 
         return redirect()
             ->route('home')
@@ -367,6 +368,7 @@ class LoginController extends Controller
 
         Auth::login($account, false);
         $request->session()->regenerate();
+        $this->markFirstLoginTutorial($request, (int) $account->login_ID);
 
         return redirect()
             ->route('home')
@@ -594,6 +596,7 @@ class LoginController extends Controller
 
         Auth::login($account, false);
         $request->session()->regenerate();
+        $this->markFirstLoginTutorial($request, (int) $account->login_ID);
 
         return redirect()
             ->route('home')
@@ -971,6 +974,63 @@ HTML;
 
         if ($existing) {
             throw new RuntimeException('This W68 customer already has a Pricelist account. Please use Login instead of creating another account.');
+        }
+    }
+
+    /**
+     * W68_FIRST_THREE_LOGIN_TUTORIAL_20261024
+     * Increment the persistent per-account tutorial login counter and tell
+     * the next Home response to show the robot tutorial only for login 1..3.
+     */
+    private function markFirstLoginTutorial(Request $request, int $loginId): void
+    {
+        try {
+            if (
+                !Schema::connection('system')->hasTable('customer_portal_accounts')
+                || !Schema::connection('system')->hasColumn('customer_portal_accounts', 'tutorial_login_count')
+            ) {
+                return;
+            }
+
+            $loginNumber = DB::connection('system')->transaction(function () use ($loginId): int {
+                $row = DB::connection('system')
+                    ->table('customer_portal_accounts')
+                    ->where('login_id', $loginId)
+                    ->lockForUpdate()
+                    ->first();
+
+                if (!$row) {
+                    return 0;
+                }
+
+                $next = max(0, (int) ($row->tutorial_login_count ?? 0)) + 1;
+
+                DB::connection('system')
+                    ->table('customer_portal_accounts')
+                    ->where('id', $row->id)
+                    ->update([
+                        'tutorial_login_count' => $next,
+                        'updated_at' => now(),
+                    ]);
+
+                return $next;
+            });
+
+            if ($loginNumber >= 1 && $loginNumber <= 3) {
+                $request->session()->put([
+                    'w68_show_first_login_tutorial' => true,
+                    'w68_tutorial_login_number' => $loginNumber,
+                ]);
+                return;
+            }
+
+            $request->session()->forget([
+                'w68_show_first_login_tutorial',
+                'w68_tutorial_login_number',
+            ]);
+        } catch (Throwable $exception) {
+            // Tutorial tracking must never block a valid customer login.
+            report($exception);
         }
     }
 

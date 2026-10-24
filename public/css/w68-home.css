@@ -6984,3 +6984,204 @@ html.w68-ipad .orders-cart-drawer.open .orders-cart-print-button {
         font-size: 6.4px !important;
     }
 }
+
+
+/* =========================================================
+   W68_FIRST_LOGIN_TUTORIAL_20261024
+   Responsive tutorial overlay for desktop, laptop, phone and iPad.
+   ========================================================= */
+.w68-tutorial-overlay[hidden] {
+    display: none !important;
+}
+
+.w68-tutorial-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 15000;
+    pointer-events: none;
+}
+
+.w68-tutorial-scrim {
+    position: absolute;
+    inset: 0;
+    background: rgba(5, 28, 22, .70);
+    backdrop-filter: blur(1.2px);
+    -webkit-backdrop-filter: blur(1.2px);
+}
+
+.w68-tutorial-spotlight {
+    position: fixed;
+    z-index: 15002;
+    border: 3px solid #ffd633;
+    border-radius: 16px;
+    box-shadow:
+        0 0 0 9999px rgba(5, 28, 22, .70),
+        0 0 0 8px rgba(255, 214, 51, .18),
+        0 14px 34px rgba(0, 0, 0, .26);
+    pointer-events: none;
+    transition: left .22s ease, top .22s ease, width .22s ease, height .22s ease;
+}
+
+.w68-tutorial-arrow {
+    position: fixed;
+    z-index: 15003;
+    height: 5px;
+    border-radius: 999px;
+    transform-origin: left center;
+    background: linear-gradient(90deg, rgba(255,214,51,0), #ffd633 22%, #ffd633 100%);
+    box-shadow: 0 0 12px rgba(255, 214, 51, .52);
+    pointer-events: none;
+}
+
+.w68-tutorial-arrow > span {
+    position: absolute;
+    right: -2px;
+    top: 50%;
+    width: 18px;
+    height: 18px;
+    border-top: 5px solid #ffd633;
+    border-right: 5px solid #ffd633;
+    border-radius: 2px;
+    transform: translateY(-50%) rotate(45deg);
+}
+
+.w68-tutorial-robot {
+    position: fixed;
+    left: 50%;
+    top: 47%;
+    z-index: 15004;
+    width: clamp(145px, 20vw, 235px);
+    transform: translate(-50%, -50%);
+    filter: drop-shadow(0 20px 26px rgba(0,0,0,.34));
+    pointer-events: none;
+}
+
+.w68-tutorial-robot img {
+    display: block;
+    width: 100%;
+    height: auto;
+    max-height: 42vh;
+    object-fit: contain;
+}
+
+.w68-tutorial-card {
+    position: fixed;
+    left: 50%;
+    bottom: max(16px, env(safe-area-inset-bottom));
+    z-index: 15005;
+    width: min(560px, calc(100vw - 28px));
+    max-height: 34vh;
+    overflow: auto;
+    -webkit-overflow-scrolling: touch;
+    transform: translateX(-50%);
+    padding: 17px 18px 16px;
+    border: 2px solid rgba(128, 0, 32, .14);
+    border-radius: 22px;
+    background: rgba(255,255,255,.98);
+    color: #25282d;
+    box-shadow: 0 20px 46px rgba(0,0,0,.28);
+    pointer-events: auto;
+}
+
+.w68-tutorial-kicker {
+    display: inline-flex;
+    align-items: center;
+    min-height: 27px;
+    padding: 5px 10px;
+    border-radius: 999px;
+    background: rgba(128, 0, 32, .09);
+    color: #800020;
+    font-size: 10px;
+    font-weight: 1000;
+    letter-spacing: .11em;
+}
+
+.w68-tutorial-card h2 {
+    margin: 9px 0 7px;
+    color: #800020;
+    font-size: clamp(19px, 2.4vw, 25px);
+    line-height: 1.12;
+}
+
+.w68-tutorial-card p {
+    margin: 0;
+    color: #48504c;
+    font-size: clamp(13px, 1.6vw, 15px);
+    font-weight: 700;
+    line-height: 1.48;
+}
+
+.w68-tutorial-actions {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 9px;
+    margin-top: 13px;
+}
+
+.w68-tutorial-actions button {
+    min-height: 42px;
+    min-width: 104px;
+    padding: 9px 15px;
+    border-radius: 999px;
+    font-size: 10px;
+    font-weight: 1000;
+    letter-spacing: .04em;
+    cursor: pointer;
+    touch-action: manipulation;
+}
+
+.w68-tutorial-skip {
+    border: 1px solid #d9dfdc;
+    background: #f2f4f3;
+    color: #414a46;
+}
+
+.w68-tutorial-next,
+.w68-tutorial-done {
+    border: 1px solid #ffd633;
+    background: #800020;
+    color: #ffd633;
+}
+
+.w68-tutorial-target {
+    position: relative !important;
+    z-index: 15006 !important;
+    isolation: isolate;
+}
+
+@media (max-width: 700px) {
+    .w68-tutorial-robot {
+        top: 37%;
+        width: clamp(132px, 44vw, 185px);
+    }
+
+    .w68-tutorial-card {
+        bottom: max(8px, env(safe-area-inset-bottom));
+        width: calc(100vw - 16px);
+        max-height: 40vh;
+        padding: 14px;
+        border-radius: 18px;
+    }
+
+    .w68-tutorial-actions {
+        gap: 7px;
+    }
+
+    .w68-tutorial-actions button {
+        flex: 1 1 0;
+        min-width: 0;
+        padding-inline: 9px;
+    }
+}
+
+@media (max-height: 620px) {
+    .w68-tutorial-robot {
+        top: 34%;
+        width: 125px;
+    }
+
+    .w68-tutorial-card {
+        max-height: 45vh;
+    }
+}

@@ -351,7 +351,8 @@
         @endif
 
         @unless ($hasActiveSearch)
-        {{-- W68_NEW_ARRIVAL_FROM_PURCHASE_20261024 --}}\n        <section class="new-items-section shell" id="new-items">
+        {{-- W68_NEW_ARRIVAL_FROM_PURCHASE_20261024 --}}
+        <section class="new-items-section shell" id="new-items">
             <div class="section-heading">
                 <div>
                     <span>RECENT PURCHASES</span>

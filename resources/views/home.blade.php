@@ -351,13 +351,13 @@
         @endif
 
         @unless ($hasActiveSearch)
-        <section class="new-items-section shell" id="new-items">
+        {{-- W68_NEW_ARRIVAL_FROM_PURCHASE_20261024 --}}\n        <section class="new-items-section shell" id="new-items">
             <div class="section-heading">
                 <div>
-                    <span>JUST ADDED</span>
-                    <h1>New Items</h1>
+                    <span>RECENT PURCHASES</span>
+                    <h1>New Arrival</h1>
                 </div>
-                <p>Only products selected for the W68 website are shown.</p>
+                <p>Products purchased within the last 3 months are shown here automatically.</p>
             </div>
 
             @if (count($newItems))
@@ -416,7 +416,7 @@
                     @endforeach
                 </div>
             @else
-                <div class="empty-state">No selected new items are available right now.</div>
+                <div class="empty-state">No New Arrival items were purchased within the last 3 months.</div>
             @endif
         </section>
         @endunless
@@ -425,7 +425,7 @@
             @if ($hasActiveSearch)
                 <div class="active-search-notice">
                     <strong>SEARCH RESULTS</strong>
-                    <span>New Items are hidden while a search is active. Press CLEAR to return to All Products.</span>
+                    <span>New Arrival is hidden while a search is active. Press CLEAR to return to All Products.</span>
                 </div>
             @endif
 

@@ -2733,6 +2733,8 @@
                 title: 'Step 5: Select the item',
                 body: 'Tick the item checkbox so it is included when you press PROCESS ORDER.',
                 target: () => getFirstVisibleTutorialTarget(
+                    '[data-cart-row-id] .cart-item-check input:not(:checked), [data-cart-row-id] input[type="checkbox"]:not(:checked)'
+                ) || getFirstVisibleTutorialTarget(
                     '[data-cart-row-id] .cart-item-check input, [data-cart-row-id] input[type="checkbox"]'
                 ),
                 allowNext: false,
@@ -2740,9 +2742,17 @@
             },
             {
                 key: 'process-order',
-                title: 'Step 6: Process Order',
-                body: 'Now tap PROCESS ORDER. The next page contains the order review and the remaining order dialogs.',
+                title: 'Step 6: This is PROCESS ORDER',
+                body: 'This is the PROCESS ORDER button. You do not need to press it during the tutorial. Tap anywhere on the dark screen or tap FINISH to continue.',
                 target: () => getFirstVisibleTutorialTarget('[data-process-order]'),
+                allowNext: false,
+                showDone: true,
+            },
+            {
+                key: 'tutorial-complete',
+                title: 'Tutorial Complete',
+                body: 'You now know how to add an item, open the cart, select the carted item, and find PROCESS ORDER. Tap anywhere on the screen or tap DONE to close this guide.',
+                target: null,
                 allowNext: false,
                 showDone: true,
             },
@@ -2756,6 +2766,7 @@
         const clearTarget = () => {
             if (currentTarget instanceof Element) {
                 currentTarget.classList.remove('w68-tutorial-target');
+                currentTarget.classList.remove('w68-tutorial-no-click');
             }
             currentTarget = null;
         };
@@ -2771,6 +2782,7 @@
             hidePointer();
             overlay.hidden = true;
             overlay.setAttribute('aria-hidden', 'true');
+            overlay.classList.remove('is-finishable');
 
             if (repositionTimer !== null) {
                 window.clearTimeout(repositionTimer);
@@ -2863,20 +2875,17 @@
                 return;
             }
 
-            if (
-                step.key === 'select-item'
-                && processOrderButton
-                && !processOrderButton.disabled
-            ) {
-                renderStep(index + 1);
-                return;
-            }
-
             currentStepIndex = index;
             titleNode.textContent = step.title;
             bodyNode.textContent = step.body;
             nextButton.hidden = !step.allowNext;
             doneButton.hidden = !step.showDone;
+            doneButton.textContent = step.key === 'process-order' ? 'FINISH' : 'DONE';
+
+            overlay.classList.toggle(
+                'is-finishable',
+                step.key === 'process-order' || step.key === 'tutorial-complete'
+            );
 
             clearTarget();
 
@@ -2898,6 +2907,12 @@
 
             currentTarget = target;
             currentTarget.classList.add('w68-tutorial-target');
+
+            if (step.key === 'process-order') {
+                // Informational highlight only. Do not allow the tutorial to
+                // navigate away by accidentally pressing PROCESS ORDER.
+                currentTarget.classList.add('w68-tutorial-no-click');
+            }
 
             scrollTargetIntoView(target);
 
@@ -2921,7 +2936,19 @@
             renderStep(currentStepIndex + 1);
         });
 
-        doneButton.addEventListener('click', finishTutorial);
+        doneButton.addEventListener('click', (event) => {
+            event.preventDefault();
+            event.stopPropagation();
+
+            const step = steps[currentStepIndex];
+
+            if (step?.key === 'process-order') {
+                renderStep(currentStepIndex + 1);
+                return;
+            }
+
+            finishTutorial();
+        });
         skipButton.addEventListener('click', finishTutorial);
 
         const reposition = () => {
@@ -2980,7 +3007,16 @@
                     '[data-cart-row-id] .cart-item-check input, [data-cart-row-id] input[type="checkbox"]'
                 )
             ) {
-                window.setTimeout(() => renderStep(6), 260);
+                const checkbox = event.target.closest('input[type="checkbox"]');
+
+                window.setTimeout(() => {
+                    if (checkbox?.checked) {
+                        renderStep(6);
+                    } else {
+                        bodyNode.textContent = 'Keep the item checkbox checked so it is included in PROCESS ORDER.';
+                        renderStep(5);
+                    }
+                }, 260);
                 return;
             }
 
@@ -2988,9 +3024,30 @@
                 step.key === 'process-order'
                 && event.target.closest('[data-process-order]')
             ) {
-                finishTutorial();
+                // PROCESS ORDER is demonstration-only in the tutorial.
+                event.preventDefault();
+                event.stopImmediatePropagation();
+                renderStep(7);
             }
         }, true);
+
+        const tutorialScrim = overlay.querySelector('.w68-tutorial-scrim');
+
+        tutorialScrim?.addEventListener('click', (event) => {
+            if (!active) return;
+
+            const step = steps[currentStepIndex];
+            if (step?.key === 'process-order') {
+                event.preventDefault();
+                renderStep(currentStepIndex + 1);
+                return;
+            }
+
+            if (step?.key === 'tutorial-complete') {
+                event.preventDefault();
+                finishTutorial();
+            }
+        });
 
         const openTutorial = () => {
             active = true;

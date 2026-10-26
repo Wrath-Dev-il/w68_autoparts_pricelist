@@ -2676,6 +2676,19 @@
             return;
         }
 
+        // W68_TUTORIAL_POINTER_TOP_LAYER_20261026
+        // Quantity modal/cart drawer live at z-index 30000-33000. Keeping the
+        // pointer inside the tutorial overlay (z-index 15000) traps it behind
+        // those commerce overlays. Promote only the non-interactive spotlight
+        // and hand cursor to direct body children so they can render above the
+        // modal without blocking the real controls.
+        if (spotlight.parentElement !== document.body) {
+            document.body.appendChild(spotlight);
+        }
+        if (arrow.parentElement !== document.body) {
+            document.body.appendChild(arrow);
+        }
+
         const loginNumber = Math.max(
             1,
             Math.min(3, Number.parseInt(String(body?.dataset.tutorialLoginNumber || '1'), 10) || 1)

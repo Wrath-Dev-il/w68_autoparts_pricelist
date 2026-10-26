@@ -2705,6 +2705,7 @@
             },
             {
                 key: 'add-to-cart',
+                pointerLabel: 'ADD',
                 title: 'Step 1: Add an item from Products',
                 body: 'This item is from the PRODUCTS section. Click its highlighted ADD TO CART button.',
                 target: () => getTutorialPurchasableAddButton(),
@@ -2713,6 +2714,7 @@
             },
             {
                 key: 'quantity-plus',
+                pointerLabel: '+',
                 title: 'Step 2: Try the + button',
                 body: 'Click the highlighted PLUS button once so you know how to increase the ordered quantity.',
                 target: () => getFirstVisibleTutorialTarget('[data-quantity-plus]'),
@@ -2721,6 +2723,7 @@
             },
             {
                 key: 'quantity-minus',
+                pointerLabel: '−',
                 title: 'Step 3: Try the − button',
                 body: 'Now click the highlighted MINUS button once so you know how to decrease the ordered quantity.',
                 target: () => getFirstVisibleTutorialTarget('[data-quantity-minus]'),
@@ -2729,6 +2732,7 @@
             },
             {
                 key: 'quantity-add',
+                pointerLabel: 'ADD',
                 title: 'Step 4: Add it to your cart',
                 body: 'Good. Now click the highlighted ADD TO CART button in this quantity dialog.',
                 target: () => getFirstVisibleTutorialTarget('[data-quantity-confirm]'),
@@ -2737,6 +2741,7 @@
             },
             {
                 key: 'cart-button',
+                pointerLabel: 'OPEN',
                 title: 'Step 5: Open your cart',
                 body: 'Your item was added. Click the highlighted CART button to open your cart.',
                 target: () => getFirstVisibleTutorialTarget('[data-cart-open]'),
@@ -2755,6 +2760,7 @@
             },
             {
                 key: 'select-item',
+                pointerLabel: 'SELECT',
                 title: 'Step 7: Select the item',
                 body: 'Click the highlighted checkbox so this item is included in PROCESS ORDER.',
                 target: () => getFirstVisibleTutorialTarget(
@@ -2767,6 +2773,7 @@
             },
             {
                 key: 'process-order',
+                pointerLabel: 'HERE',
                 title: 'Step 8: This is PROCESS ORDER',
                 body: 'This is the PROCESS ORDER button. The tutorial will NOT press it for you. Tap FINISH when you are ready to leave the tutorial.',
                 target: () => getFirstVisibleTutorialTarget('[data-process-order]'),
@@ -2925,6 +2932,7 @@
             currentStepIndex = index;
             titleNode.textContent = step.title;
             bodyNode.textContent = step.body;
+            arrow.dataset.pointerLabel = String(step.pointerLabel || 'CLICK');
             nextButton.hidden = !step.allowNext;
             doneButton.hidden = !step.showDone;
             doneButton.textContent = step.key === 'process-order' ? 'FINISH' : 'DONE';
@@ -2935,6 +2943,25 @@
             );
 
             clearTarget();
+
+            // W68_TUTORIAL_SELECTED_ITEM_SKIP_20261026
+            // A newly-added/existing cart row may already be selected. Never
+            // ask the customer to click a checked box just to satisfy the
+            // tutorial, because that would deselect it.
+            if (step.key === 'select-item') {
+                const checkedSelection = getFirstVisibleTutorialTarget(
+                    '[data-cart-row-id] .cart-item-check input:checked, [data-cart-row-id] input[type="checkbox"]:checked'
+                );
+
+                if (checkedSelection) {
+                    window.setTimeout(() => {
+                        if (active && currentStepIndex === index) {
+                            renderStep(index + 1);
+                        }
+                    }, 650);
+                    return;
+                }
+            }
 
             const target = targetForStep(step);
 

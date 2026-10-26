@@ -7007,6 +7007,16 @@ html.w68-ipad .orders-cart-drawer.open .orders-cart-print-button {
     background: rgba(5, 28, 22, .70);
     backdrop-filter: blur(1.2px);
     -webkit-backdrop-filter: blur(1.2px);
+    pointer-events: none;
+}
+
+.w68-tutorial-overlay.is-finishable .w68-tutorial-scrim {
+    pointer-events: auto;
+    cursor: pointer;
+}
+
+.w68-tutorial-no-click {
+    pointer-events: none !important;
 }
 
 .w68-tutorial-spotlight {

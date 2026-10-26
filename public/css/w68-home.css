@@ -7369,3 +7369,90 @@ body > .w68-tutorial-card[hidden] {
         max-height: 38vh;
     }
 }
+
+
+/* =========================================================
+   W68_TUTORIAL_CART_DIALOG_POSITION_20261026
+   For cart stages, JS positions the tutorial card inside the cart panel
+   directly above PROCESS ORDER so the drawer never covers the instructions.
+   ========================================================= */
+body > .w68-tutorial-card.is-cart-stage {
+    bottom: auto !important;
+    right: auto !important;
+    transform: none !important;
+    max-height: min(178px, 31vh) !important;
+    padding: 10px 12px 9px !important;
+    border-radius: 15px !important;
+    border-color: #ffd633 !important;
+    box-shadow:
+        0 10px 28px rgba(0, 0, 0, .30),
+        0 0 0 3px rgba(255, 214, 51, .16) !important;
+}
+
+body > .w68-tutorial-card.is-cart-stage .w68-tutorial-kicker {
+    min-height: 22px !important;
+    padding: 3px 7px !important;
+    font-size: 7px !important;
+    letter-spacing: .08em !important;
+}
+
+body > .w68-tutorial-card.is-cart-stage h2 {
+    margin: 6px 0 4px !important;
+    font-size: clamp(14px, 1.35vw, 18px) !important;
+    line-height: 1.08 !important;
+}
+
+body > .w68-tutorial-card.is-cart-stage p {
+    font-size: 10px !important;
+    line-height: 1.32 !important;
+}
+
+body > .w68-tutorial-card.is-cart-stage .w68-tutorial-actions {
+    margin-top: 7px !important;
+    gap: 6px !important;
+}
+
+body > .w68-tutorial-card.is-cart-stage .w68-tutorial-actions button {
+    min-height: 31px !important;
+    min-width: 76px !important;
+    padding: 5px 9px !important;
+    font-size: 7px !important;
+}
+
+/* Keep the cart footer / PROCESS ORDER visibly above the darkened page and
+   clickable-looking while the tutorial card sits immediately above it. */
+body.w68-tutorial-active .cart-panel,
+body.w68-tutorial-active .cart-footer {
+    isolation: isolate;
+}
+
+body.w68-tutorial-active .cart-footer {
+    position: relative;
+    z-index: 15005;
+}
+
+body.w68-tutorial-active .cart-footer .process-order-button {
+    position: relative;
+    z-index: 15006;
+}
+
+@media (max-width: 700px) {
+    body > .w68-tutorial-card.is-cart-stage {
+        max-height: min(164px, 30vh) !important;
+        padding: 8px 9px !important;
+        border-radius: 12px !important;
+    }
+
+    body > .w68-tutorial-card.is-cart-stage h2 {
+        font-size: 13px !important;
+    }
+
+    body > .w68-tutorial-card.is-cart-stage p {
+        font-size: 9px !important;
+    }
+
+    body > .w68-tutorial-card.is-cart-stage .w68-tutorial-actions button {
+        min-height: 29px !important;
+        font-size: 6.8px !important;
+    }
+}

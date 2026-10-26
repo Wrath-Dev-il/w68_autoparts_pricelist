@@ -7032,37 +7032,85 @@ html.w68-ipad .orders-cart-drawer.open .orders-cart-print-button {
     transition: left .22s ease, top .22s ease, width .22s ease, height .22s ease;
 }
 
-/* W68_TUTORIAL_SHORT_TARGET_ARROW_20261026 */
+/* W68_TUTORIAL_HAND_CURSOR_20261026
+   Compact hand pointer beside the exact control. No long beam across screen. */
 .w68-tutorial-arrow {
     position: fixed;
-    z-index: 15003;
-    height: 6px;
+    z-index: 15007;
+    display: grid;
+    grid-template-columns: 38px auto;
+    align-items: center;
+    justify-content: center;
+    gap: 2px;
+    min-width: 74px;
+    min-height: 48px;
+    padding: 3px 7px 3px 3px;
+    border: 2px solid #ffd633;
     border-radius: 999px;
-    transform-origin: left center;
-    background: #ffd633;
+    background: #800020;
+    color: #ffd633;
     box-shadow:
-        0 0 0 2px rgba(128, 0, 32, .22),
-        0 0 14px rgba(255, 214, 51, .70);
+        0 0 0 5px rgba(255, 214, 51, .18),
+        0 8px 22px rgba(0, 0, 0, .28);
     pointer-events: none;
-    animation: w68TutorialArrowPulse .85s ease-in-out infinite alternate;
+    animation: w68TutorialHandPulse .72s ease-in-out infinite alternate;
+}
+
+.w68-tutorial-arrow::before {
+    content: "☞";
+    display: grid;
+    place-items: center;
+    width: 38px;
+    height: 38px;
+    font-family: "Segoe UI Symbol", "Arial Unicode MS", sans-serif;
+    font-size: 31px;
+    line-height: 1;
+    font-weight: 900;
+    color: #ffd633;
+}
+
+.w68-tutorial-arrow::after {
+    content: "CLICK";
+    font-size: 8px;
+    line-height: 1;
+    font-weight: 1000;
+    letter-spacing: .08em;
+    color: #fff6be;
 }
 
 .w68-tutorial-arrow > span {
-    position: absolute;
-    right: -2px;
-    top: 50%;
-    width: 17px;
-    height: 17px;
-    border-top: 6px solid #ffd633;
-    border-right: 6px solid #ffd633;
-    border-radius: 2px;
-    transform: translateY(-50%) rotate(45deg);
-    filter: drop-shadow(1px 1px 0 rgba(128,0,32,.28));
+    display: none !important;
 }
 
-@keyframes w68TutorialArrowPulse {
-    from { opacity: .72; }
-    to { opacity: 1; }
+.w68-tutorial-arrow[data-pointer-side="right"]::before {
+    content: "☜";
+}
+
+.w68-tutorial-arrow[data-pointer-side="left"]::before {
+    content: "☞";
+}
+
+.w68-tutorial-arrow[data-pointer-side="top"]::before {
+    content: "☟";
+}
+
+.w68-tutorial-arrow[data-pointer-side="bottom"]::before {
+    content: "☝";
+}
+
+@keyframes w68TutorialHandPulse {
+    from {
+        transform: scale(.94);
+        box-shadow:
+            0 0 0 3px rgba(255, 214, 51, .13),
+            0 7px 18px rgba(0, 0, 0, .24);
+    }
+    to {
+        transform: scale(1.05);
+        box-shadow:
+            0 0 0 8px rgba(255, 214, 51, .24),
+            0 10px 26px rgba(0, 0, 0, .32);
+    }
 }
 
 .w68-tutorial-robot {
@@ -7203,5 +7251,20 @@ html.w68-ipad .orders-cart-drawer.open .orders-cart-print-button {
 
     .w68-tutorial-card {
         max-height: 45vh;
+    }
+}
+
+
+/* W68_TUTORIAL_ACTION_PULSE_20261026 */
+.w68-tutorial-target {
+    animation: w68TutorialTargetPulse .72s ease-in-out infinite alternate;
+}
+
+@keyframes w68TutorialTargetPulse {
+    from {
+        filter: brightness(1);
+    }
+    to {
+        filter: brightness(1.12) drop-shadow(0 0 8px rgba(255, 214, 51, .72));
     }
 }

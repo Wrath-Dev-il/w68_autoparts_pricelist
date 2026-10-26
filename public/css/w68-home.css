@@ -7331,3 +7331,41 @@ body > .w68-tutorial-spotlight {
 body > .w68-tutorial-arrow {
     z-index: 2147483610 !important;
 }
+
+
+/* =========================================================
+   W68_TUTORIAL_DIALOG_TOP_LAYER_20261026
+   JS reparents the robot and instruction dialog to <body> so cart/quantity
+   overlays can never cover the tutorial instructions.
+   ========================================================= */
+body > .w68-tutorial-robot {
+    z-index: 2147483620 !important;
+    pointer-events: none !important;
+}
+
+body > .w68-tutorial-card {
+    z-index: 2147483630 !important;
+    pointer-events: auto !important;
+}
+
+body > .w68-tutorial-robot[hidden],
+body > .w68-tutorial-card[hidden] {
+    display: none !important;
+}
+
+/* Keep the card compact enough that the user can still see and tap the
+   highlighted quantity/cart control around it. */
+@media (min-width: 701px) {
+    body > .w68-tutorial-card {
+        width: min(510px, calc(100vw - 36px));
+        max-height: 31vh;
+    }
+}
+
+@media (max-width: 700px) {
+    body > .w68-tutorial-card {
+        width: calc(100vw - 14px);
+        bottom: max(6px, env(safe-area-inset-bottom));
+        max-height: 38vh;
+    }
+}

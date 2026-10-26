@@ -12,6 +12,14 @@
     <script src="{{ asset('js/w68-home.js') }}?v=20261024-v157" defer></script>
     <script src="{{ asset('js/w68-notifications.js') }}?v=20261001-v131" defer></script>
 </head>
+@php
+    // W68_TUTORIAL_ROBOT_ASSET_FALLBACK_20261026
+    // Prefer the user's GIF when installed. The animated SVG is always
+    // available from GitHub, so onboarding never breaks when the GIF is absent.
+    $tutorialRobotAsset = is_file(public_path('images/w68_robot_tutorial_mascot.gif'))
+        ? asset('images/w68_robot_tutorial_mascot.gif')
+        : asset('images/w68_robot_tutorial_fallback.svg');
+@endphp
 <body
     data-home-url="{{ route('home') }}"
     data-cart-print-bridge-url="{{ route('home.cart.print-bridge') }}"
@@ -39,13 +47,6 @@
 >
     @php
         $logo = asset('images/sidebar_logo.png');
-        // W68_TUTORIAL_ROBOT_ASSET_FALLBACK_20261024
-        // Prefer the user's GIF when it exists; otherwise use the built-in
-        // animated SVG so first-login onboarding can never break.
-        $tutorialRobotAsset = is_file(public_path('images/w68_robot_tutorial_mascot.gif'))
-            ? asset('images/w68_robot_tutorial_mascot.gif')
-            : asset('images/w68_robot_tutorial_fallback.svg');
-
         /*
          * W68 runs from /w68_Pricelist/public under XAMPP.
          * Build Home URLs from the CURRENT browser host so an iPad uses

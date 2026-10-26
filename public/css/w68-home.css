@@ -7293,3 +7293,41 @@ body > .w68-tutorial-spotlight[hidden],
 body > .w68-tutorial-arrow[hidden] {
     display: none !important;
 }
+
+
+/* =========================================================
+   W68_TUTORIAL_CART_PRINT_LAYER_FIX_20261026
+   PRINT CART LIST must never cover the tutorial hand/cursor.
+   The iPad launcher normally uses an intentionally huge z-index, so suppress
+   all print launchers only while the first-login tutorial is active.
+   ========================================================= */
+html.w68-tutorial-active .w68-ipad-cart-print-launcher,
+body.w68-tutorial-active .w68-ipad-cart-print-launcher,
+body.w68-tutorial-active .cart-print-list-button,
+body.w68-tutorial-active [data-cart-print-center] {
+    display: none !important;
+    visibility: hidden !important;
+    opacity: 0 !important;
+    pointer-events: none !important;
+}
+
+/* Give PROCESS ORDER the entire footer row while the tutorial is teaching it.
+   This also gives the hand cursor clean space on either side of the target. */
+body.w68-tutorial-active .cart-footer-actions {
+    grid-template-columns: minmax(0, 1fr) !important;
+}
+
+body.w68-tutorial-active .cart-footer-actions .process-order-button {
+    width: 100% !important;
+    grid-column: 1 / -1 !important;
+}
+
+/* Keep the tutorial pointer at the highest practical layer for all normal
+   desktop/Android cart controls. iPad's max-z print launcher is hidden above. */
+body > .w68-tutorial-spotlight {
+    z-index: 2147483600 !important;
+}
+
+body > .w68-tutorial-arrow {
+    z-index: 2147483610 !important;
+}

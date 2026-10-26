@@ -2852,6 +2852,7 @@
             overlay.classList.remove('is-finishable');
             robot.hidden = true;
             if (tutorialCard) tutorialCard.hidden = true;
+            resetTutorialCardPlacement();
 
             // W68_TUTORIAL_CART_PRINT_LAYER_FIX_20261026
             // Restore PRINT CART LIST after the walkthrough ends.
@@ -2963,6 +2964,85 @@
                 : null
         );
 
+        // W68_TUTORIAL_CART_DIALOG_POSITION_20261026
+        // During cart-related steps, keep the instruction card INSIDE the
+        // visible cart drawer and directly above PROCESS ORDER. This prevents
+        // the card from sitting underneath / outside the right-side cart.
+        const cartStageKeys = new Set([
+            'carted-item',
+            'select-item',
+            'process-order',
+            'process-review-info',
+            'process-signoff-info',
+        ]);
+
+        const resetTutorialCardPlacement = () => {
+            if (!tutorialCard) return;
+
+            tutorialCard.classList.remove('is-cart-stage');
+            [
+                'left',
+                'right',
+                'top',
+                'bottom',
+                'width',
+                'transform',
+            ].forEach((property) => {
+                tutorialCard.style.removeProperty(property);
+            });
+        };
+
+        const positionTutorialCardForStep = (step) => {
+            if (!tutorialCard) return;
+
+            if (!cartStageKeys.has(String(step?.key || ''))) {
+                resetTutorialCardPlacement();
+                return;
+            }
+
+            const cartPanel = document.querySelector('.cart-panel');
+            const processButton = getFirstVisibleTutorialTarget('[data-process-order]');
+
+            if (!(cartPanel instanceof Element) || !(processButton instanceof Element)) {
+                resetTutorialCardPlacement();
+                return;
+            }
+
+            const panelRect = cartPanel.getBoundingClientRect();
+            const buttonRect = processButton.getBoundingClientRect();
+            const viewportHeight = window.visualViewport?.height
+                || window.innerHeight
+                || document.documentElement.clientHeight;
+
+            const horizontalGap = 8;
+            tutorialCard.classList.add('is-cart-stage');
+            tutorialCard.style.left = `${Math.round(panelRect.left + horizontalGap)}px`;
+            tutorialCard.style.right = 'auto';
+            tutorialCard.style.bottom = 'auto';
+            tutorialCard.style.width = `${Math.max(240, Math.round(panelRect.width - (horizontalGap * 2)))}px`;
+            tutorialCard.style.transform = 'none';
+
+            // Measure after the cart-stage width is applied.
+            window.requestAnimationFrame(() => {
+                if (!tutorialCard || !cartStageKeys.has(String(steps[currentStepIndex]?.key || ''))) {
+                    return;
+                }
+
+                const cardRect = tutorialCard.getBoundingClientRect();
+                const gapAboveButton = 10;
+                const desiredTop = buttonRect.top - cardRect.height - gapAboveButton;
+                const minimumTop = Math.max(8, panelRect.top + 8);
+                const maximumTop = Math.max(
+                    minimumTop,
+                    viewportHeight - cardRect.height - 8
+                );
+
+                tutorialCard.style.top = `${Math.round(
+                    Math.min(maximumTop, Math.max(minimumTop, desiredTop))
+                )}px`;
+            });
+        };
+
         const renderStep = (index) => {
             const step = steps[index];
 
@@ -2983,6 +3063,10 @@
                 'is-finishable',
                 step.key === 'process-signoff-info'
             );
+
+            // Move the tutorial dialog into the cart drawer for all cart
+            // stages. Quantity/Product steps keep the normal centered dialog.
+            positionTutorialCardForStep(step);
 
             clearTarget();
 
@@ -3077,6 +3161,7 @@
             }
 
             repositionTimer = window.setTimeout(() => {
+                positionTutorialCardForStep(steps[currentStepIndex]);
                 positionPointer(currentTarget);
             }, 45);
         };

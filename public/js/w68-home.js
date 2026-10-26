@@ -2829,6 +2829,11 @@
             overlay.setAttribute('aria-hidden', 'true');
             overlay.classList.remove('is-finishable');
 
+            // W68_TUTORIAL_CART_PRINT_LAYER_FIX_20261026
+            // Restore PRINT CART LIST after the walkthrough ends.
+            document.documentElement.classList.remove('w68-tutorial-active');
+            document.body?.classList.remove('w68-tutorial-active');
+
             if (repositionTimer !== null) {
                 window.clearTimeout(repositionTimer);
                 repositionTimer = null;
@@ -3161,6 +3166,14 @@
 
         const openTutorial = () => {
             active = true;
+
+            // W68_TUTORIAL_CART_PRINT_LAYER_FIX_20261026
+            // The iPad print launcher intentionally uses an extreme z-index.
+            // Hide print controls only while tutorial mode is active so the
+            // tutorial hand/cursor can never be covered by PRINT CART LIST.
+            document.documentElement.classList.add('w68-tutorial-active');
+            document.body?.classList.add('w68-tutorial-active');
+
             overlay.hidden = false;
             overlay.setAttribute('aria-hidden', 'false');
             renderStep(0);

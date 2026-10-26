@@ -7268,3 +7268,28 @@ html.w68-ipad .orders-cart-drawer.open .orders-cart-print-button {
         filter: brightness(1.12) drop-shadow(0 0 8px rgba(255, 214, 51, .72));
     }
 }
+
+
+/* =========================================================
+   W68_TUTORIAL_POINTER_TOP_LAYER_20261026
+   Spotlight/hand are reparented to <body> by JS so they can sit above
+   quantity modal (32000), cart drawer (30000), and success modal (33000).
+   They never intercept clicks/taps.
+   ========================================================= */
+body > .w68-tutorial-spotlight {
+    z-index: 50040 !important;
+    pointer-events: none !important;
+}
+
+body > .w68-tutorial-arrow {
+    z-index: 50050 !important;
+    pointer-events: none !important;
+}
+
+/* The highlighted commerce control remains the only intended tap target.
+   The spotlight is transparent in the center; its huge shadow dims everything
+   around that control while the hand stays visibly above the modal. */
+body > .w68-tutorial-spotlight[hidden],
+body > .w68-tutorial-arrow[hidden] {
+    display: none !important;
+}

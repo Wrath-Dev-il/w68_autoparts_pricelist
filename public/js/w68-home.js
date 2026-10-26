@@ -2586,26 +2586,61 @@
     /* =====================================================
        W68_FIRST_LOGIN_TUTORIAL_20261024
        Server-controlled walkthrough for account login #1, #2 and #3.
+       Step 1 deliberately skips zero-price / already-carted products.
        ===================================================== */
-    const getFirstVisibleTutorialTarget = (selector) => {
-        const nodes = Array.from(document.querySelectorAll(selector));
+    const isTutorialTargetUsable = (node) => {
+        if (!(node instanceof Element) || node.hidden) return false;
+        if (node.getAttribute('aria-hidden') === 'true') return false;
 
-        return nodes.find((node) => {
-            if (!(node instanceof Element) || node.hidden) return false;
-            if (node.getAttribute('aria-hidden') === 'true') return false;
+        const style = window.getComputedStyle(node);
+        if (
+            style.display === 'none'
+            || style.visibility === 'hidden'
+            || Number(style.opacity || 1) === 0
+        ) {
+            return false;
+        }
 
-            const style = window.getComputedStyle(node);
-            if (
-                style.display === 'none'
-                || style.visibility === 'hidden'
-                || Number(style.opacity || 1) === 0
-            ) {
-                return false;
-            }
+        const rect = node.getBoundingClientRect();
+        return rect.width > 0 && rect.height > 0;
+    };
 
-            const rect = node.getBoundingClientRect();
-            return rect.width > 0 && rect.height > 0;
-        }) || null;
+    const getFirstVisibleTutorialTarget = (selector) => (
+        Array.from(document.querySelectorAll(selector))
+            .find((node) => isTutorialTargetUsable(node))
+        || null
+    );
+
+    // W68_TUTORIAL_PURCHASABLE_ITEM_TARGET_20261026
+    // Never teach Add to Cart using a zero-price product. Search all rendered
+    // product cards, use the effective customer price, and skip cards whose
+    // ADD TO CART button is already hidden because the item is in the cart.
+    const getTutorialPurchasableAddButton = () => {
+        const cards = Array.from(document.querySelectorAll('[data-product-card]'));
+
+        for (const card of cards) {
+            if (!(card instanceof Element)) continue;
+
+            const originalPrice = Number(card.dataset.productPrice || 0);
+            const discountedPrice = Number(card.dataset.productDiscountedPrice || 0);
+            const discountPercent = Number(card.dataset.productDiscountPercent || 0);
+            const effective = (
+                discountPercent > 0
+                && discountedPrice > 0
+                && (originalPrice <= 0 || discountedPrice < originalPrice)
+            )
+                ? discountedPrice
+                : originalPrice;
+
+            if (!Number.isFinite(effective) || effective <= 0) continue;
+
+            const addButton = card.querySelector('[data-add-cart]');
+            if (!isTutorialTargetUsable(addButton)) continue;
+
+            return addButton;
+        }
+
+        return null;
     };
 
     const initFirstLoginTutorial = () => {
@@ -2655,41 +2690,39 @@
             {
                 key: 'welcome',
                 title: 'Welcome to W68!',
-                body: 'I am your W68 robot guide. I will show you how to add an item, open the cart, review your carted item, select it for ordering, and use PROCESS ORDER.',
+                body: 'I will guide you through the real ordering controls. I will automatically find a product with a price greater than 0.',
                 target: null,
                 allowNext: true,
                 showDone: false,
             },
             {
                 key: 'add-to-cart',
-                title: 'Step 1: Add an item',
-                body: 'Tap the highlighted ADD TO CART button on a product.',
-                target: () => getFirstVisibleTutorialTarget(
-                    '.product-grid [data-add-cart], .new-items-track [data-add-cart], [data-product-modal-add]'
-                ),
+                title: 'Step 1: Add a priced item',
+                body: 'I found a product that can be ordered. Tap the highlighted ADD TO CART button.',
+                target: () => getTutorialPurchasableAddButton(),
                 allowNext: false,
                 showDone: false,
             },
             {
                 key: 'quantity',
                 title: 'Step 2: Confirm the quantity',
-                body: 'Choose the quantity you need, then tap ADD TO CART in this dialog.',
+                body: 'Choose the quantity you want, then tap the highlighted ADD TO CART button in this dialog.',
                 target: () => getFirstVisibleTutorialTarget('[data-quantity-confirm]'),
                 allowNext: false,
                 showDone: false,
             },
             {
                 key: 'cart-button',
-                title: 'Step 3: Open the cart',
-                body: 'Tap the highlighted cart button. Your saved cart items will appear there.',
+                title: 'Step 3: Open your cart',
+                body: 'Item added. Now tap the highlighted CART button to open the cart and see your item.',
                 target: () => getFirstVisibleTutorialTarget('[data-cart-open]'),
                 allowNext: false,
                 showDone: false,
             },
             {
                 key: 'carted-item',
-                title: 'Step 4: Review the carted item',
-                body: 'This is the item you added. You can review its picture, quantity, price and total before ordering.',
+                title: 'Step 4: Review your carted item',
+                body: 'Here is the item you added. Review its picture, ordered quantity, price and total.',
                 target: () => getFirstVisibleTutorialTarget('[data-cart-row-id]')
                     || getFirstVisibleTutorialTarget('[data-cart-items]'),
                 allowNext: true,
@@ -2698,7 +2731,7 @@
             {
                 key: 'select-item',
                 title: 'Step 5: Select the item',
-                body: 'Tick this checkbox so the carted item is included in PROCESS ORDER.',
+                body: 'Tick the item checkbox so it is included when you press PROCESS ORDER.',
                 target: () => getFirstVisibleTutorialTarget(
                     '[data-cart-row-id] .cart-item-check input, [data-cart-row-id] input[type="checkbox"]'
                 ),
@@ -2708,7 +2741,7 @@
             {
                 key: 'process-order',
                 title: 'Step 6: Process Order',
-                body: 'Now use PROCESS ORDER. The next page will show the order review and the remaining order dialogs before final submission.',
+                body: 'Now tap PROCESS ORDER. The next page contains the order review and the remaining order dialogs.',
                 target: () => getFirstVisibleTutorialTarget('[data-process-order]'),
                 allowNext: false,
                 showDone: true,
@@ -2748,17 +2781,23 @@
         const scrollTargetIntoView = (target) => {
             if (!(target instanceof Element)) return;
 
+            const card = target.closest('[data-product-card]');
+            const scrollTarget = card || target;
+
             try {
-                target.scrollIntoView({
+                scrollTarget.scrollIntoView({
                     behavior: 'smooth',
                     block: 'center',
                     inline: 'center',
                 });
             } catch (_) {
-                target.scrollIntoView();
+                scrollTarget.scrollIntoView();
             }
         };
 
+        // Snap the arrow from the nearest edge of the robot to the exact center
+        // of the highlighted control. This removes the old offset / inaccurate
+        // pointing seen on phones and tablets.
         const positionPointer = (target) => {
             if (!active || !(target instanceof Element)) {
                 hidePointer();
@@ -2772,27 +2811,41 @@
                 return;
             }
 
-            const pad = 8;
+            const pad = 7;
             spotlight.hidden = false;
-            spotlight.style.left = `${Math.max(6, rect.left - pad)}px`;
-            spotlight.style.top = `${Math.max(6, rect.top - pad)}px`;
-            spotlight.style.width = `${Math.max(38, rect.width + (pad * 2))}px`;
-            spotlight.style.height = `${Math.max(38, rect.height + (pad * 2))}px`;
+            spotlight.style.left = `${Math.max(4, rect.left - pad)}px`;
+            spotlight.style.top = `${Math.max(4, rect.top - pad)}px`;
+            spotlight.style.width = `${Math.max(34, rect.width + (pad * 2))}px`;
+            spotlight.style.height = `${Math.max(34, rect.height + (pad * 2))}px`;
 
             const robotRect = robot.getBoundingClientRect();
-            const sourceX = robotRect.left + (robotRect.width / 2);
-            const sourceY = robotRect.top + (robotRect.height * .62);
             const targetX = rect.left + (rect.width / 2);
             const targetY = rect.top + (rect.height / 2);
+
+            const sourceX = Math.min(
+                Math.max(targetX, robotRect.left + 10),
+                robotRect.right - 10
+            );
+            const sourceY = Math.min(
+                Math.max(targetY, robotRect.top + 10),
+                robotRect.bottom - 10
+            );
+
             const dx = targetX - sourceX;
             const dy = targetY - sourceY;
-            const distance = Math.max(68, Math.hypot(dx, dy) - 28);
+            const rawDistance = Math.hypot(dx, dy);
+
+            if (rawDistance < 24) {
+                arrow.hidden = true;
+                return;
+            }
+
             const angle = Math.atan2(dy, dx) * (180 / Math.PI);
 
             arrow.hidden = false;
             arrow.style.left = `${sourceX}px`;
             arrow.style.top = `${sourceY}px`;
-            arrow.style.width = `${distance}px`;
+            arrow.style.width = `${Math.max(18, rawDistance - 10)}px`;
             arrow.style.transform = `rotate(${angle}deg)`;
         };
 
@@ -2810,7 +2863,6 @@
                 return;
             }
 
-            // If the item is already selected, PROCESS ORDER is already ready.
             if (
                 step.key === 'select-item'
                 && processOrderButton
@@ -2833,7 +2885,11 @@
             if (!target) {
                 hidePointer();
 
-                // Never trap a customer if the expected control is unavailable.
+                if (step.key === 'add-to-cart') {
+                    titleNode.textContent = 'No priced item found on this page';
+                    bodyNode.textContent = 'This page has no available ADD TO CART product with a price greater than 0. Move to another product page and the guide can continue.';
+                }
+
                 if (!step.showDone) {
                     nextButton.hidden = false;
                 }
@@ -2849,9 +2905,15 @@
                 window.clearTimeout(repositionTimer);
             }
 
-            repositionTimer = window.setTimeout(() => {
-                positionPointer(target);
-            }, 360);
+            // Smooth scrolling needs a little time to finish before we measure
+            // the button. Re-measure several times for Safari/iPad accuracy.
+            [180, 420, 760].forEach((delay) => {
+                window.setTimeout(() => {
+                    if (active && currentTarget === target) {
+                        positionPointer(target);
+                    }
+                }, delay);
+            });
         };
 
         nextButton.addEventListener('click', () => {
@@ -2871,7 +2933,7 @@
 
             repositionTimer = window.setTimeout(() => {
                 positionPointer(currentTarget);
-            }, 30);
+            }, 45);
         };
 
         window.addEventListener('resize', reposition, { passive: true });
@@ -2889,7 +2951,9 @@
                 step.key === 'add-to-cart'
                 && event.target.closest('[data-add-cart], [data-product-modal-add]')
             ) {
-                window.setTimeout(() => renderStep(2), 260);
+                // The normal handler opens the quantity modal. Wait until it is
+                // visible, then point Step 2 at its ADD TO CART button.
+                window.setTimeout(() => renderStep(2), 220);
                 return;
             }
 
@@ -2897,8 +2961,8 @@
                 step.key === 'quantity'
                 && event.target.closest('[data-quantity-confirm]')
             ) {
-                // Let the normal 2-second ADDED TO CART confirmation finish.
-                window.setTimeout(() => renderStep(3), 2100);
+                // Normal cart mutation + success message complete first.
+                window.setTimeout(() => renderStep(3), 2050);
                 return;
             }
 
@@ -2906,7 +2970,7 @@
                 step.key === 'cart-button'
                 && event.target.closest('[data-cart-open]')
             ) {
-                window.setTimeout(() => renderStep(4), 320);
+                window.setTimeout(() => renderStep(4), 360);
                 return;
             }
 
@@ -2935,7 +2999,6 @@
             renderStep(0);
         };
 
-        // Wait until cart hydration and the Home loader have had time to settle.
         cartHydrationPromise.finally(() => {
             window.setTimeout(openTutorial, 700);
         });

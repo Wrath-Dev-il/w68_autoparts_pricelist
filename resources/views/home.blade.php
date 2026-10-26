@@ -7,7 +7,7 @@
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>W68 Autoparts & Service Center | Home</title>
     <link rel="icon" href="{{ asset('images/sidebar_logo.png') }}">
-    <link rel="stylesheet" href="{{ asset('css/w68-home.css') }}?v=20261026-v168">
+    <link rel="stylesheet" href="{{ asset('css/w68-home.css') }}?v=20261026-v169">
     <link rel="stylesheet" href="{{ asset('css/w68-notifications.css') }}?v=20260915-v95">
     <script src="{{ asset('js/w68-home.js') }}?v=20261026-v168" defer></script>
     <script src="{{ asset('js/w68-notifications.js') }}?v=20261001-v131" defer></script>

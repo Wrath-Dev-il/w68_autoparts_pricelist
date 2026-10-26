@@ -7070,7 +7070,7 @@ html.w68-ipad .orders-cart-drawer.open .orders-cart-print-button {
 }
 
 .w68-tutorial-arrow::after {
-    content: "CLICK";
+    content: attr(data-pointer-label);
     font-size: 8px;
     line-height: 1;
     font-weight: 1000;

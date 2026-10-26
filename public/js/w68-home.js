@@ -2689,6 +2689,20 @@
             document.body.appendChild(arrow);
         }
 
+        // W68_TUTORIAL_DIALOG_TOP_LAYER_20261026
+        // Keep the robot and instruction card above the quantity modal and
+        // cart drawer while leaving the real highlighted control clickable.
+        const tutorialCard = document.querySelector('[data-w68-tutorial-card]');
+        if (robot.parentElement !== document.body) {
+            document.body.appendChild(robot);
+        }
+        if (tutorialCard && tutorialCard.parentElement !== document.body) {
+            document.body.appendChild(tutorialCard);
+        }
+
+        robot.hidden = true;
+        if (tutorialCard) tutorialCard.hidden = true;
+
         const loginNumber = Math.max(
             1,
             Math.min(3, Number.parseInt(String(body?.dataset.tutorialLoginNumber || '1'), 10) || 1)
@@ -2788,15 +2802,23 @@
                 key: 'process-order',
                 pointerLabel: 'HERE',
                 title: 'Step 8: This is PROCESS ORDER',
-                body: 'This is the PROCESS ORDER button. The tutorial will NOT press it for you. Tap FINISH when you are ready to leave the tutorial.',
+                body: 'This is the PROCESS ORDER button. It is intentionally disabled during the tutorial so you cannot accidentally submit or leave this guide. Press NEXT to see what happens after this button.',
                 target: () => getFirstVisibleTutorialTarget('[data-process-order]'),
-                allowNext: false,
-                showDone: true,
+                allowNext: true,
+                showDone: false,
             },
             {
-                key: 'tutorial-complete',
-                title: 'Tutorial Complete',
-                body: 'You now know how to choose an item from Products, change quantity, add it to cart, select it, and find PROCESS ORDER.',
+                key: 'process-review-info',
+                title: 'Step 9: Review your Process Order',
+                body: 'After PROCESS ORDER, W68 opens the Process Order review page. There you review the selected cart items and continue the order setup. Press NEXT to see the final confirmation step.',
+                target: null,
+                allowNext: true,
+                showDone: false,
+            },
+            {
+                key: 'process-signoff-info',
+                title: 'Step 10: Prepared By / Checked By',
+                body: 'At the final confirmation, W68 asks for PREPARED BY and CHECKED BY before the order is processed. During this tutorial nothing is submitted. Press FINISH to close the guide.',
                 target: null,
                 allowNext: false,
                 showDone: true,
@@ -2828,6 +2850,8 @@
             overlay.hidden = true;
             overlay.setAttribute('aria-hidden', 'true');
             overlay.classList.remove('is-finishable');
+            robot.hidden = true;
+            if (tutorialCard) tutorialCard.hidden = true;
 
             // W68_TUTORIAL_CART_PRINT_LAYER_FIX_20261026
             // Restore PRINT CART LIST after the walkthrough ends.
@@ -2953,11 +2977,11 @@
             arrow.dataset.pointerLabel = String(step.pointerLabel || 'CLICK');
             nextButton.hidden = !step.allowNext;
             doneButton.hidden = !step.showDone;
-            doneButton.textContent = step.key === 'process-order' ? 'FINISH' : 'DONE';
+            doneButton.textContent = step.key === 'process-signoff-info' ? 'FINISH' : 'DONE';
 
             overlay.classList.toggle(
                 'is-finishable',
-                step.key === 'process-order' || step.key === 'tutorial-complete'
+                step.key === 'process-signoff-info'
             );
 
             clearTarget();
@@ -3040,13 +3064,6 @@
         doneButton.addEventListener('click', (event) => {
             event.preventDefault();
             event.stopPropagation();
-
-            const step = steps[currentStepIndex];
-
-            if (step?.key === 'process-order') {
-                renderStep(currentStepIndex + 1);
-                return;
-            }
 
             finishTutorial();
         });
@@ -3152,13 +3169,7 @@
             if (!active) return;
 
             const step = steps[currentStepIndex];
-            if (step?.key === 'process-order') {
-                event.preventDefault();
-                renderStep(currentStepIndex + 1);
-                return;
-            }
-
-            if (step?.key === 'tutorial-complete') {
+            if (step?.key === 'process-signoff-info') {
                 event.preventDefault();
                 finishTutorial();
             }
@@ -3176,6 +3187,8 @@
 
             overlay.hidden = false;
             overlay.setAttribute('aria-hidden', 'false');
+            robot.hidden = false;
+            if (tutorialCard) tutorialCard.hidden = false;
             renderStep(0);
         };
 

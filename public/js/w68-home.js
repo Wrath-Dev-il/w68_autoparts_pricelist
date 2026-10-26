@@ -2615,8 +2615,13 @@
     // Never teach Add to Cart using a zero-price product. Search all rendered
     // product cards, use the effective customer price, and skip cards whose
     // ADD TO CART button is already hidden because the item is in the cart.
+    // W68_TUTORIAL_PRODUCTS_GRID_ONLY_20261026
+    // Teach Add to Cart from the main PRODUCTS section only. NEW ARRIVAL cards
+    // are intentionally excluded even though they also use data-product-card.
     const getTutorialPurchasableAddButton = () => {
-        const cards = Array.from(document.querySelectorAll('[data-product-card]'));
+        const cards = Array.from(
+            document.querySelectorAll('#products .product-grid [data-product-card]')
+        );
 
         for (const card of cards) {
             if (!(card instanceof Element)) continue;
@@ -2810,6 +2815,10 @@
         // Snap the arrow from the nearest edge of the robot to the exact center
         // of the highlighted control. This removes the old offset / inaccurate
         // pointing seen on phones and tablets.
+        // W68_TUTORIAL_SHORT_TARGET_ARROW_20261026
+        // Keep the arrow local to the highlighted control. The old implementation
+        // drew a long beam from the center robot across the page, which looked
+        // wrong when the target was inside the right-side cart drawer.
         const positionPointer = (target) => {
             if (!active || !(target instanceof Element)) {
                 hidePointer();
@@ -2830,35 +2839,42 @@
             spotlight.style.width = `${Math.max(34, rect.width + (pad * 2))}px`;
             spotlight.style.height = `${Math.max(34, rect.height + (pad * 2))}px`;
 
-            const robotRect = robot.getBoundingClientRect();
             const targetX = rect.left + (rect.width / 2);
             const targetY = rect.top + (rect.height / 2);
+            const viewportWidth = window.visualViewport?.width || window.innerWidth || document.documentElement.clientWidth;
+            const viewportHeight = window.visualViewport?.height || window.innerHeight || document.documentElement.clientHeight;
+            const arrowLength = 54;
+            const gap = 18;
 
-            const sourceX = Math.min(
-                Math.max(targetX, robotRect.left + 10),
-                robotRect.right - 10
-            );
-            const sourceY = Math.min(
-                Math.max(targetY, robotRect.top + 10),
-                robotRect.bottom - 10
-            );
+            // Prefer a horizontal pointer because it stays readable on phones,
+            // tablets and the cart drawer. Fall back vertically near edges.
+            let sourceX;
+            let sourceY;
+            let angle;
 
-            const dx = targetX - sourceX;
-            const dy = targetY - sourceY;
-            const rawDistance = Math.hypot(dx, dy);
-
-            if (rawDistance < 24) {
-                arrow.hidden = true;
-                return;
+            if (rect.left >= 86) {
+                sourceX = Math.max(10, rect.left - gap - arrowLength);
+                sourceY = targetY;
+                angle = 0;
+            } else if ((viewportWidth - rect.right) >= 86) {
+                sourceX = Math.min(viewportWidth - arrowLength - 10, rect.right + gap + arrowLength);
+                sourceY = targetY;
+                angle = 180;
+            } else if (rect.top >= 86) {
+                sourceX = targetX;
+                sourceY = Math.max(10, rect.top - gap - arrowLength);
+                angle = 90;
+            } else {
+                sourceX = targetX;
+                sourceY = Math.min(viewportHeight - arrowLength - 10, rect.bottom + gap + arrowLength);
+                angle = -90;
             }
-
-            const angle = Math.atan2(dy, dx) * (180 / Math.PI);
 
             arrow.hidden = false;
             arrow.style.left = `${sourceX}px`;
             arrow.style.top = `${sourceY}px`;
-            arrow.style.width = `${Math.max(18, rawDistance - 10)}px`;
-            arrow.style.transform = `rotate(${angle}deg)`;
+            arrow.style.width = `${arrowLength}px`;
+            arrow.style.transform = `translateY(-50%) rotate(${angle}deg)`;
         };
 
         const targetForStep = (step) => (

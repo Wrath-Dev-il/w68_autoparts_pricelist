@@ -2691,52 +2691,72 @@
             robotImage.src = robotGif;
         }
 
+        // W68_TUTORIAL_GUIDED_ACTION_SEQUENCE_20261026
+        // Every actionable step advances only after the customer clicks the
+        // exact control being taught. PROCESS ORDER remains informational.
         const steps = [
             {
                 key: 'welcome',
                 title: 'Welcome to W68!',
-                body: 'I will guide you through the real ordering controls. I will automatically find a product with a price greater than 0.',
+                body: 'I will guide you using an item from the PRODUCTS section. Follow the hand cursor and click each highlighted control.',
                 target: null,
                 allowNext: true,
                 showDone: false,
             },
             {
                 key: 'add-to-cart',
-                title: 'Step 1: Add a priced item',
-                body: 'I found a product that can be ordered. Tap the highlighted ADD TO CART button.',
+                title: 'Step 1: Add an item from Products',
+                body: 'This item is from the PRODUCTS section. Click its highlighted ADD TO CART button.',
                 target: () => getTutorialPurchasableAddButton(),
                 allowNext: false,
                 showDone: false,
             },
             {
-                key: 'quantity',
-                title: 'Step 2: Confirm the quantity',
-                body: 'Choose the quantity you want, then tap the highlighted ADD TO CART button in this dialog.',
+                key: 'quantity-plus',
+                title: 'Step 2: Try the + button',
+                body: 'Click the highlighted PLUS button once so you know how to increase the ordered quantity.',
+                target: () => getFirstVisibleTutorialTarget('[data-quantity-plus]'),
+                allowNext: false,
+                showDone: false,
+            },
+            {
+                key: 'quantity-minus',
+                title: 'Step 3: Try the − button',
+                body: 'Now click the highlighted MINUS button once so you know how to decrease the ordered quantity.',
+                target: () => getFirstVisibleTutorialTarget('[data-quantity-minus]'),
+                allowNext: false,
+                showDone: false,
+            },
+            {
+                key: 'quantity-add',
+                title: 'Step 4: Add it to your cart',
+                body: 'Good. Now click the highlighted ADD TO CART button in this quantity dialog.',
                 target: () => getFirstVisibleTutorialTarget('[data-quantity-confirm]'),
                 allowNext: false,
                 showDone: false,
             },
             {
                 key: 'cart-button',
-                title: 'Step 3: Open your cart',
-                body: 'Item added. Now tap the highlighted CART button to open the cart and see your item.',
+                title: 'Step 5: Open your cart',
+                body: 'Your item was added. Click the highlighted CART button to open your cart.',
                 target: () => getFirstVisibleTutorialTarget('[data-cart-open]'),
                 allowNext: false,
                 showDone: false,
             },
             {
                 key: 'carted-item',
-                title: 'Step 4: Review your carted item',
-                body: 'Here is the item you added. Review its picture, ordered quantity, price and total.',
+                title: 'Step 6: This is your carted item',
+                body: 'Here is the item you just added. You can review its picture, quantity, price and total here.',
                 target: () => getFirstVisibleTutorialTarget('[data-cart-row-id]')
                     || getFirstVisibleTutorialTarget('[data-cart-items]'),
-                allowNext: true,
+                allowNext: false,
                 showDone: false,
+                autoAdvanceMs: 1350,
             },
             {
                 key: 'select-item',
-                title: 'Step 5: Select the item',
-                body: 'Tick the item checkbox so it is included when you press PROCESS ORDER.',
+                title: 'Step 7: Select the item',
+                body: 'Click the highlighted checkbox so this item is included in PROCESS ORDER.',
                 target: () => getFirstVisibleTutorialTarget(
                     '[data-cart-row-id] .cart-item-check input:not(:checked), [data-cart-row-id] input[type="checkbox"]:not(:checked)'
                 ) || getFirstVisibleTutorialTarget(
@@ -2747,8 +2767,8 @@
             },
             {
                 key: 'process-order',
-                title: 'Step 6: This is PROCESS ORDER',
-                body: 'This is the PROCESS ORDER button. You do not need to press it during the tutorial. Tap anywhere on the dark screen or tap FINISH to continue.',
+                title: 'Step 8: This is PROCESS ORDER',
+                body: 'This is the PROCESS ORDER button. The tutorial will NOT press it for you. Tap FINISH when you are ready to leave the tutorial.',
                 target: () => getFirstVisibleTutorialTarget('[data-process-order]'),
                 allowNext: false,
                 showDone: true,
@@ -2756,7 +2776,7 @@
             {
                 key: 'tutorial-complete',
                 title: 'Tutorial Complete',
-                body: 'You now know how to add an item, open the cart, select the carted item, and find PROCESS ORDER. Tap anywhere on the screen or tap DONE to close this guide.',
+                body: 'You now know how to choose an item from Products, change quantity, add it to cart, select it, and find PROCESS ORDER.',
                 target: null,
                 allowNext: false,
                 showDone: true,
@@ -2812,13 +2832,9 @@
             }
         };
 
-        // Snap the arrow from the nearest edge of the robot to the exact center
-        // of the highlighted control. This removes the old offset / inaccurate
-        // pointing seen on phones and tablets.
-        // W68_TUTORIAL_SHORT_TARGET_ARROW_20261026
-        // Keep the arrow local to the highlighted control. The old implementation
-        // drew a long beam from the center robot across the page, which looked
-        // wrong when the target was inside the right-side cart drawer.
+        // W68_TUTORIAL_HAND_CURSOR_20261026
+        // Use a compact hand cursor beside the control instead of drawing a
+        // long arrow/beam from the center robot across the screen.
         const positionPointer = (target) => {
             if (!active || !(target instanceof Element)) {
                 hidePointer();
@@ -2832,6 +2848,13 @@
                 return;
             }
 
+            const viewportWidth = window.visualViewport?.width
+                || window.innerWidth
+                || document.documentElement.clientWidth;
+            const viewportHeight = window.visualViewport?.height
+                || window.innerHeight
+                || document.documentElement.clientHeight;
+
             const pad = 7;
             spotlight.hidden = false;
             spotlight.style.left = `${Math.max(4, rect.left - pad)}px`;
@@ -2839,42 +2862,50 @@
             spotlight.style.width = `${Math.max(34, rect.width + (pad * 2))}px`;
             spotlight.style.height = `${Math.max(34, rect.height + (pad * 2))}px`;
 
-            const targetX = rect.left + (rect.width / 2);
-            const targetY = rect.top + (rect.height / 2);
-            const viewportWidth = window.visualViewport?.width || window.innerWidth || document.documentElement.clientWidth;
-            const viewportHeight = window.visualViewport?.height || window.innerHeight || document.documentElement.clientHeight;
-            const arrowLength = 54;
-            const gap = 18;
+            const pointerWidth = 74;
+            const pointerHeight = 48;
+            const gap = 10;
+            let left = rect.right + gap;
+            let top = rect.top + (rect.height / 2) - (pointerHeight / 2);
+            let side = 'right';
 
-            // Prefer a horizontal pointer because it stays readable on phones,
-            // tablets and the cart drawer. Fall back vertically near edges.
-            let sourceX;
-            let sourceY;
-            let angle;
+            if (left + pointerWidth > viewportWidth - 6) {
+                left = rect.left - pointerWidth - gap;
+                side = 'left';
+            }
 
-            if (rect.left >= 86) {
-                sourceX = Math.max(10, rect.left - gap - arrowLength);
-                sourceY = targetY;
-                angle = 0;
-            } else if ((viewportWidth - rect.right) >= 86) {
-                sourceX = Math.min(viewportWidth - arrowLength - 10, rect.right + gap + arrowLength);
-                sourceY = targetY;
-                angle = 180;
-            } else if (rect.top >= 86) {
-                sourceX = targetX;
-                sourceY = Math.max(10, rect.top - gap - arrowLength);
-                angle = 90;
-            } else {
-                sourceX = targetX;
-                sourceY = Math.min(viewportHeight - arrowLength - 10, rect.bottom + gap + arrowLength);
-                angle = -90;
+            if (left < 6) {
+                left = Math.max(
+                    6,
+                    rect.left + (rect.width / 2) - (pointerWidth / 2)
+                );
+                top = rect.top - pointerHeight - gap;
+                side = 'top';
+            }
+
+            if (top < 6) {
+                top = Math.min(
+                    viewportHeight - pointerHeight - 6,
+                    rect.bottom + gap
+                );
+                side = 'bottom';
+            }
+
+            if (top + pointerHeight > viewportHeight - 6) {
+                top = Math.max(
+                    6,
+                    rect.top - pointerHeight - gap
+                );
+                side = 'top';
             }
 
             arrow.hidden = false;
-            arrow.style.left = `${sourceX}px`;
-            arrow.style.top = `${sourceY}px`;
-            arrow.style.width = `${arrowLength}px`;
-            arrow.style.transform = `translateY(-50%) rotate(${angle}deg)`;
+            arrow.dataset.pointerSide = side;
+            arrow.style.left = `${Math.round(left)}px`;
+            arrow.style.top = `${Math.round(top)}px`;
+            arrow.style.width = `${pointerWidth}px`;
+            arrow.style.height = `${pointerHeight}px`;
+            arrow.style.transform = 'none';
         };
 
         const targetForStep = (step) => (
@@ -2911,8 +2942,8 @@
                 hidePointer();
 
                 if (step.key === 'add-to-cart') {
-                    titleNode.textContent = 'No priced item found on this page';
-                    bodyNode.textContent = 'This page has no available ADD TO CART product with a price greater than 0. Move to another product page and the guide can continue.';
+                    titleNode.textContent = 'No available item in Products';
+                    bodyNode.textContent = 'This PRODUCTS page has no available ADD TO CART item with a price greater than 0. Move to another Products page and press NEXT.';
                 }
 
                 if (!step.showDone) {
@@ -2945,6 +2976,15 @@
                     }
                 }, delay);
             });
+
+            if (Number(step.autoAdvanceMs || 0) > 0) {
+                const expectedStepIndex = currentStepIndex;
+                window.setTimeout(() => {
+                    if (active && currentStepIndex === expectedStepIndex) {
+                        renderStep(expectedStepIndex + 1);
+                    }
+                }, Number(step.autoAdvanceMs));
+            }
         };
 
         nextButton.addEventListener('click', () => {
@@ -2992,20 +3032,35 @@
 
             if (
                 step.key === 'add-to-cart'
-                && event.target.closest('[data-add-cart], [data-product-modal-add]')
+                && event.target.closest('#products [data-add-cart]')
             ) {
-                // The normal handler opens the quantity modal. Wait until it is
-                // visible, then point Step 2 at its ADD TO CART button.
-                window.setTimeout(() => renderStep(2), 220);
+                // Normal product handler opens the quantity modal first.
+                window.setTimeout(() => renderStep(2), 230);
                 return;
             }
 
             if (
-                step.key === 'quantity'
+                step.key === 'quantity-plus'
+                && event.target.closest('[data-quantity-plus]')
+            ) {
+                window.setTimeout(() => renderStep(3), 130);
+                return;
+            }
+
+            if (
+                step.key === 'quantity-minus'
+                && event.target.closest('[data-quantity-minus]')
+            ) {
+                window.setTimeout(() => renderStep(4), 130);
+                return;
+            }
+
+            if (
+                step.key === 'quantity-add'
                 && event.target.closest('[data-quantity-confirm]')
             ) {
-                // Normal cart mutation + success message complete first.
-                window.setTimeout(() => renderStep(3), 2050);
+                // Allow the normal cart mutation and 2-second success dialog.
+                window.setTimeout(() => renderStep(5), 2050);
                 return;
             }
 
@@ -3013,7 +3068,7 @@
                 step.key === 'cart-button'
                 && event.target.closest('[data-cart-open]')
             ) {
-                window.setTimeout(() => renderStep(4), 360);
+                window.setTimeout(() => renderStep(6), 360);
                 return;
             }
 
@@ -3027,10 +3082,10 @@
 
                 window.setTimeout(() => {
                     if (checkbox?.checked) {
-                        renderStep(6);
+                        renderStep(8);
                     } else {
                         bodyNode.textContent = 'Keep the item checkbox checked so it is included in PROCESS ORDER.';
-                        renderStep(5);
+                        renderStep(7);
                     }
                 }, 260);
                 return;
@@ -3040,10 +3095,9 @@
                 step.key === 'process-order'
                 && event.target.closest('[data-process-order]')
             ) {
-                // PROCESS ORDER is demonstration-only in the tutorial.
+                // Demonstration only: never allow tutorial mode to navigate.
                 event.preventDefault();
                 event.stopImmediatePropagation();
-                renderStep(7);
             }
         }, true);
 

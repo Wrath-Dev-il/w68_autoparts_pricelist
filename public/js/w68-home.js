@@ -2721,6 +2721,30 @@
         // W68_TUTORIAL_GUIDED_ACTION_SEQUENCE_20261026
         // Every actionable step advances only after the customer clicks the
         // exact control being taught. PROCESS ORDER remains informational.
+        // W68_TUTORIAL_FLOW_REFINEMENT_20261027
+        // Keep all cart steps tied to the exact product selected in Step 1.
+        let tutorialProductId = null;
+
+        const getTutorialCartRow = () => {
+            if (tutorialProductId !== null && tutorialProductId !== '') {
+                const specific = document.querySelector(
+                    `[data-cart-row-id="${CSS.escape(String(tutorialProductId))}"]`
+                );
+                if (isTutorialTargetUsable(specific)) return specific;
+            }
+
+            return getFirstVisibleTutorialTarget('[data-cart-row-id]');
+        };
+
+        const getTutorialCartCheckbox = () => {
+            const row = getTutorialCartRow();
+            if (!(row instanceof Element)) return null;
+
+            return row.querySelector(
+                '.cart-item-check input[type="checkbox"], input[type="checkbox"]'
+            );
+        };
+
         const steps = [
             {
                 key: 'welcome',
@@ -2743,7 +2767,7 @@
                 key: 'quantity-plus',
                 pointerLabel: '+',
                 title: 'Step 2: Try the + button',
-                body: 'Click the highlighted PLUS button once so you know how to increase the ordered quantity.',
+                body: 'Click the highlighted PLUS button once. The guide will automatically move to the next control.',
                 target: () => getFirstVisibleTutorialTarget('[data-quantity-plus]'),
                 allowNext: false,
                 showDone: false,
@@ -2752,7 +2776,7 @@
                 key: 'quantity-minus',
                 pointerLabel: '−',
                 title: 'Step 3: Try the − button',
-                body: 'Now click the highlighted MINUS button once so you know how to decrease the ordered quantity.',
+                body: 'Now click the highlighted MINUS button once. The guide will automatically continue.',
                 target: () => getFirstVisibleTutorialTarget('[data-quantity-minus]'),
                 allowNext: false,
                 showDone: false,
@@ -2761,65 +2785,54 @@
                 key: 'quantity-add',
                 pointerLabel: 'ADD',
                 title: 'Step 4: Add it to your cart',
-                body: 'Good. Now click the highlighted ADD TO CART button in this quantity dialog.',
+                body: 'Now click the highlighted ADD TO CART button. The instruction box stays above the quantity dialog so this button remains fully visible.',
                 target: () => getFirstVisibleTutorialTarget('[data-quantity-confirm]'),
                 allowNext: false,
                 showDone: false,
             },
             {
+                key: 'added-success',
+                title: 'Added to Cart confirmation',
+                body: 'This confirmation appears whenever an item is successfully added to your cart. The W68 robot appears beside it so you can recognize this message.',
+                target: () => getFirstVisibleTutorialTarget('[data-cart-message] .cart-message-card'),
+                allowNext: false,
+                showDone: false,
+                autoAdvanceMs: 1650,
+            },
+            {
                 key: 'cart-button',
                 pointerLabel: 'OPEN',
                 title: 'Step 5: Open your cart',
-                body: 'Your item was added. Click the highlighted CART button to open your cart.',
+                body: 'Click the highlighted CART button. The guide will automatically continue when the cart opens.',
                 target: () => getFirstVisibleTutorialTarget('[data-cart-open]'),
                 allowNext: false,
                 showDone: false,
             },
             {
                 key: 'carted-item',
+                pointerLabel: 'ITEM',
                 title: 'Step 6: This is your carted item',
-                body: 'Here is the item you just added. You can review its picture, quantity, price and total here.',
-                target: () => getFirstVisibleTutorialTarget('[data-cart-row-id]')
+                body: 'Tap the highlighted item you just added. This teaches you where the carted product, quantity, price and total are shown.',
+                target: () => getTutorialCartRow()
                     || getFirstVisibleTutorialTarget('[data-cart-items]'),
                 allowNext: false,
                 showDone: false,
-                autoAdvanceMs: 1350,
             },
             {
                 key: 'select-item',
                 pointerLabel: 'SELECT',
                 title: 'Step 7: Select the item',
-                body: 'Click the highlighted checkbox so this item is included in PROCESS ORDER.',
-                target: () => getFirstVisibleTutorialTarget(
-                    '[data-cart-row-id] .cart-item-check input:not(:checked), [data-cart-row-id] input[type="checkbox"]:not(:checked)'
-                ) || getFirstVisibleTutorialTarget(
-                    '[data-cart-row-id] .cart-item-check input, [data-cart-row-id] input[type="checkbox"]'
-                ),
+                body: 'Click this item checkbox so it is included when you use PROCESS ORDER.',
+                target: () => getTutorialCartCheckbox(),
                 allowNext: false,
                 showDone: false,
             },
             {
                 key: 'process-order',
                 pointerLabel: 'HERE',
-                title: 'Step 8: This is PROCESS ORDER',
-                body: 'This is the PROCESS ORDER button. It is intentionally disabled during the tutorial so you cannot accidentally submit or leave this guide. Press NEXT to see what happens after this button.',
+                title: 'Step 8: PROCESS ORDER',
+                body: 'This is the PROCESS ORDER button. The tutorial stops here so you do not accidentally leave the guide or submit anything. Only FINISH closes this final tutorial dialog.',
                 target: () => getFirstVisibleTutorialTarget('[data-process-order]'),
-                allowNext: true,
-                showDone: false,
-            },
-            {
-                key: 'process-review-info',
-                title: 'Step 9: Review your Process Order',
-                body: 'After PROCESS ORDER, W68 opens the Process Order review page. There you review the selected cart items and continue the order setup. Press NEXT to see the final confirmation step.',
-                target: null,
-                allowNext: true,
-                showDone: false,
-            },
-            {
-                key: 'process-signoff-info',
-                title: 'Step 10: Prepared By / Checked By',
-                body: 'At the final confirmation, W68 asks for PREPARED BY and CHECKED BY before the order is processed. During this tutorial nothing is submitted. Press FINISH to close the guide.',
-                target: null,
                 allowNext: false,
                 showDone: true,
             },
@@ -2853,6 +2866,7 @@
             robot.hidden = true;
             if (tutorialCard) tutorialCard.hidden = true;
             resetTutorialCardPlacement();
+            resetTutorialRobotPlacement();
 
             // W68_TUTORIAL_CART_PRINT_LAYER_FIX_20261026
             // Restore PRINT CART LIST after the walkthrough ends.
@@ -2972,14 +2986,33 @@
             'carted-item',
             'select-item',
             'process-order',
-            'process-review-info',
-            'process-signoff-info',
         ]);
+
+        const quantityStageKeys = new Set([
+            'quantity-plus',
+            'quantity-minus',
+            'quantity-add',
+        ]);
+
+        const resetTutorialRobotPlacement = () => {
+            robot.classList.remove('is-added-message');
+
+            [
+                'left',
+                'right',
+                'top',
+                'bottom',
+                'width',
+                'transform',
+            ].forEach((property) => {
+                robot.style.removeProperty(property);
+            });
+        };
 
         const resetTutorialCardPlacement = () => {
             if (!tutorialCard) return;
 
-            tutorialCard.classList.remove('is-cart-stage');
+            tutorialCard.classList.remove('is-cart-stage', 'is-quantity-stage', 'is-added-success-stage');
             [
                 'left',
                 'right',
@@ -2992,11 +3025,133 @@
             });
         };
 
+        const positionTutorialRobotForStep = (step) => {
+            resetTutorialRobotPlacement();
+
+            if (String(step?.key || '') !== 'added-success') return;
+
+            const messageCard = getFirstVisibleTutorialTarget(
+                '[data-cart-message] .cart-message-card'
+            );
+            if (!(messageCard instanceof Element)) return;
+
+            const rect = messageCard.getBoundingClientRect();
+            const viewportWidth = window.visualViewport?.width
+                || window.innerWidth
+                || document.documentElement.clientWidth;
+            const viewportHeight = window.visualViewport?.height
+                || window.innerHeight
+                || document.documentElement.clientHeight;
+            const robotWidth = viewportWidth <= 520 ? 92 : 122;
+
+            let left = rect.left - (robotWidth * .48);
+            if (left < 4) {
+                left = Math.min(
+                    viewportWidth - robotWidth - 4,
+                    rect.right - (robotWidth * .52)
+                );
+            }
+
+            let top = rect.top + (rect.height * .52);
+            top = Math.max(
+                (robotWidth * .60),
+                Math.min(viewportHeight - (robotWidth * .60), top)
+            );
+
+            robot.classList.add('is-added-message');
+            robot.style.width = `${robotWidth}px`;
+            robot.style.left = `${Math.round(left)}px`;
+            robot.style.top = `${Math.round(top)}px`;
+            robot.style.transform = 'translate(0, -50%)';
+        };
+
         const positionTutorialCardForStep = (step) => {
             if (!tutorialCard) return;
 
-            if (!cartStageKeys.has(String(step?.key || ''))) {
-                resetTutorialCardPlacement();
+            const key = String(step?.key || '');
+            resetTutorialCardPlacement();
+
+            // W68_TUTORIAL_QUANTITY_DIALOG_POSITION_20261027
+            // Put the tutorial instruction OUTSIDE/ABOVE the quantity modal.
+            // This keeps +, -, total and especially ADD TO CART fully visible.
+            if (quantityStageKeys.has(key)) {
+                const quantityCard = document.querySelector('.quantity-modal-card');
+
+                if (!(quantityCard instanceof Element)) return;
+
+                const modalRect = quantityCard.getBoundingClientRect();
+                const viewportWidth = window.visualViewport?.width
+                    || window.innerWidth
+                    || document.documentElement.clientWidth;
+                const viewportHeight = window.visualViewport?.height
+                    || window.innerHeight
+                    || document.documentElement.clientHeight;
+                const horizontalGap = 10;
+
+                tutorialCard.classList.add('is-quantity-stage');
+                tutorialCard.style.width = `${Math.max(
+                    250,
+                    Math.min(modalRect.width, viewportWidth - 16)
+                )}px`;
+                tutorialCard.style.left = `${Math.round(
+                    Math.max(8, Math.min(modalRect.left, viewportWidth - Math.min(modalRect.width, viewportWidth - 16) - 8))
+                )}px`;
+                tutorialCard.style.right = 'auto';
+                tutorialCard.style.bottom = 'auto';
+                tutorialCard.style.transform = 'none';
+
+                window.requestAnimationFrame(() => {
+                    if (!tutorialCard || !quantityStageKeys.has(String(steps[currentStepIndex]?.key || ''))) {
+                        return;
+                    }
+
+                    const cardRect = tutorialCard.getBoundingClientRect();
+                    const gap = 10;
+                    let top = modalRect.top - cardRect.height - gap;
+
+                    // Small phones may not have enough room above the quantity
+                    // modal. Keep the guide at the top of the viewport instead
+                    // of covering the ADD TO CART action at the bottom.
+                    if (top < 8) {
+                        top = 8;
+                    }
+
+                    top = Math.min(
+                        top,
+                        Math.max(8, viewportHeight - cardRect.height - 8)
+                    );
+
+                    tutorialCard.style.top = `${Math.round(top)}px`;
+                });
+
+                return;
+            }
+
+            if (key === 'added-success') {
+                const messageCard = getFirstVisibleTutorialTarget(
+                    '[data-cart-message] .cart-message-card'
+                );
+
+                tutorialCard.classList.add('is-added-success-stage');
+
+                if (messageCard instanceof Element) {
+                    const rect = messageCard.getBoundingClientRect();
+                    const viewportWidth = window.visualViewport?.width
+                        || window.innerWidth
+                        || document.documentElement.clientWidth;
+
+                    tutorialCard.style.width = `${Math.min(430, viewportWidth - 16)}px`;
+                    tutorialCard.style.left = '50%';
+                    tutorialCard.style.right = 'auto';
+                    tutorialCard.style.bottom = 'max(8px, env(safe-area-inset-bottom))';
+                    tutorialCard.style.top = 'auto';
+                    tutorialCard.style.transform = 'translateX(-50%)';
+                }
+
+                return;
+            }
+
+            if (!cartStageKeys.has(key)) {
                 return;
             }
 
@@ -3004,7 +3159,6 @@
             const processButton = getFirstVisibleTutorialTarget('[data-process-order]');
 
             if (!(cartPanel instanceof Element) || !(processButton instanceof Element)) {
-                resetTutorialCardPlacement();
                 return;
             }
 
@@ -3022,7 +3176,6 @@
             tutorialCard.style.width = `${Math.max(240, Math.round(panelRect.width - (horizontalGap * 2)))}px`;
             tutorialCard.style.transform = 'none';
 
-            // Measure after the cart-stage width is applied.
             window.requestAnimationFrame(() => {
                 if (!tutorialCard || !cartStageKeys.has(String(steps[currentStepIndex]?.key || ''))) {
                     return;
@@ -3057,16 +3210,14 @@
             arrow.dataset.pointerLabel = String(step.pointerLabel || 'CLICK');
             nextButton.hidden = !step.allowNext;
             doneButton.hidden = !step.showDone;
-            doneButton.textContent = step.key === 'process-signoff-info' ? 'FINISH' : 'DONE';
+            doneButton.textContent = step.key === 'process-order' ? 'FINISH' : 'DONE';
 
-            overlay.classList.toggle(
-                'is-finishable',
-                step.key === 'process-signoff-info'
-            );
+            // No background/scrim click can advance or close the tutorial.
+            // PROCESS ORDER is the final manual FINISH step.
+            overlay.classList.remove('is-finishable');
 
-            // Move the tutorial dialog into the cart drawer for all cart
-            // stages. Quantity/Product steps keep the normal centered dialog.
             positionTutorialCardForStep(step);
+            positionTutorialRobotForStep(step);
 
             clearTarget();
 
@@ -3162,6 +3313,7 @@
 
             repositionTimer = window.setTimeout(() => {
                 positionTutorialCardForStep(steps[currentStepIndex]);
+                positionTutorialRobotForStep(steps[currentStepIndex]);
                 positionPointer(currentTarget);
             }, 45);
         };
@@ -3181,6 +3333,9 @@
                 step.key === 'add-to-cart'
                 && event.target.closest('#products [data-add-cart]')
             ) {
+                const productCard = event.target.closest('[data-product-card]');
+                tutorialProductId = String(productCard?.dataset.productId || '');
+
                 // Normal product handler opens the quantity modal first.
                 window.setTimeout(() => renderStep(2), 230);
                 return;
@@ -3206,8 +3361,10 @@
                 step.key === 'quantity-add'
                 && event.target.closest('[data-quantity-confirm]')
             ) {
-                // Allow the normal cart mutation and 2-second success dialog.
-                window.setTimeout(() => renderStep(5), 2050);
+                // The normal handler closes the quantity modal and displays
+                // the 2-second ADDED TO CART confirmation. Teach that message
+                // immediately while it is still visible.
+                window.setTimeout(() => renderStep(5), 120);
                 return;
             }
 
@@ -3215,7 +3372,20 @@
                 step.key === 'cart-button'
                 && event.target.closest('[data-cart-open]')
             ) {
-                window.setTimeout(() => renderStep(6), 360);
+                window.setTimeout(() => renderStep(7), 360);
+                return;
+            }
+
+            if (
+                step.key === 'carted-item'
+                && event.target.closest('[data-cart-row-id]')
+                && !event.target.closest('button, input, select, a, label')
+            ) {
+                // This tutorial click identifies the cart row. Prevent the
+                // normal cart-item detail modal from replacing the lesson.
+                event.preventDefault();
+                event.stopImmediatePropagation();
+                window.setTimeout(() => renderStep(8), 100);
                 return;
             }
 
@@ -3229,10 +3399,9 @@
 
                 window.setTimeout(() => {
                     if (checkbox?.checked) {
-                        renderStep(8);
+                        renderStep(9);
                     } else {
-                        bodyNode.textContent = 'Keep the item checkbox checked so it is included in PROCESS ORDER.';
-                        renderStep(7);
+                        bodyNode.textContent = 'Keep this item checkbox checked so it is included in PROCESS ORDER.';
                     }
                 }, 260);
                 return;
@@ -3242,7 +3411,8 @@
                 step.key === 'process-order'
                 && event.target.closest('[data-process-order]')
             ) {
-                // Demonstration only: never allow tutorial mode to navigate.
+                // Final tutorial step: do not navigate and do not auto-advance.
+                // FINISH is the only way to close the final lesson.
                 event.preventDefault();
                 event.stopImmediatePropagation();
             }
@@ -3250,14 +3420,14 @@
 
         const tutorialScrim = overlay.querySelector('.w68-tutorial-scrim');
 
+        // W68_TUTORIAL_NO_BACKGROUND_ADVANCE_20261027
+        // Clicking/touching the dark background never advances or finishes
+        // the walkthrough. Only the required highlighted control, NEXT on the
+        // welcome step, or FINISH on PROCESS ORDER can change tutorial state.
         tutorialScrim?.addEventListener('click', (event) => {
             if (!active) return;
-
-            const step = steps[currentStepIndex];
-            if (step?.key === 'process-signoff-info') {
-                event.preventDefault();
-                finishTutorial();
-            }
+            event.preventDefault();
+            event.stopPropagation();
         });
 
         const openTutorial = () => {

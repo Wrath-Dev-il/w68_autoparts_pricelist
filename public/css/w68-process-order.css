@@ -3660,21 +3660,19 @@ body.is-confirm-tutorial-active .w68-tutorial-scrim {
 
 .w68-tutorial-robot {
     position: fixed;
-    left: 50%;
-    top: 45%;
     z-index: 15004;
-    width: clamp(140px, 18vw, 220px);
-    transform: translate(-50%, -50%);
-    filter: drop-shadow(0 20px 26px rgba(0,0,0,.34));
+    width: clamp(75px, 10vw, 115px);
+    max-width: 115px;
+    filter: drop-shadow(0 10px 18px rgba(0,0,0,.32));
     pointer-events: none;
-    transition: left .25s ease, top .25s ease;
+    transition: all .25s ease;
 }
 
 .w68-tutorial-robot img {
     display: block;
     width: 100%;
     height: auto;
-    max-height: 38vh;
+    max-height: 16vh;
     object-fit: contain;
 }
 
@@ -3786,9 +3784,8 @@ body.is-confirm-tutorial-active .w68-tutorial-scrim {
 
 @media (max-width: 767px) {
     .w68-tutorial-robot {
-        width: min(44vw, 160px);
-        top: 36%;
-        transform: translate(-50%, -50%);
+        width: clamp(60px, 16vw, 95px);
+        max-width: 95px;
     }
 
     .w68-tutorial-card {

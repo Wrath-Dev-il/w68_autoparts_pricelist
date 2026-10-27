@@ -1306,6 +1306,10 @@
             }
             if (robot) {
                 robot.style.removeProperty('top');
+                robot.style.removeProperty('bottom');
+                robot.style.removeProperty('left');
+                robot.style.removeProperty('right');
+                robot.style.removeProperty('transform');
             }
 
             confirmPhasePending = true;
@@ -1335,6 +1339,10 @@
             }
             if (robot) {
                 robot.style.removeProperty('top');
+                robot.style.removeProperty('bottom');
+                robot.style.removeProperty('left');
+                robot.style.removeProperty('right');
+                robot.style.removeProperty('transform');
             }
             body.classList.remove('is-confirm-tutorial-active');
 
@@ -1375,17 +1383,35 @@
                 || window.innerHeight
                 || document.documentElement.clientHeight;
 
+            var cardAtTop = false;
+
             if (rect && rect.top > viewportHeight * 0.45) {
                 tutorialCard.style.top = 'max(14px, env(safe-area-inset-top, 14px))';
                 tutorialCard.style.bottom = 'auto';
-                if (robot) {
-                    robot.style.top = 'calc(max(14px, env(safe-area-inset-top, 14px)) + 210px)';
-                }
+                cardAtTop = true;
             } else {
                 tutorialCard.style.bottom = 'max(16px, env(safe-area-inset-bottom, 16px))';
                 tutorialCard.style.top = 'auto';
-                if (robot) {
-                    robot.style.top = '40%';
+            }
+
+            // Dock robot to the card's top-right shoulder
+            if (robot) {
+                var cardRect = tutorialCard.getBoundingClientRect();
+                var robotWidth = robot.offsetWidth || 90;
+                var robotHeight = robot.offsetHeight || 90;
+
+                // Position robot on the right shoulder of the card
+                robot.style.transform = 'none';
+                robot.style.left = Math.min(cardRect.right - robotWidth + 10, window.innerWidth - robotWidth - 4) + 'px';
+
+                if (cardAtTop) {
+                    // Card is at top, robot sits just below the card
+                    robot.style.top = Math.min(cardRect.bottom - 10, viewportHeight - robotHeight - 4) + 'px';
+                    robot.style.bottom = 'auto';
+                } else {
+                    // Card is at bottom, robot sits just above the card
+                    robot.style.bottom = 'auto';
+                    robot.style.top = Math.max(4, cardRect.top - robotHeight + 10) + 'px';
                 }
             }
         }

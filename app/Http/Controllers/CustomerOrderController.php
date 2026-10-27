@@ -123,8 +123,12 @@ class CustomerOrderController extends Controller
         $totalPrice = round((float) $items->sum(fn (array $item): float => (float) $item['lineTotal']), 2);
 
         // W68_PROCESS_ORDER_TUTORIAL_20261027
-        // Onboarding walkthrough on the order review page for first logins (1..3)
-        // or authenticated testing via /process-order?tutorial=preview
+        // Onboarding walkthrough on the order review page.
+        // Triggers on: (1) ?tutorial=preview or ?tutorial=1, (2) session flag
+        // from login 1-3, or (3) first-ever visit — the DB column
+        // process_order_tutorial_seen is 0/NULL for accounts that have never
+        // completed this walkthrough. This covers users who logged in before
+        // the tutorial code was deployed.
         $tutorialPreview = $request->query('tutorial') === 'preview' || $request->query('tutorial') === '1';
 
         if ($tutorialPreview) {
@@ -146,13 +150,35 @@ class CustomerOrderController extends Controller
                         ->table('customer_portal_accounts')
                         ->where('login_id', $loginId)
                         ->first();
-                    $count = (int) ($portalAccount->tutorial_login_count ?? 0);
-                    if ($count >= 1 && $count <= 3) {
-                        $sessionKey = 'w68_process_order_tutorial_seen_' . $count;
-                        if (!$request->session()->get($sessionKey, false)) {
+
+                    if ($portalAccount) {
+                        // Ensure the tracking column exists; add it if missing.
+                        if (
+                            !Schema::connection('system')->hasColumn(
+                                'customer_portal_accounts',
+                                'process_order_tutorial_seen'
+                            )
+                        ) {
+                            Schema::connection('system')->table('customer_portal_accounts', function ($table) {
+                                $table->boolean('process_order_tutorial_seen')->default(false)->after('tutorial_login_count');
+                            });
+                        }
+
+                        $seen = (bool) ($portalAccount->process_order_tutorial_seen ?? false);
+
+                        if (!$seen) {
                             $showProcessOrderTutorial = true;
-                            $tutorialLoginNumber = $count;
-                            $request->session()->put($sessionKey, true);
+                            $count = (int) ($portalAccount->tutorial_login_count ?? 0);
+                            $tutorialLoginNumber = $count >= 1 ? $count : 1;
+
+                            // Mark as seen so the tutorial only shows once.
+                            DB::connection('system')
+                                ->table('customer_portal_accounts')
+                                ->where('id', $portalAccount->id)
+                                ->update([
+                                    'process_order_tutorial_seen' => true,
+                                    'updated_at' => now(),
+                                ]);
                         }
                     }
                 } catch (Throwable) {

@@ -1127,10 +1127,18 @@
         cartMessage.setAttribute('aria-hidden', 'false');
 
         window.clearTimeout(messageTimer);
+
+        // W68_TUTORIAL_ADDED_MESSAGE_DURATION_20261027
+        // Normal customers keep the 2-second confirmation. During the guided
+        // tutorial, leave it visible long enough for the robot to explain it.
+        const cartMessageDuration = document.body?.classList.contains('w68-tutorial-active')
+            ? 3600
+            : 2000;
+
         messageTimer = window.setTimeout(() => {
             cartMessage.hidden = true;
             cartMessage.setAttribute('aria-hidden', 'true');
-        }, 2000);
+        }, cartMessageDuration);
     };
 
     const showOrderSuccess = (message = '') => {
@@ -2585,6 +2593,7 @@
 
     /* =====================================================
        W68_FIRST_LOGIN_TUTORIAL_20261024
+       W68_TUTORIAL_EXACT_ACTION_FLOW_20261027
        Server-controlled walkthrough for account login #1, #2 and #3.
        Step 1 deliberately skips zero-price / already-carted products.
        ===================================================== */
@@ -2797,7 +2806,7 @@
                 target: () => getFirstVisibleTutorialTarget('[data-cart-message] .cart-message-card'),
                 allowNext: false,
                 showDone: false,
-                autoAdvanceMs: 1650,
+                autoAdvanceMs: 3000,
             },
             {
                 key: 'cart-button',
@@ -3028,41 +3037,84 @@
         const positionTutorialRobotForStep = (step) => {
             resetTutorialRobotPlacement();
 
-            if (String(step?.key || '') !== 'added-success') return;
-
-            const messageCard = getFirstVisibleTutorialTarget(
-                '[data-cart-message] .cart-message-card'
-            );
-            if (!(messageCard instanceof Element)) return;
-
-            const rect = messageCard.getBoundingClientRect();
+            const key = String(step?.key || '');
             const viewportWidth = window.visualViewport?.width
                 || window.innerWidth
                 || document.documentElement.clientWidth;
             const viewportHeight = window.visualViewport?.height
                 || window.innerHeight
                 || document.documentElement.clientHeight;
-            const robotWidth = viewportWidth <= 520 ? 92 : 122;
 
-            let left = rect.left - (robotWidth * .48);
-            if (left < 4) {
-                left = Math.min(
-                    viewportWidth - robotWidth - 4,
-                    rect.right - (robotWidth * .52)
+            // W68_TUTORIAL_QUANTITY_ROBOT_POSITION_20261027
+            // Keep the robot beside the quantity modal instead of covering
+            // +, -, quantity, total or ADD TO CART.
+            if (quantityStageKeys.has(key)) {
+                const quantityCard = document.querySelector('.quantity-modal-card');
+                if (!(quantityCard instanceof Element)) return;
+
+                const rect = quantityCard.getBoundingClientRect();
+                const robotWidth = viewportWidth <= 520 ? 78 : 112;
+                const gap = viewportWidth <= 520 ? 4 : 12;
+
+                let left = rect.right + gap;
+                let top = rect.top + Math.min(rect.height * .34, 150);
+
+                if (left + robotWidth > viewportWidth - 4) {
+                    left = rect.left - robotWidth - gap;
+                }
+
+                if (left < 4) {
+                    // Very narrow phones: park the robot in the free top-right
+                    // corner instead of over any modal action.
+                    left = Math.max(4, viewportWidth - robotWidth - 8);
+                    top = Math.max(robotWidth * .52, rect.top - 12);
+                }
+
+                top = Math.max(
+                    robotWidth * .54,
+                    Math.min(viewportHeight - (robotWidth * .54), top)
                 );
+
+                robot.classList.add('is-quantity-guide');
+                robot.style.width = `${robotWidth}px`;
+                robot.style.left = `${Math.round(left)}px`;
+                robot.style.top = `${Math.round(top)}px`;
+                robot.style.transform = 'translate(0, -50%)';
+                return;
             }
 
-            let top = rect.top + (rect.height * .52);
-            top = Math.max(
-                (robotWidth * .60),
-                Math.min(viewportHeight - (robotWidth * .60), top)
-            );
+            // W68_TUTORIAL_ADDED_MESSAGE_ROBOT_20261027
+            // Put the robot genuinely BESIDE the success card, not on top of it.
+            if (key === 'added-success') {
+                const messageCard = getFirstVisibleTutorialTarget(
+                    '[data-cart-message] .cart-message-card'
+                );
+                if (!(messageCard instanceof Element)) return;
 
-            robot.classList.add('is-added-message');
-            robot.style.width = `${robotWidth}px`;
-            robot.style.left = `${Math.round(left)}px`;
-            robot.style.top = `${Math.round(top)}px`;
-            robot.style.transform = 'translate(0, -50%)';
+                const rect = messageCard.getBoundingClientRect();
+                const robotWidth = viewportWidth <= 520 ? 88 : 118;
+                const gap = 10;
+
+                let left = rect.left - robotWidth - gap;
+                if (left < 4) {
+                    left = rect.right + gap;
+                }
+                if (left + robotWidth > viewportWidth - 4) {
+                    left = Math.max(4, rect.left + (rect.width / 2) - (robotWidth / 2));
+                }
+
+                let top = rect.top + (rect.height / 2);
+                top = Math.max(
+                    robotWidth * .56,
+                    Math.min(viewportHeight - (robotWidth * .56), top)
+                );
+
+                robot.classList.add('is-added-message');
+                robot.style.width = `${robotWidth}px`;
+                robot.style.left = `${Math.round(left)}px`;
+                robot.style.top = `${Math.round(top)}px`;
+                robot.style.transform = 'translate(0, -50%)';
+            }
         };
 
         const positionTutorialCardForStep = (step) => {
@@ -3332,11 +3384,52 @@
         window.visualViewport?.addEventListener('resize', reposition, { passive: true });
         window.visualViewport?.addEventListener('scroll', reposition, { passive: true });
 
+        const isAllowedTutorialInteraction = (target) => {
+            if (!(target instanceof Element)) return false;
+
+            if (
+                target.closest(
+                    '[data-w68-tutorial-next], [data-w68-tutorial-done], [data-w68-tutorial-skip]'
+                )
+            ) {
+                return true;
+            }
+
+            return currentTarget instanceof Element
+                && (target === currentTarget || currentTarget.contains(target));
+        };
+
+        // W68_TUTORIAL_STRICT_ACTION_GATE_20261027
+        // On touch devices pointer/touch starts can trigger underlying controls
+        // before click. Swallow every unrelated interaction. Only the current
+        // highlighted control and tutorial buttons are actionable.
+        const blockUnrelatedTutorialInteraction = (event) => {
+            if (!active || !(event.target instanceof Element)) return;
+            if (isAllowedTutorialInteraction(event.target)) return;
+
+            event.preventDefault();
+            event.stopImmediatePropagation();
+        };
+
+        document.addEventListener('pointerdown', blockUnrelatedTutorialInteraction, true);
+        document.addEventListener('touchstart', blockUnrelatedTutorialInteraction, {
+            capture: true,
+            passive: false,
+        });
+
         document.addEventListener('click', (event) => {
             if (!active || !(event.target instanceof Element)) return;
 
             const step = steps[currentStepIndex];
             if (!step) return;
+
+            // Random clicks/taps can never advance, finish, navigate or alter
+            // the page while a tutorial step is waiting for another control.
+            if (!isAllowedTutorialInteraction(event.target)) {
+                event.preventDefault();
+                event.stopImmediatePropagation();
+                return;
+            }
 
             if (
                 step.key === 'add-to-cart'

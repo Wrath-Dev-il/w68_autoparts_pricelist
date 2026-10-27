@@ -7,12 +7,15 @@
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>W68 Autoparts & Service Center | Home</title>
     <link rel="icon" href="{{ asset('images/sidebar_logo.png') }}">
-    <link rel="stylesheet" href="{{ asset('css/w68-home.css') }}?v=20261027-v171">
+    <link rel="stylesheet" href="{{ asset('css/w68-home.css') }}?v=20261027-v172">
     <link rel="stylesheet" href="{{ asset('css/w68-notifications.css') }}?v=20260915-v95">
-    <script src="{{ asset('js/w68-home.js') }}?v=20261026-v170" defer></script>
+    <script src="{{ asset('js/w68-home.js') }}?v=20261027-v172" defer></script>
     <script src="{{ asset('js/w68-notifications.js') }}?v=20261001-v131" defer></script>
 </head>
 @php
+    // W68_TUTORIAL_CACHE_SYNC_20261027
+    // CSS and JS must use the same cache version; mixing old tutorial JS with
+    // new pointer CSS causes the stretched-arrow / stale-flow bug.
     // W68_TUTORIAL_ROBOT_ASSET_FALLBACK_20261026
     // Prefer the user's GIF when installed. The animated SVG is always
     // available from GitHub, so onboarding never breaks when the GIF is absent.

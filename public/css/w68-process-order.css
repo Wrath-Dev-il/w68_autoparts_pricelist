@@ -3533,7 +3533,19 @@ body.process-signoff-open {
    W68_PROCESS_ORDER_TUTORIAL_20261027
    Responsive tutorial overlay for Process Order page.
    ========================================================= */
-.w68-tutorial-overlay[hidden] {
+.w68-tutorial-overlay[hidden],
+.w68-tutorial-spotlight[hidden],
+.w68-tutorial-arrow[hidden],
+.w68-tutorial-robot[hidden],
+.w68-tutorial-card[hidden] {
+    display: none !important;
+}
+
+body.is-confirm-tutorial-active .order-confirm-modal {
+    z-index: 15001 !important;
+}
+
+body.is-confirm-tutorial-active .w68-tutorial-scrim {
     display: none !important;
 }
 

@@ -413,12 +413,19 @@
         confirmModal.hidden = false;
         confirmModal.setAttribute('aria-hidden', 'false');
         syncProcessViewport();
+
+        if (window.W68TriggerConfirmTutorial) {
+            window.W68TriggerConfirmTutorial();
+        }
     }
 
     function closeConfirmModal() {
         if (!confirmModal) return;
         confirmModal.hidden = true;
         confirmModal.setAttribute('aria-hidden', 'true');
+        if (window.W68CancelConfirmTutorial) {
+            window.W68CancelConfirmTutorial();
+        }
         if (termsModal) {
             termsModal.hidden = true;
             termsModal.setAttribute('aria-hidden', 'true');
@@ -1007,6 +1014,7 @@
     /* =====================================================
        W68_PROCESS_ORDER_TUTORIAL_20261027
        Process Order review page walkthrough for first logins:
+       Phase 1 (Review Page):
        1.) Product Information in group: Description, Product Code, Part Number, Application, Brand
        2.) Pricing in group: Price, Qty, Total
        3.) Individually:
@@ -1014,8 +1022,12 @@
            3.2) Total price
            3.3) Delete button (protected from deleting, exact position preserved)
            3.4) Process Order button (protected from submitting)
-       Clicking any protected button or clicking/touching anywhere on screen
-       safely advances the tutorial dialog.
+       When the dialog ends in process order page, the cursor vanishes.
+       Then if the user clicks the Process Order button on the review page,
+       the Order Confirmation modal appears and the tutorial continues (Phase 2):
+       1.) Print preview
+       2.) Delivery Option
+       3.) Terms and agreement
        ===================================================== */
     function initProcessOrderTutorial() {
         if (!body || body.getAttribute('data-first-login-tutorial') !== '1' || viewMode) {
@@ -1043,17 +1055,18 @@
         if (robot.parentElement !== document.body) document.body.appendChild(robot);
         if (tutorialCard && tutorialCard.parentElement !== document.body) document.body.appendChild(tutorialCard);
 
+        hidePointer();
         robot.hidden = true;
-        if (tutorialCard) tutorialCard.hidden = true;
+        robot.style.display = 'none';
+        if (tutorialCard) {
+            tutorialCard.hidden = true;
+            tutorialCard.style.display = 'none';
+        }
 
         var loginNumber = Math.max(
             1,
             Math.min(3, parseInt(String(body.getAttribute('data-tutorial-login-number') || '1'), 10) || 1)
         );
-
-        if (kickerNode) {
-            kickerNode.textContent = 'W68 ORDER REVIEW GUIDE • LOGIN ' + loginNumber + ' OF 3';
-        }
 
         var robotImage = robot.querySelector('img');
         var robotGif = String(body.getAttribute('data-tutorial-robot-gif') || '');
@@ -1061,6 +1074,9 @@
             robotImage.src = robotGif;
         }
 
+        // ==========================
+        // Targets for Phase 1 (Review)
+        // ==========================
         function getProductInfoGroupTarget() {
             var item = document.querySelector('[data-process-item]');
             if (!item) return document.querySelector('.process-order-panel') || document.body;
@@ -1127,7 +1143,29 @@
             return document.querySelector('[data-final-process]');
         }
 
-        var steps = [
+        // ==========================
+        // Targets for Phase 2 (Confirmation Modal)
+        // ==========================
+        function getPrintPreviewTarget() {
+            if (!confirmModal) return null;
+            return confirmModal.querySelector('[data-tutorial-print-preview]') ||
+                confirmModal.querySelector('.order-print-preview') ||
+                confirmModal.querySelector('.order-print-table-wrap') ||
+                confirmModal.querySelector('.order-confirm-card');
+        }
+
+        function getDeliveryOptionTarget() {
+            if (!confirmModal) return null;
+            return confirmModal.querySelector('[data-delivery-zone]');
+        }
+
+        function getTermsAgreementTarget() {
+            if (!confirmModal) return null;
+            return confirmModal.querySelector('[data-terms-zone]');
+        }
+
+        // Step definitions
+        var reviewSteps = [
             {
                 key: 'product-info-group',
                 pointerLabel: 'INFO',
@@ -1178,15 +1216,47 @@
                 pointerLabel: 'ORDER',
                 kicker: 'W68 ORDER REVIEW GUIDE • STEP 6 OF 6',
                 title: '6. PROCESS ORDER Button',
-                body: 'When your order is complete, click PROCESS ORDER to finalize and submit. It is protected now so you can safely tap anywhere or click FINISH to complete this guide.',
+                body: 'Click PROCESS ORDER when you are ready to review your order details. Tap anywhere to close this guide, then click PROCESS ORDER to continue.',
                 borderRadius: '999px',
                 target: getProcessButtonTarget
             }
         ];
 
+        var confirmSteps = [
+            {
+                key: 'confirm-print-preview',
+                pointerLabel: 'PREVIEW',
+                kicker: 'W68 ORDER CONFIRMATION • STEP 1 OF 3',
+                title: '1. Print Preview',
+                body: 'Review the print preview here to verify the product details, quantities, discounts, and total invoice amount.',
+                borderRadius: '14px',
+                target: getPrintPreviewTarget
+            },
+            {
+                key: 'confirm-delivery-option',
+                pointerLabel: 'DELIVERY',
+                kicker: 'W68 ORDER CONFIRMATION • STEP 2 OF 3',
+                title: '2. Delivery Option',
+                body: 'Select your preferred forwarder under RUSH or REGULAR by tapping SET DELIVERY OPTION.',
+                borderRadius: '12px',
+                target: getDeliveryOptionTarget
+            },
+            {
+                key: 'confirm-terms-agreement',
+                pointerLabel: 'TERMS',
+                kicker: 'W68 ORDER CONFIRMATION • STEP 3 OF 3',
+                title: '3. Terms and Agreement',
+                body: 'Review and check the Terms and Agreement to unlock the final PROCESS ORDER button.',
+                borderRadius: '12px',
+                target: getTermsAgreementTarget
+            }
+        ];
+
+        var currentPhase = 'review'; // 'review' | 'confirm' | 'done'
         var currentStepIndex = 0;
         var currentTarget = null;
         var active = false;
+        var confirmPhasePending = false;
         var repositionTimer = null;
 
         function clearTarget() {
@@ -1207,19 +1277,30 @@
 
         function hidePointer() {
             spotlight.hidden = true;
+            spotlight.style.display = 'none';
             arrow.hidden = true;
+            arrow.style.display = 'none';
         }
 
-        function finishTutorial() {
-            if (!active) return;
+        function showPointer() {
+            spotlight.hidden = false;
+            spotlight.style.removeProperty('display');
+            arrow.hidden = false;
+            arrow.style.removeProperty('display');
+        }
+
+        function finishReviewPageTutorial() {
             active = false;
             clearTarget();
             hidePointer();
             overlay.hidden = true;
+            overlay.style.display = 'none';
             overlay.setAttribute('aria-hidden', 'true');
             robot.hidden = true;
+            robot.style.display = 'none';
             if (tutorialCard) {
                 tutorialCard.hidden = true;
+                tutorialCard.style.display = 'none';
                 tutorialCard.style.removeProperty('top');
                 tutorialCard.style.removeProperty('bottom');
             }
@@ -1227,16 +1308,49 @@
                 robot.style.removeProperty('top');
             }
 
-            document.querySelectorAll('.w68-tutorial-protected').forEach(function (el) {
-                el.classList.remove('w68-tutorial-protected');
-            });
-            document.querySelectorAll('.w68-tutorial-highlight-part').forEach(function (el) {
-                el.classList.remove('w68-tutorial-highlight-part');
-            });
+            confirmPhasePending = true;
 
             if (repositionTimer !== null) {
                 window.clearTimeout(repositionTimer);
                 repositionTimer = null;
+            }
+        }
+
+        function finishConfirmModalTutorial() {
+            active = false;
+            currentPhase = 'done';
+            confirmPhasePending = false;
+            clearTarget();
+            hidePointer();
+            overlay.hidden = true;
+            overlay.style.display = 'none';
+            overlay.setAttribute('aria-hidden', 'true');
+            robot.hidden = true;
+            robot.style.display = 'none';
+            if (tutorialCard) {
+                tutorialCard.hidden = true;
+                tutorialCard.style.display = 'none';
+                tutorialCard.style.removeProperty('top');
+                tutorialCard.style.removeProperty('bottom');
+            }
+            if (robot) {
+                robot.style.removeProperty('top');
+            }
+            body.classList.remove('is-confirm-tutorial-active');
+
+            if (repositionTimer !== null) {
+                window.clearTimeout(repositionTimer);
+                repositionTimer = null;
+            }
+        }
+
+        function dismissTutorialEntirely() {
+            confirmPhasePending = false;
+            if (currentPhase === 'confirm') {
+                finishConfirmModalTutorial();
+            } else {
+                finishReviewPageTutorial();
+                confirmPhasePending = false;
             }
         }
 
@@ -1248,7 +1362,7 @@
             var scrollEl = card || el;
 
             try {
-                scrollEl.scrollIntoView({ behavior: 'smooth', block: 'center', inline: 'center' });
+                scrollEl.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
             } catch (_) {
                 scrollEl.scrollIntoView();
             }
@@ -1261,8 +1375,6 @@
                 || window.innerHeight
                 || document.documentElement.clientHeight;
 
-            // When the target element is in the lower portion of the screen (e.g. Total Items, Total Price, Process Order),
-            // move the tutorial dialog to the TOP of the screen so it doesn't obstruct the target!
             if (rect && rect.top > viewportHeight * 0.45) {
                 tutorialCard.style.top = 'max(14px, env(safe-area-inset-top, 14px))';
                 tutorialCard.style.bottom = 'auto';
@@ -1270,7 +1382,6 @@
                     robot.style.top = 'calc(max(14px, env(safe-area-inset-top, 14px)) + 210px)';
                 }
             } else {
-                // Otherwise keep the tutorial dialog at the bottom
                 tutorialCard.style.bottom = 'max(16px, env(safe-area-inset-bottom, 16px))';
                 tutorialCard.style.top = 'auto';
                 if (robot) {
@@ -1301,10 +1412,11 @@
                 || window.innerHeight
                 || document.documentElement.clientHeight;
 
-            var step = steps[currentStepIndex] || {};
+            var currentSteps = currentPhase === 'confirm' ? confirmSteps : reviewSteps;
+            var step = currentSteps[currentStepIndex] || {};
             var pad = step.key === 'delete-button' ? 5 : 7;
 
-            spotlight.hidden = false;
+            showPointer();
             spotlight.style.left = Math.max(2, rect.left - pad) + 'px';
             spotlight.style.top = Math.max(2, rect.top - pad) + 'px';
             spotlight.style.width = Math.max(30, rect.width + (pad * 2)) + 'px';
@@ -1339,7 +1451,6 @@
                 side = 'top';
             }
 
-            arrow.hidden = false;
             arrow.setAttribute('data-pointer-side', side);
             arrow.style.left = Math.round(left) + 'px';
             arrow.style.top = Math.round(top) + 'px';
@@ -1351,23 +1462,32 @@
         }
 
         function renderStep(index) {
-            var step = steps[index];
+            var currentSteps = currentPhase === 'confirm' ? confirmSteps : reviewSteps;
+            var step = currentSteps[index];
             if (!step) {
-                finishTutorial();
+                if (currentPhase === 'confirm') {
+                    finishConfirmModalTutorial();
+                } else {
+                    finishReviewPageTutorial();
+                }
                 return;
             }
 
             currentStepIndex = index;
-            if (kickerNode) kickerNode.textContent = step.kicker;
+            if (kickerNode) {
+                kickerNode.textContent = currentPhase === 'confirm'
+                    ? step.kicker
+                    : 'W68 ORDER REVIEW GUIDE • LOGIN ' + loginNumber + ' OF 3';
+            }
             titleNode.textContent = step.title;
             bodyNode.textContent = step.body;
             arrow.setAttribute('data-pointer-label', String(step.pointerLabel || 'LOOK'));
 
-            var isLast = index >= steps.length - 1;
+            var isLast = index >= currentSteps.length - 1;
             if (nextButton) nextButton.hidden = isLast;
             if (doneButton) {
                 doneButton.hidden = !isLast;
-                doneButton.textContent = 'FINISH';
+                doneButton.textContent = currentPhase === 'confirm' ? 'FINISH' : 'NEXT';
             }
 
             clearTarget();
@@ -1389,30 +1509,79 @@
         }
 
         function nextStep() {
-            if (currentStepIndex < steps.length - 1) {
+            var currentSteps = currentPhase === 'confirm' ? confirmSteps : reviewSteps;
+            if (currentStepIndex < currentSteps.length - 1) {
                 renderStep(currentStepIndex + 1);
             } else {
-                finishTutorial();
+                if (currentPhase === 'confirm') {
+                    finishConfirmModalTutorial();
+                } else {
+                    finishReviewPageTutorial();
+                }
             }
         }
 
-        // Capturing click handler: protects delete and process order buttons
-        // and clicking ANYWHERE on screen advances to the next step!
+        function startConfirmModalTutorial() {
+            if (!confirmModal || confirmModal.hidden || viewMode) return;
+
+            currentPhase = 'confirm';
+            active = true;
+            body.classList.add('is-confirm-tutorial-active');
+
+            overlay.hidden = false;
+            overlay.style.removeProperty('display');
+            overlay.setAttribute('aria-hidden', 'false');
+            robot.hidden = false;
+            robot.style.removeProperty('display');
+            if (tutorialCard) {
+                tutorialCard.hidden = false;
+                tutorialCard.style.removeProperty('display');
+            }
+
+            renderStep(0);
+        }
+
+        window.W68TriggerConfirmTutorial = function () {
+            if (confirmPhasePending) {
+                confirmPhasePending = false;
+                window.setTimeout(function () {
+                    startConfirmModalTutorial();
+                }, 220);
+            }
+        };
+
+        window.W68CancelConfirmTutorial = function () {
+            if (active && currentPhase === 'confirm') {
+                finishConfirmModalTutorial();
+            }
+        };
+
+        // Capturing click listener
         document.addEventListener('click', function (event) {
             if (!active) return;
 
-            // If user clicked the SKIP button
+            // If user clicked SKIP
             if (event.target && event.target.closest && event.target.closest('[data-w68-tutorial-skip]')) {
-                finishTutorial();
+                dismissTutorialEntirely();
                 return;
             }
 
-            // Always intercept during tutorial so delete or process order CANNOT trigger
+            // In Phase 1, Step 6: if user clicked the PROCESS ORDER button directly
+            if (currentPhase === 'review' && currentStepIndex === reviewSteps.length - 1) {
+                if (event.target && event.target.closest && event.target.closest('[data-final-process]')) {
+                    event.preventDefault();
+                    event.stopPropagation();
+                    event.stopImmediatePropagation();
+                    finishReviewPageTutorial();
+                    openConfirmModal();
+                    return;
+                }
+            }
+
             event.preventDefault();
             event.stopPropagation();
             event.stopImmediatePropagation();
 
-            // Clicking any button or screen or dialog advances the dialog
             nextStep();
         }, true);
 
@@ -1422,14 +1591,20 @@
             if (event.target && event.target.closest && event.target.closest('[data-w68-tutorial-skip]')) {
                 return;
             }
-            if (event.target && event.target.closest && event.target.closest('[data-remove-selected], [data-final-process]')) {
+            if (event.target && event.target.closest && event.target.closest('[data-remove-selected], [data-final-process], [data-delivery-open], [data-confirm-process]')) {
                 event.preventDefault();
                 event.stopPropagation();
             }
         }, { passive: false, capture: true });
 
-        if (skipButton) skipButton.addEventListener('click', finishTutorial);
-        if (doneButton) doneButton.addEventListener('click', finishTutorial);
+        if (skipButton) skipButton.addEventListener('click', dismissTutorialEntirely);
+        if (doneButton) {
+            doneButton.addEventListener('click', function (e) {
+                e.preventDefault();
+                e.stopPropagation();
+                nextStep();
+            });
+        }
         if (nextButton) {
             nextButton.addEventListener('click', function (e) {
                 e.preventDefault();
@@ -1453,12 +1628,18 @@
             window.visualViewport.addEventListener('scroll', reposition, { passive: true });
         }
 
-        // Start tutorial
+        // Start Phase 1 on the review page
+        currentPhase = 'review';
         active = true;
         overlay.hidden = false;
+        overlay.style.removeProperty('display');
         overlay.setAttribute('aria-hidden', 'false');
         robot.hidden = false;
-        if (tutorialCard) tutorialCard.hidden = false;
+        robot.style.removeProperty('display');
+        if (tutorialCard) {
+            tutorialCard.hidden = false;
+            tutorialCard.style.removeProperty('display');
+        }
 
         window.setTimeout(function () {
             renderStep(0);

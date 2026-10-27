@@ -7456,3 +7456,115 @@ body.w68-tutorial-active .cart-footer .process-order-button {
         font-size: 6.8px !important;
     }
 }
+
+
+/* =========================================================
+   W68_TUTORIAL_FLOW_REFINEMENT_20261027
+   Quantity lesson never covers quantity controls / ADD TO CART.
+   Added-to-cart lesson places the robot beside the success message.
+   ========================================================= */
+body > .w68-tutorial-card.is-quantity-stage {
+    right: auto !important;
+    bottom: auto !important;
+    transform: none !important;
+    max-height: min(150px, 25vh) !important;
+    padding: 10px 12px 9px !important;
+    border-radius: 15px !important;
+    border-color: #ffd633 !important;
+    box-shadow:
+        0 10px 28px rgba(0, 0, 0, .30),
+        0 0 0 3px rgba(255, 214, 51, .16) !important;
+}
+
+body > .w68-tutorial-card.is-quantity-stage .w68-tutorial-kicker {
+    min-height: 21px !important;
+    padding: 3px 7px !important;
+    font-size: 7px !important;
+}
+
+body > .w68-tutorial-card.is-quantity-stage h2 {
+    margin: 5px 0 4px !important;
+    font-size: clamp(14px, 1.45vw, 18px) !important;
+    line-height: 1.08 !important;
+}
+
+body > .w68-tutorial-card.is-quantity-stage p {
+    font-size: 10px !important;
+    line-height: 1.3 !important;
+}
+
+body > .w68-tutorial-card.is-quantity-stage .w68-tutorial-actions {
+    margin-top: 6px !important;
+}
+
+body > .w68-tutorial-card.is-quantity-stage .w68-tutorial-actions button {
+    min-height: 30px !important;
+    min-width: 75px !important;
+    padding: 4px 9px !important;
+    font-size: 7px !important;
+}
+
+body > .w68-tutorial-card.is-added-success-stage {
+    max-height: min(154px, 25vh) !important;
+    padding: 10px 12px 9px !important;
+    border-color: #ffd633 !important;
+    border-radius: 15px !important;
+}
+
+body > .w68-tutorial-card.is-added-success-stage .w68-tutorial-kicker {
+    min-height: 21px !important;
+    padding: 3px 7px !important;
+    font-size: 7px !important;
+}
+
+body > .w68-tutorial-card.is-added-success-stage h2 {
+    margin: 5px 0 4px !important;
+    font-size: 16px !important;
+}
+
+body > .w68-tutorial-card.is-added-success-stage p {
+    font-size: 10px !important;
+    line-height: 1.3 !important;
+}
+
+body > .w68-tutorial-robot.is-added-message {
+    max-height: none !important;
+    filter: drop-shadow(0 11px 18px rgba(0,0,0,.38)) !important;
+}
+
+/* While teaching the 2-second success message, keep the confirmation itself
+   clear and on top of the dark tutorial background. */
+body.w68-tutorial-active .cart-message-modal:not([hidden]) {
+    z-index: 2147483580 !important;
+}
+
+body.w68-tutorial-active .cart-message-modal:not([hidden]) .cart-message-card {
+    position: relative;
+    z-index: 2147483585 !important;
+    box-shadow:
+        0 16px 38px rgba(0,0,0,.34),
+        0 0 0 5px rgba(255,214,51,.16) !important;
+}
+
+@media (max-width: 700px) {
+    body > .w68-tutorial-card.is-quantity-stage {
+        max-height: min(136px, 24vh) !important;
+        padding: 8px 9px !important;
+        border-radius: 12px !important;
+    }
+
+    body > .w68-tutorial-card.is-quantity-stage h2 {
+        font-size: 13px !important;
+    }
+
+    body > .w68-tutorial-card.is-quantity-stage p,
+    body > .w68-tutorial-card.is-added-success-stage p {
+        font-size: 9px !important;
+    }
+
+    body > .w68-tutorial-card.is-added-success-stage {
+        max-height: min(138px, 25vh) !important;
+        padding: 8px 9px !important;
+        border-radius: 12px !important;
+    }
+}

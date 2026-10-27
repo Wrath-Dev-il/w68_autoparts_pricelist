@@ -7568,3 +7568,39 @@ body.w68-tutorial-active .cart-message-modal:not([hidden]) .cart-message-card {
         border-radius: 12px !important;
     }
 }
+
+
+/* =========================================================
+   W68_TUTORIAL_EXACT_ACTION_FLOW_20261027
+   Random screen taps must never finish/advance the guide.
+   Quantity robot stays small and beside the dialog.
+   ========================================================= */
+.w68-tutorial-overlay.is-finishable .w68-tutorial-scrim,
+.w68-tutorial-overlay .w68-tutorial-scrim {
+    pointer-events: none !important;
+    cursor: default !important;
+}
+
+body > .w68-tutorial-robot.is-quantity-guide {
+    max-height: none !important;
+    pointer-events: none !important;
+    filter: drop-shadow(0 10px 18px rgba(0, 0, 0, .34)) !important;
+}
+
+body > .w68-tutorial-card.is-quantity-stage {
+    z-index: 2147483630 !important;
+}
+
+body > .w68-tutorial-card.is-quantity-stage + * {
+    pointer-events: initial;
+}
+
+@media (max-width: 520px) {
+    body > .w68-tutorial-robot.is-quantity-guide {
+        width: 78px !important;
+    }
+
+    body > .w68-tutorial-card.is-quantity-stage {
+        max-height: 128px !important;
+    }
+}

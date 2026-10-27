@@ -1003,4 +1003,373 @@
     if (invoiceViewMode && autoInvoicePrintPreview) {
         printInvoiceReceipt();
     }
+
+    /* =====================================================
+       W68_PROCESS_ORDER_TUTORIAL_20261027
+       Process Order review page walkthrough for first logins:
+       1.) Description, product code, part number, application, and brand
+       2.) Price, qty and total, and total price
+       3.) Delete button (protected from clicking/deleting)
+       4.) Process Order button (protected from submitting)
+       Clicking any protected button or clicking/touching anywhere on screen
+       safely advances the tutorial dialog.
+       ===================================================== */
+    function initProcessOrderTutorial() {
+        if (!body || body.getAttribute('data-first-login-tutorial') !== '1' || viewMode) {
+            return;
+        }
+
+        var overlay = document.querySelector('[data-w68-tutorial]');
+        var spotlight = document.querySelector('[data-w68-tutorial-spotlight]');
+        var arrow = document.querySelector('[data-w68-tutorial-arrow]');
+        var robot = document.querySelector('[data-w68-tutorial-robot]');
+        var tutorialCard = document.querySelector('[data-w68-tutorial-card]');
+        var kickerNode = document.querySelector('[data-w68-tutorial-kicker]');
+        var titleNode = document.querySelector('[data-w68-tutorial-title]');
+        var bodyNode = document.querySelector('[data-w68-tutorial-body]');
+        var nextButton = document.querySelector('[data-w68-tutorial-next]');
+        var doneButton = document.querySelector('[data-w68-tutorial-done]');
+        var skipButton = document.querySelector('[data-w68-tutorial-skip]');
+
+        if (!overlay || !spotlight || !arrow || !robot || !titleNode || !bodyNode) {
+            return;
+        }
+
+        if (spotlight.parentElement !== document.body) document.body.appendChild(spotlight);
+        if (arrow.parentElement !== document.body) document.body.appendChild(arrow);
+        if (robot.parentElement !== document.body) document.body.appendChild(robot);
+        if (tutorialCard && tutorialCard.parentElement !== document.body) document.body.appendChild(tutorialCard);
+
+        robot.hidden = true;
+        if (tutorialCard) tutorialCard.hidden = true;
+
+        var loginNumber = Math.max(
+            1,
+            Math.min(3, parseInt(String(body.getAttribute('data-tutorial-login-number') || '1'), 10) || 1)
+        );
+
+        if (kickerNode) {
+            kickerNode.textContent = 'W68 ORDER REVIEW GUIDE • LOGIN ' + loginNumber + ' OF 3';
+        }
+
+        var robotImage = robot.querySelector('img');
+        var robotGif = String(body.getAttribute('data-tutorial-robot-gif') || '');
+        if (robotImage && robotGif) {
+            robotImage.src = robotGif;
+        }
+
+        function getProductInfoTarget() {
+            var item = document.querySelector('[data-process-item]');
+            if (!item) return document.querySelector('.process-order-panel') || document.body;
+            var desc = item.querySelector('[data-tutorial-description]') || item.querySelector('.process-description-row');
+            var meta = item.querySelector('[data-tutorial-meta]') || item.querySelector('.process-meta-stack');
+            var brand = item.querySelector('[data-tutorial-brand]') || item.querySelector('.process-brand-cell');
+
+            if (desc && meta) {
+                var dRect = desc.getBoundingClientRect();
+                var mRect = meta.getBoundingClientRect();
+                var bRect = brand ? brand.getBoundingClientRect() : mRect;
+                var top = Math.min(dRect.top, mRect.top);
+                var left = Math.min(dRect.left, mRect.left, bRect.left);
+                var right = Math.max(dRect.right, mRect.right, bRect.right);
+                var bottom = Math.max(dRect.bottom, mRect.bottom, bRect.bottom);
+                return {
+                    top: top,
+                    left: left,
+                    width: right - left,
+                    height: bottom - top,
+                    right: right,
+                    bottom: bottom,
+                    node: desc
+                };
+            }
+            return desc || meta || item;
+        }
+
+        function getMathAndPricingTarget() {
+            var item = document.querySelector('[data-process-item]');
+            if (!item) return document.querySelector('[data-tutorial-grand-summary]') || document.querySelector('.process-grand-summary');
+            var math = item.querySelector('[data-tutorial-math]') || item.querySelector('.process-order-math');
+            return math || item;
+        }
+
+        function getDeleteButtonTarget() {
+            var item = document.querySelector('[data-process-item]');
+            if (!item) return document.querySelector('[data-remove-selected]');
+            return item.querySelector('[data-remove-selected]');
+        }
+
+        function getProcessButtonTarget() {
+            return document.querySelector('[data-final-process]');
+        }
+
+        var steps = [
+            {
+                key: 'product-info',
+                pointerLabel: 'INFO',
+                kicker: 'W68 ORDER REVIEW GUIDE • STEP 1 OF 4',
+                title: '1. Product Information',
+                body: 'Review the description, product code, part number, application, and brand of your selected item here.',
+                target: getProductInfoTarget
+            },
+            {
+                key: 'pricing-totals',
+                pointerLabel: 'PRICE',
+                kicker: 'W68 ORDER REVIEW GUIDE • STEP 2 OF 4',
+                title: '2. Price, Qty & Totals',
+                body: 'Check the unit price, ordered quantity, and item line total here, as well as the overall Total Price at the bottom.',
+                target: getMathAndPricingTarget
+            },
+            {
+                key: 'delete-button',
+                pointerLabel: 'DELETE',
+                kicker: 'W68 ORDER REVIEW GUIDE • STEP 3 OF 4',
+                title: '3. Delete / Remove Button',
+                body: 'This button removes an item from your order review. During this guide, it is protected so clicking it will not delete your item.',
+                target: getDeleteButtonTarget
+            },
+            {
+                key: 'process-order',
+                pointerLabel: 'ORDER',
+                kicker: 'W68 ORDER REVIEW GUIDE • STEP 4 OF 4',
+                title: '4. PROCESS ORDER Button',
+                body: 'When your order is complete, click PROCESS ORDER to finalize and submit. It is protected now so you can safely tap anywhere or click FINISH to complete this guide.',
+                target: getProcessButtonTarget
+            }
+        ];
+
+        var currentStepIndex = 0;
+        var currentTarget = null;
+        var active = false;
+        var repositionTimer = null;
+
+        function clearTarget() {
+            if (currentTarget instanceof Element) {
+                currentTarget.classList.remove('w68-tutorial-target');
+            }
+            currentTarget = null;
+        }
+
+        function hidePointer() {
+            spotlight.hidden = true;
+            arrow.hidden = true;
+        }
+
+        function finishTutorial() {
+            if (!active) return;
+            active = false;
+            clearTarget();
+            hidePointer();
+            overlay.hidden = true;
+            overlay.setAttribute('aria-hidden', 'true');
+            robot.hidden = true;
+            if (tutorialCard) tutorialCard.hidden = true;
+
+            document.querySelectorAll('.w68-tutorial-protected').forEach(function (el) {
+                el.classList.remove('w68-tutorial-protected');
+            });
+
+            if (repositionTimer !== null) {
+                window.clearTimeout(repositionTimer);
+                repositionTimer = null;
+            }
+        }
+
+        function scrollTargetIntoView(target) {
+            var el = (target instanceof Element) ? target : (target && target.node instanceof Element ? target.node : null);
+            if (!el) return;
+            try {
+                el.scrollIntoView({ behavior: 'smooth', block: 'center', inline: 'center' });
+            } catch (_) {
+                el.scrollIntoView();
+            }
+        }
+
+        function positionPointer(target) {
+            if (!active || !target) {
+                hidePointer();
+                return;
+            }
+
+            var rect = (target instanceof Element)
+                ? target.getBoundingClientRect()
+                : (target && typeof target.top === 'number' ? target : null);
+
+            if (!rect || rect.width <= 0 || rect.height <= 0) {
+                hidePointer();
+                return;
+            }
+
+            var viewportWidth = (window.visualViewport && window.visualViewport.width)
+                || window.innerWidth
+                || document.documentElement.clientWidth;
+            var viewportHeight = (window.visualViewport && window.visualViewport.height)
+                || window.innerHeight
+                || document.documentElement.clientHeight;
+
+            var pad = 7;
+            spotlight.hidden = false;
+            spotlight.style.left = Math.max(4, rect.left - pad) + 'px';
+            spotlight.style.top = Math.max(4, rect.top - pad) + 'px';
+            spotlight.style.width = Math.max(34, rect.width + (pad * 2)) + 'px';
+            spotlight.style.height = Math.max(34, rect.height + (pad * 2)) + 'px';
+
+            var pointerWidth = 74;
+            var pointerHeight = 48;
+            var gap = 10;
+            var left = rect.right + gap;
+            var top = rect.top + (rect.height / 2) - (pointerHeight / 2);
+            var side = 'right';
+
+            if (left + pointerWidth > viewportWidth - 6) {
+                left = rect.left - pointerWidth - gap;
+                side = 'left';
+            }
+
+            if (left < 6) {
+                left = Math.max(6, rect.left + (rect.width / 2) - (pointerWidth / 2));
+                top = rect.top - pointerHeight - gap;
+                side = 'top';
+            }
+
+            if (top < 6) {
+                top = Math.min(viewportHeight - pointerHeight - 6, rect.bottom + gap);
+                side = 'bottom';
+            }
+
+            if (top + pointerHeight > viewportHeight - 6) {
+                top = Math.max(6, rect.top - pointerHeight - gap);
+                side = 'top';
+            }
+
+            arrow.hidden = false;
+            arrow.setAttribute('data-pointer-side', side);
+            arrow.style.left = Math.round(left) + 'px';
+            arrow.style.top = Math.round(top) + 'px';
+            arrow.style.width = pointerWidth + 'px';
+            arrow.style.height = pointerHeight + 'px';
+            arrow.style.transform = 'none';
+        }
+
+        function renderStep(index) {
+            var step = steps[index];
+            if (!step) {
+                finishTutorial();
+                return;
+            }
+
+            currentStepIndex = index;
+            if (kickerNode) kickerNode.textContent = step.kicker;
+            titleNode.textContent = step.title;
+            bodyNode.textContent = step.body;
+            arrow.setAttribute('data-pointer-label', String(step.pointerLabel || 'LOOK'));
+
+            var isLast = index >= steps.length - 1;
+            if (nextButton) nextButton.hidden = isLast;
+            if (doneButton) {
+                doneButton.hidden = !isLast;
+                doneButton.textContent = 'FINISH';
+            }
+
+            clearTarget();
+
+            var target = typeof step.target === 'function' ? step.target() : null;
+            if (target) {
+                currentTarget = target;
+                if (target instanceof Element) {
+                    target.classList.add('w68-tutorial-target');
+                    target.classList.add('w68-tutorial-protected');
+                }
+
+                scrollTargetIntoView(target);
+                window.setTimeout(function () {
+                    positionPointer(currentTarget);
+                }, 200);
+            } else {
+                hidePointer();
+            }
+        }
+
+        function nextStep() {
+            if (currentStepIndex < steps.length - 1) {
+                renderStep(currentStepIndex + 1);
+            } else {
+                finishTutorial();
+            }
+        }
+
+        // Capturing click handler: protects delete and process order buttons
+        // and clicking ANYWHERE on screen advances to the next step!
+        document.addEventListener('click', function (event) {
+            if (!active) return;
+
+            // If user clicked the SKIP button
+            if (event.target && event.target.closest && event.target.closest('[data-w68-tutorial-skip]')) {
+                finishTutorial();
+                return;
+            }
+
+            // Always intercept during tutorial so delete or process order CANNOT trigger
+            event.preventDefault();
+            event.stopPropagation();
+            event.stopImmediatePropagation();
+
+            // Clicking any button or screen or dialog advances the dialog
+            nextStep();
+        }, true);
+
+        // Touch protection for mobile and iPad
+        document.addEventListener('touchstart', function (event) {
+            if (!active) return;
+            if (event.target && event.target.closest && event.target.closest('[data-w68-tutorial-skip]')) {
+                return;
+            }
+            if (event.target && event.target.closest && event.target.closest('[data-remove-selected], [data-final-process]')) {
+                event.preventDefault();
+                event.stopPropagation();
+            }
+        }, { passive: false, capture: true });
+
+        if (skipButton) skipButton.addEventListener('click', finishTutorial);
+        if (doneButton) doneButton.addEventListener('click', finishTutorial);
+        if (nextButton) {
+            nextButton.addEventListener('click', function (e) {
+                e.preventDefault();
+                e.stopPropagation();
+                nextStep();
+            });
+        }
+
+        function reposition() {
+            if (!active || !currentTarget) return;
+            if (repositionTimer !== null) window.clearTimeout(repositionTimer);
+            repositionTimer = window.setTimeout(function () {
+                positionPointer(currentTarget);
+            }, 50);
+        }
+
+        window.addEventListener('resize', reposition, { passive: true });
+        window.addEventListener('scroll', reposition, { passive: true });
+        if (window.visualViewport) {
+            window.visualViewport.addEventListener('resize', reposition, { passive: true });
+            window.visualViewport.addEventListener('scroll', reposition, { passive: true });
+        }
+
+        // Start tutorial
+        active = true;
+        overlay.hidden = false;
+        overlay.setAttribute('aria-hidden', 'false');
+        robot.hidden = false;
+        if (tutorialCard) tutorialCard.hidden = false;
+
+        document.querySelectorAll('[data-remove-selected], [data-final-process]').forEach(function (btn) {
+            btn.classList.add('w68-tutorial-protected');
+        });
+
+        window.setTimeout(function () {
+            renderStep(0);
+        }, 350);
+    }
+
+    initProcessOrderTutorial();
 })();

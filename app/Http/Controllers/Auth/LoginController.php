@@ -1020,6 +1020,7 @@ HTML;
                 $request->session()->put([
                     'w68_show_first_login_tutorial' => true,
                     'w68_tutorial_login_number' => $loginNumber,
+                    'w68_show_process_order_tutorial' => true,
                 ]);
                 return;
             }
@@ -1027,6 +1028,7 @@ HTML;
             $request->session()->forget([
                 'w68_show_first_login_tutorial',
                 'w68_tutorial_login_number',
+                'w68_show_process_order_tutorial',
             ]);
         } catch (Throwable $exception) {
             // Tutorial tracking must never block a valid customer login.

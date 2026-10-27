@@ -8,6 +8,11 @@
     $orderCode = $viewMode ? (string) ($viewOrder['order_code'] ?? 'Order') : '';
     $backToOrdersUrl = route('orders') . ($returnViewMode ? '#returns' : ($invoiceViewMode ? '#invoiced' : ''));
     $shipments = collect($shipments ?? []);
+
+    // W68_PROCESS_ORDER_TUTORIAL_20261027
+    $tutorialRobotAsset = is_file(public_path('images/w68_robot_tutorial_mascot.gif'))
+        ? asset('images/w68_robot_tutorial_mascot.gif')
+        : asset('images/w68_robot_tutorial_fallback.svg');
 @endphp
 <!DOCTYPE html>
 <html lang="en">
@@ -17,8 +22,8 @@
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>W68 Autoparts | {{ $returnViewMode ? 'View Return' : ($viewMode ? 'View Order' : 'Process Order') }}</title>
     <link rel="icon" href="{{ asset('images/sidebar_logo.png') }}">
-    <link rel="stylesheet" href="{{ asset('css/w68-process-order.css') }}?v=20261021-v142">
-    <script src="{{ asset('js/w68-process-order.js') }}?v=20261021-v142" defer></script>
+    <link rel="stylesheet" href="{{ asset('css/w68-process-order.css') }}?v=20261027-v143">
+    <script src="{{ asset('js/w68-process-order.js') }}?v=20261027-v143" defer></script>
 </head>
 <body
     data-process-url="{{ $viewMode ? '' : route('home.orders.process') }}"
@@ -26,6 +31,10 @@
     data-view-mode="{{ $viewMode ? '1' : '0' }}"
     data-invoice-view-mode="{{ $invoiceViewMode ? '1' : '0' }}"
     data-auto-invoice-print-preview="{{ $autoInvoicePrintPreview ? '1' : '0' }}"
+    data-first-login-tutorial="{{ !empty($showProcessOrderTutorial) && !$viewMode ? '1' : '0' }}"
+    data-tutorial-login-number="{{ (int) ($tutorialLoginNumber ?? 1) }}"
+    data-tutorial-robot-gif="{{ $tutorialRobotAsset }}"
+    data-tutorial-robot-fallback="{{ asset('images/w68_robot_tutorial_fallback.svg') }}"
 >
     <main class="process-page-shell {{ $viewMode ? 'is-view-mode' : '' }}">
         <header class="process-page-header">
@@ -95,7 +104,7 @@
                                 data-update-url="{{ route('home.cart.update', ['product' => (int) $item['id']]) }}"
                             @endunless
                         >
-                            <div class="process-description-row">
+                            <div class="process-description-row" data-tutorial-description>
                                 <span>DESCRIPTION</span>
                                 <strong>{{ $item['description'] ?: 'W68 Product' }}</strong>
                             </div>
@@ -110,7 +119,7 @@
                                     >
                                 </div>
 
-                                <div class="process-item-details">
+                                <div class="process-item-details" data-tutorial-details>
                                     @unless($viewMode)
                                         <button
                                             type="button"
@@ -125,19 +134,19 @@
                                         </button>
                                     @endunless
 
-                                    <div class="process-meta-stack">
-                                        <div><span>PRODUCT CODE</span><strong>{{ $item['productCode'] ?: 'â€”' }}</strong></div>
-                                        <div><span>PART NUMBER</span><strong>{{ $item['partNumber'] ?: 'â€”' }}</strong></div>
-                                        <div><span>APPLICATION</span><strong>{{ $item['application'] ?: 'â€”' }}</strong></div>
+                                    <div class="process-meta-stack" data-tutorial-meta>
+                                        <div><span>PRODUCT CODE</span><strong>{{ $item['productCode'] ?: '—' }}</strong></div>
+                                        <div><span>PART NUMBER</span><strong>{{ $item['partNumber'] ?: '—' }}</strong></div>
+                                        <div><span>APPLICATION</span><strong>{{ $item['application'] ?: '—' }}</strong></div>
                                     </div>
 
                                     <div class="process-item-bottom-row">
-                                        <div class="process-brand-cell">
+                                        <div class="process-brand-cell" data-tutorial-brand>
                                             <span>BRAND</span>
-                                            <strong>{{ $item['brand'] ?: 'â€”' }}</strong>
+                                            <strong>{{ $item['brand'] ?: '—' }}</strong>
                                         </div>
 
-                                        <div class="process-order-math">
+                                        <div class="process-order-math" data-tutorial-math>
                                             <div class="process-math-cell">
                                                 <span>PRICE</span>
                                                 <strong class="process-effective-price">
@@ -168,7 +177,7 @@
             @endif
 
             <footer class="process-order-footer">
-                <div class="process-grand-summary">
+                <div class="process-grand-summary" data-tutorial-grand-summary>
                     <div>
                         <span>TOTAL ITEMS</span>
                         <strong data-total-items>{{ number_format($totalItems) }}</strong>
@@ -951,6 +960,40 @@
             };
         })();
     </script>
+
+    {{-- W68_PROCESS_ORDER_TUTORIAL_20261027 --}}
+    <div class="w68-tutorial-overlay" data-w68-tutorial hidden aria-hidden="true">
+        <div class="w68-tutorial-scrim" data-w68-tutorial-scrim></div>
+        <div class="w68-tutorial-spotlight" data-w68-tutorial-spotlight hidden></div>
+        <div class="w68-tutorial-arrow" data-w68-tutorial-arrow hidden><span></span></div>
+
+        <div class="w68-tutorial-robot" data-w68-tutorial-robot>
+            <img
+                src="{{ $tutorialRobotAsset }}"
+                data-w68-tutorial-robot-image
+                data-fallback="{{ asset('images/w68_robot_tutorial_fallback.svg') }}"
+                onerror="if(this.dataset.fallback && this.src !== this.dataset.fallback){this.src=this.dataset.fallback;}"
+                alt="W68 tutorial robot"
+            >
+        </div>
+
+        <section
+            class="w68-tutorial-card"
+            data-w68-tutorial-card
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="w68-tutorial-title"
+        >
+            <span class="w68-tutorial-kicker" data-w68-tutorial-kicker>W68 ORDER REVIEW GUIDE</span>
+            <h2 id="w68-tutorial-title" data-w68-tutorial-title>Order Review Guide</h2>
+            <p data-w68-tutorial-body>Review the items in your order.</p>
+            <div class="w68-tutorial-actions">
+                <button type="button" class="w68-tutorial-skip" data-w68-tutorial-skip>SKIP</button>
+                <button type="button" class="w68-tutorial-next" data-w68-tutorial-next>NEXT</button>
+                <button type="button" class="w68-tutorial-done" data-w68-tutorial-done hidden>DONE</button>
+            </div>
+        </section>
+    </div>
 
 </body>
 </html>

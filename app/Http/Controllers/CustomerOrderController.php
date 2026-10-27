@@ -122,12 +122,53 @@ class CustomerOrderController extends Controller
         $totalItems = (int) $items->sum(fn (array $item): int => (int) $item['qty']);
         $totalPrice = round((float) $items->sum(fn (array $item): float => (float) $item['lineTotal']), 2);
 
+        // W68_PROCESS_ORDER_TUTORIAL_20261027
+        // Onboarding walkthrough on the order review page for first logins (1..3)
+        // or authenticated testing via /process-order?tutorial=preview
+        $tutorialPreview = $request->query('tutorial') === 'preview' || $request->query('tutorial') === '1';
+
+        if ($tutorialPreview) {
+            $showProcessOrderTutorial = true;
+            $tutorialLoginNumber = 1;
+        } else {
+            $showProcessOrderTutorial = (bool) $request->session()->pull(
+                'w68_show_process_order_tutorial',
+                false
+            );
+            $tutorialLoginNumber = (int) $request->session()->get(
+                'w68_tutorial_login_number',
+                1
+            );
+
+            if (!$showProcessOrderTutorial && $loginId) {
+                try {
+                    $portalAccount = DB::connection('system')
+                        ->table('customer_portal_accounts')
+                        ->where('login_id', $loginId)
+                        ->first();
+                    $count = (int) ($portalAccount->tutorial_login_count ?? 0);
+                    if ($count >= 1 && $count <= 3) {
+                        $sessionKey = 'w68_process_order_tutorial_seen_' . $count;
+                        if (!$request->session()->get($sessionKey, false)) {
+                            $showProcessOrderTutorial = true;
+                            $tutorialLoginNumber = $count;
+                            $request->session()->put($sessionKey, true);
+                        }
+                    }
+                } catch (Throwable) {
+                    // Ignore schema/db check issues during auth lookup.
+                }
+            }
+        }
+
         return view('process-order', [
             'items' => $items,
             'totalItems' => $totalItems,
             'totalPrice' => $totalPrice,
             // W68 v106: only Rush/Regular shipment choices from Masterlist.
             'shipments' => $this->shipmentForwarders(),
+            'showProcessOrderTutorial' => $showProcessOrderTutorial,
+            'tutorialLoginNumber' => $tutorialLoginNumber,
         ]);
     }
 

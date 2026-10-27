@@ -2292,7 +2292,10 @@
             // Quantity/selection writes are queued. Finish them first so the
             // review page reads the exact same selected database cart rows.
             await cartMutationQueue.catch(() => null);
-            window.location.href = orderApi.review;
+            const hasPendingTutorial = sessionStorage.getItem('w68_process_order_tutorial_pending') === '1';
+            sessionStorage.removeItem('w68_process_order_tutorial_pending');
+            const targetUrl = orderApi.review + (hasPendingTutorial ? (orderApi.review.includes('?') ? '&tutorial=1' : '?tutorial=1') : '');
+            window.location.href = targetUrl;
         } finally {
             window.setTimeout(() => {
                 const hasSelection = readCart().some((item) => item.selected);
@@ -2840,7 +2843,7 @@
                 key: 'process-order',
                 pointerLabel: 'HERE',
                 title: 'Step 8: PROCESS ORDER',
-                body: 'This is the PROCESS ORDER button. The tutorial stops here so you do not accidentally leave the guide or submit anything. Only FINISH closes this final tutorial dialog.',
+                body: 'Click the highlighted PROCESS ORDER button to proceed to the order review page where the tutorial will continue.',
                 target: () => getFirstVisibleTutorialTarget('[data-process-order]'),
                 allowNext: false,
                 showDone: true,
@@ -3262,7 +3265,7 @@
             arrow.dataset.pointerLabel = String(step.pointerLabel || 'CLICK');
             nextButton.hidden = !step.allowNext;
             doneButton.hidden = !step.showDone;
-            doneButton.textContent = step.key === 'process-order' ? 'FINISH' : 'DONE';
+            doneButton.textContent = step.key === 'process-order' ? 'PROCEED' : 'DONE';
 
             // No background/scrim click can advance or close the tutorial.
             // PROCESS ORDER is the final manual FINISH step.
@@ -3354,6 +3357,13 @@
         doneButton.addEventListener('click', (event) => {
             event.preventDefault();
             event.stopPropagation();
+
+            if (steps[currentStepIndex]?.key === 'process-order') {
+                sessionStorage.setItem('w68_process_order_tutorial_pending', '1');
+                finishTutorial();
+                openProcessOrderReview();
+                return;
+            }
 
             finishTutorial();
         });
@@ -3513,12 +3523,15 @@
                 step.key === 'process-order'
                 && event.target.closest('[data-process-order]')
             ) {
-                // Final tutorial step: let the customer physically tap the
-                // highlighted button, but do not navigate or auto-advance.
-                // FINISH remains the only way to close this lesson.
+                // Customer clicked PROCESS ORDER in the tutorial!
+                // Transition directly to the Process Order page with the guide continuing.
                 event.preventDefault();
+                event.stopPropagation();
                 event.stopImmediatePropagation();
-                bodyNode.textContent = 'Correct — this is PROCESS ORDER. In normal use it opens the Process Order review. For this tutorial, press FINISH to close the guide without leaving the page.';
+                sessionStorage.setItem('w68_process_order_tutorial_pending', '1');
+                finishTutorial();
+                openProcessOrderReview();
+                return;
             }
         }, true);
 

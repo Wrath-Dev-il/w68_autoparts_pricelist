@@ -3226,11 +3226,9 @@
             // ask the customer to click a checked box just to satisfy the
             // tutorial, because that would deselect it.
             if (step.key === 'select-item') {
-                const checkedSelection = getFirstVisibleTutorialTarget(
-                    '[data-cart-row-id] .cart-item-check input:checked, [data-cart-row-id] input[type="checkbox"]:checked'
-                );
+                const tutorialCheckbox = getTutorialCartCheckbox();
 
-                if (checkedSelection) {
+                if (tutorialCheckbox?.checked) {
                     window.setTimeout(() => {
                         if (active && currentStepIndex === index) {
                             renderStep(index + 1);

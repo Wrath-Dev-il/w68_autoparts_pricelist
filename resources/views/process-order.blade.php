@@ -22,8 +22,8 @@
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>W68 Autoparts | {{ $returnViewMode ? 'View Return' : ($viewMode ? 'View Order' : 'Process Order') }}</title>
     <link rel="icon" href="{{ asset('images/sidebar_logo.png') }}">
-    <link rel="stylesheet" href="{{ asset('css/w68-process-order.css') }}?v=20261027-v146">
-    <script src="{{ asset('js/w68-process-order.js') }}?v=20261027-v146" defer></script>
+    <link rel="stylesheet" href="{{ asset('css/w68-process-order.css') }}?v=20261027-v147">
+    <script src="{{ asset('js/w68-process-order.js') }}?v=20261027-v147" defer></script>
 </head>
 <body
     data-process-url="{{ $viewMode ? '' : route('home.orders.process') }}"
@@ -548,12 +548,12 @@
     @unless($viewMode)
         {{-- W68_PROCESS_ORDER_SIGNOFF_MODAL_20261021 --}}
         <div class="process-signoff-modal" data-process-signoff-modal hidden aria-hidden="true">
-            <button type="button" class="order-modal-backdrop process-signoff-backdrop" data-process-signoff-close aria-label="Close Prepared By and Checked By form"></button>
+            <button type="button" class="order-modal-backdrop process-signoff-backdrop" data-process-signoff-close aria-label="Close Checked By form"></button>
             <section class="process-signoff-card" role="dialog" aria-modal="true" aria-labelledby="process-signoff-title">
                 <header class="process-signoff-header">
                     <div>
                         <span>ORDER SIGN-OFF</span>
-                        <h2 id="process-signoff-title">Prepared By / Checked By</h2>
+                        <h2 id="process-signoff-title">Checked By</h2>
                         <p>Enter the names that will be recorded with this W68 portal order.</p>
                     </div>
                     <button type="button" class="process-signoff-x" data-process-signoff-close aria-label="Close">
@@ -823,7 +823,8 @@
                 // Safari/iPad places showModal() dialogs in the browser top layer,
                 // above the existing Process Order confirmation modal.
                 try {
-                    if (typeof box.showModal === 'function') {
+                    var isTutorial = window.W68IsShipmentTutorialExpected && window.W68IsShipmentTutorialExpected();
+                    if (!isTutorial && typeof box.showModal === 'function') {
                         if (!box.open) box.showModal();
                     } else {
                         box.setAttribute('open', '');
@@ -843,6 +844,10 @@
                 }
 
                 paintDraft();
+
+                if (window.W68TriggerShipmentTutorial) {
+                    window.W68TriggerShipmentTutorial();
+                }
 
                 window.setTimeout(function () {
                     var target =
@@ -878,6 +883,10 @@
                 box.style.removeProperty('opacity');
                 box.style.removeProperty('pointer-events');
                 box.hidden = true;
+
+                if (window.W68CancelShipmentTutorial) {
+                    window.W68CancelShipmentTutorial();
+                }
 
                 if (document.body && document.body.classList) {
                     document.body.classList.remove('shipment-modal-open');

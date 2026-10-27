@@ -2843,7 +2843,7 @@
                 key: 'process-order',
                 pointerLabel: 'HERE',
                 title: 'Step 8: PROCESS ORDER',
-                body: 'Click the highlighted PROCESS ORDER button to proceed to the order review page where the tutorial will continue.',
+                body: 'This is the PROCESS ORDER button. Tap anywhere or click it to complete this guide, then click PROCESS ORDER to continue.',
                 target: () => getFirstVisibleTutorialTarget('[data-process-order]'),
                 allowNext: false,
                 showDone: true,
@@ -3361,7 +3361,6 @@
             if (steps[currentStepIndex]?.key === 'process-order') {
                 sessionStorage.setItem('w68_process_order_tutorial_pending', '1');
                 finishTutorial();
-                openProcessOrderReview();
                 return;
             }
 
@@ -3436,6 +3435,13 @@
             // Random clicks/taps can never advance, finish, navigate or alter
             // the page while a tutorial step is waiting for another control.
             if (!isAllowedTutorialInteraction(event.target)) {
+                if (step.key === 'process-order') {
+                    event.preventDefault();
+                    event.stopImmediatePropagation();
+                    sessionStorage.setItem('w68_process_order_tutorial_pending', '1');
+                    finishTutorial();
+                    return;
+                }
                 event.preventDefault();
                 event.stopImmediatePropagation();
                 return;
@@ -3524,13 +3530,12 @@
                 && event.target.closest('[data-process-order]')
             ) {
                 // Customer clicked PROCESS ORDER in the tutorial!
-                // Transition directly to the Process Order page with the guide continuing.
+                // Finalize the tutorial dialog without triggering the button action.
                 event.preventDefault();
                 event.stopPropagation();
                 event.stopImmediatePropagation();
                 sessionStorage.setItem('w68_process_order_tutorial_pending', '1');
                 finishTutorial();
-                openProcessOrderReview();
                 return;
             }
         }, true);

@@ -358,6 +358,10 @@
             if (body && body.classList) body.classList.add('shipment-modal-open');
         }
 
+        if (window.W68TriggerShipmentTutorial) {
+            window.W68TriggerShipmentTutorial();
+        }
+
         renderShipmentOptions();
         syncProcessViewport();
 
@@ -371,6 +375,11 @@
 
     function closeShipmentModal() {
         if (!shipmentModal) return;
+
+        if (window.W68CancelShipmentTutorial) {
+            window.W68CancelShipmentTutorial();
+        }
+
         if (window.W68CloseShipmentModal) {
             window.W68CloseShipmentModal();
         } else {
@@ -592,13 +601,28 @@
         if (body && body.classList) body.classList.add('process-signoff-open');
         syncProcessViewport();
 
+        if (window.W68TriggerSignoffTutorial) {
+            window.W68TriggerSignoffTutorial();
+        }
+
         window.setTimeout(function () {
-            if (preparedByInput && preparedByInput.focus) preparedByInput.focus();
+            if (window.W68IsSignoffTutorialActive && window.W68IsSignoffTutorialActive()) return;
+            if (preparedByInput && preparedByInput.focus) {
+                try {
+                    preparedByInput.focus({ preventScroll: true });
+                } catch (_) {
+                    preparedByInput.focus();
+                }
+            }
         }, 0);
     }
 
     function closeSignoffModal() {
         if (!signoffModal) return;
+
+        if (window.W68CancelSignoffTutorial) {
+            window.W68CancelSignoffTutorial();
+        }
 
         signoffModal.hidden = true;
         signoffModal.setAttribute('aria-hidden', 'true');
@@ -1164,6 +1188,56 @@
             return confirmModal.querySelector('[data-terms-zone]');
         }
 
+        // ==========================
+        // Targets for Phase 3 (Shipment Modal)
+        // ==========================
+        function getShipmentRushTarget() {
+            var modal = document.querySelector('[data-shipment-modal]');
+            if (!modal) return null;
+            return modal.querySelector('.shipment-group-rush') ||
+                modal.querySelector('.shipment-group-rush .shipment-group-list') ||
+                modal.querySelector('[data-shipment-forwarder-type="rush"]') ||
+                modal.querySelector('.shipment-picker');
+        }
+
+        function getShipmentRegularTarget() {
+            var modal = document.querySelector('[data-shipment-modal]');
+            if (!modal) return null;
+            return modal.querySelector('.shipment-group-regular') ||
+                modal.querySelector('.shipment-group-regular .shipment-group-list') ||
+                modal.querySelector('[data-shipment-forwarder-type="regular"]') ||
+                modal.querySelector('.shipment-picker');
+        }
+
+        function getShipmentSaveTarget() {
+            var modal = document.querySelector('[data-shipment-modal]');
+            if (!modal) return null;
+            return modal.querySelector('[data-shipment-save]');
+        }
+
+        // ==========================
+        // Targets for Phase 4 (Sign-off Modal)
+        // ==========================
+        function getSignoffPreparedByTarget() {
+            var modal = document.querySelector('[data-process-signoff-modal]');
+            if (!modal) return null;
+            var input = modal.querySelector('[data-prepared-by]');
+            return (input && input.closest('.process-signoff-field')) || input;
+        }
+
+        function getSignoffCheckedByTarget() {
+            var modal = document.querySelector('[data-process-signoff-modal]');
+            if (!modal) return null;
+            var input = modal.querySelector('[data-checked-by]');
+            return (input && input.closest('.process-signoff-field')) || input;
+        }
+
+        function getSignoffSubmitTarget() {
+            var modal = document.querySelector('[data-process-signoff-modal]');
+            if (!modal) return null;
+            return modal.querySelector('[data-process-signoff-submit]');
+        }
+
         // Step definitions
         var reviewSteps = [
             {
@@ -1252,12 +1326,81 @@
             }
         ];
 
-        var currentPhase = 'review'; // 'review' | 'confirm' | 'done'
+        var shipmentSteps = [
+            {
+                key: 'shipment-rush',
+                pointerLabel: 'RUSH',
+                kicker: 'W68 DELIVERY OPTION GUIDE • STEP 1 OF 3',
+                title: '1. Rush Shipments',
+                body: 'Choose from the available Rush forwarders if you need expedited delivery.',
+                borderRadius: '14px',
+                target: getShipmentRushTarget
+            },
+            {
+                key: 'shipment-regular',
+                pointerLabel: 'REGULAR',
+                kicker: 'W68 DELIVERY OPTION GUIDE • STEP 2 OF 3',
+                title: '2. Regular Shipments',
+                body: 'Choose from Regular forwarders for standard scheduled delivery.',
+                borderRadius: '14px',
+                target: getShipmentRegularTarget
+            },
+            {
+                key: 'shipment-save',
+                pointerLabel: 'SET',
+                kicker: 'W68 DELIVERY OPTION GUIDE • STEP 3 OF 3',
+                title: '3. SET SHIPMENT Button',
+                body: 'Tap SET SHIPMENT to confirm your selected delivery forwarder. Tap anywhere to close this guide, then select your forwarder.',
+                borderRadius: '10px',
+                target: getShipmentSaveTarget
+            }
+        ];
+
+        var signoffSteps = [
+            {
+                key: 'signoff-prepared-by',
+                pointerLabel: 'PREPARED',
+                kicker: 'W68 ORDER SIGN-OFF GUIDE • STEP 1 OF 3',
+                title: '1. Prepared By',
+                body: 'Enter the name of the person who prepared this order.',
+                borderRadius: '12px',
+                target: getSignoffPreparedByTarget
+            },
+            {
+                key: 'signoff-checked-by',
+                pointerLabel: 'CHECKED',
+                kicker: 'W68 ORDER SIGN-OFF GUIDE • STEP 2 OF 3',
+                title: '2. Checked By',
+                body: 'Enter the name of the person who checked and verified the items.',
+                borderRadius: '12px',
+                target: getSignoffCheckedByTarget
+            },
+            {
+                key: 'signoff-submit',
+                pointerLabel: 'PROCESS',
+                kicker: 'W68 ORDER SIGN-OFF GUIDE • STEP 3 OF 3',
+                title: '3. FINAL PROCESS ORDER Button',
+                body: 'Click FINAL PROCESS ORDER to complete and register your order in W68. Tap anywhere to finish this guide, then fill out the names and submit.',
+                borderRadius: '10px',
+                target: getSignoffSubmitTarget
+            }
+        ];
+
+        var currentPhase = 'review'; // 'review' | 'confirm' | 'shipment' | 'signoff' | 'done'
         var currentStepIndex = 0;
         var currentTarget = null;
         var active = false;
         var confirmPhasePending = false;
+        var shipmentPhasePending = false;
+        var signoffPhasePending = false;
         var repositionTimer = null;
+
+        function getStepsForPhase(phase) {
+            if (phase === 'confirm') return confirmSteps;
+            if (phase === 'shipment') return shipmentSteps;
+            if (phase === 'signoff') return signoffSteps;
+            return reviewSteps;
+        }
 
         function clearTarget() {
             if (currentTarget) {
@@ -1322,8 +1465,8 @@
 
         function finishConfirmModalTutorial() {
             active = false;
-            currentPhase = 'done';
             confirmPhasePending = false;
+            shipmentPhasePending = true;
             clearTarget();
             hidePointer();
             overlay.hidden = true;
@@ -1352,14 +1495,86 @@
             }
         }
 
+        function finishShipmentModalTutorial() {
+            active = false;
+            shipmentPhasePending = false;
+            signoffPhasePending = true;
+            clearTarget();
+            hidePointer();
+            overlay.hidden = true;
+            overlay.style.display = 'none';
+            overlay.setAttribute('aria-hidden', 'true');
+            robot.hidden = true;
+            robot.style.display = 'none';
+            if (tutorialCard) {
+                tutorialCard.hidden = true;
+                tutorialCard.style.display = 'none';
+                tutorialCard.style.removeProperty('top');
+                tutorialCard.style.removeProperty('bottom');
+            }
+            if (robot) {
+                robot.style.removeProperty('top');
+                robot.style.removeProperty('bottom');
+                robot.style.removeProperty('left');
+                robot.style.removeProperty('right');
+                robot.style.removeProperty('transform');
+            }
+            body.classList.remove('is-shipment-tutorial-active');
+
+            if (repositionTimer !== null) {
+                window.clearTimeout(repositionTimer);
+                repositionTimer = null;
+            }
+        }
+
+        function finishSignoffModalTutorial() {
+            active = false;
+            currentPhase = 'done';
+            confirmPhasePending = false;
+            shipmentPhasePending = false;
+            signoffPhasePending = false;
+            clearTarget();
+            hidePointer();
+            overlay.hidden = true;
+            overlay.style.display = 'none';
+            overlay.setAttribute('aria-hidden', 'true');
+            robot.hidden = true;
+            robot.style.display = 'none';
+            if (tutorialCard) {
+                tutorialCard.hidden = true;
+                tutorialCard.style.display = 'none';
+                tutorialCard.style.removeProperty('top');
+                tutorialCard.style.removeProperty('bottom');
+            }
+            if (robot) {
+                robot.style.removeProperty('top');
+                robot.style.removeProperty('bottom');
+                robot.style.removeProperty('left');
+                robot.style.removeProperty('right');
+                robot.style.removeProperty('transform');
+            }
+            body.classList.remove('is-signoff-tutorial-active');
+
+            if (repositionTimer !== null) {
+                window.clearTimeout(repositionTimer);
+                repositionTimer = null;
+            }
+        }
+
         function dismissTutorialEntirely() {
             confirmPhasePending = false;
-            if (currentPhase === 'confirm') {
+            shipmentPhasePending = false;
+            signoffPhasePending = false;
+            if (currentPhase === 'signoff') {
+                finishSignoffModalTutorial();
+            } else if (currentPhase === 'shipment') {
+                finishShipmentModalTutorial();
+            } else if (currentPhase === 'confirm') {
                 finishConfirmModalTutorial();
             } else {
                 finishReviewPageTutorial();
-                confirmPhasePending = false;
             }
+            currentPhase = 'done';
         }
 
         function scrollTargetIntoView(target) {
@@ -1438,7 +1653,7 @@
                 || window.innerHeight
                 || document.documentElement.clientHeight;
 
-            var currentSteps = currentPhase === 'confirm' ? confirmSteps : reviewSteps;
+            var currentSteps = getStepsForPhase(currentPhase);
             var step = currentSteps[currentStepIndex] || {};
             var pad = step.key === 'delete-button' ? 5 : 7;
 
@@ -1488,10 +1703,14 @@
         }
 
         function renderStep(index) {
-            var currentSteps = currentPhase === 'confirm' ? confirmSteps : reviewSteps;
+            var currentSteps = getStepsForPhase(currentPhase);
             var step = currentSteps[index];
             if (!step) {
-                if (currentPhase === 'confirm') {
+                if (currentPhase === 'signoff') {
+                    finishSignoffModalTutorial();
+                } else if (currentPhase === 'shipment') {
+                    finishShipmentModalTutorial();
+                } else if (currentPhase === 'confirm') {
                     finishConfirmModalTutorial();
                 } else {
                     finishReviewPageTutorial();
@@ -1501,9 +1720,9 @@
 
             currentStepIndex = index;
             if (kickerNode) {
-                kickerNode.textContent = currentPhase === 'confirm'
-                    ? step.kicker
-                    : 'W68 ORDER REVIEW GUIDE • LOGIN ' + loginNumber + ' OF 3';
+                kickerNode.textContent = currentPhase === 'review'
+                    ? ('W68 ORDER REVIEW GUIDE • LOGIN ' + loginNumber + ' OF 3')
+                    : step.kicker;
             }
             titleNode.textContent = step.title;
             bodyNode.textContent = step.body;
@@ -1513,7 +1732,7 @@
             if (nextButton) nextButton.hidden = isLast;
             if (doneButton) {
                 doneButton.hidden = !isLast;
-                doneButton.textContent = currentPhase === 'confirm' ? 'FINISH' : 'NEXT';
+                doneButton.textContent = (currentPhase === 'review' || currentPhase === 'shipment') ? 'NEXT' : 'FINISH';
             }
 
             clearTarget();
@@ -1535,11 +1754,15 @@
         }
 
         function nextStep() {
-            var currentSteps = currentPhase === 'confirm' ? confirmSteps : reviewSteps;
+            var currentSteps = getStepsForPhase(currentPhase);
             if (currentStepIndex < currentSteps.length - 1) {
                 renderStep(currentStepIndex + 1);
             } else {
-                if (currentPhase === 'confirm') {
+                if (currentPhase === 'signoff') {
+                    finishSignoffModalTutorial();
+                } else if (currentPhase === 'shipment') {
+                    finishShipmentModalTutorial();
+                } else if (currentPhase === 'confirm') {
                     finishConfirmModalTutorial();
                 } else {
                     finishReviewPageTutorial();
@@ -1567,6 +1790,48 @@
             renderStep(0);
         }
 
+        function startShipmentModalTutorial() {
+            var modal = document.querySelector('[data-shipment-modal]');
+            if (!modal || modal.hidden || viewMode) return;
+
+            currentPhase = 'shipment';
+            active = true;
+            body.classList.add('is-shipment-tutorial-active');
+
+            overlay.hidden = false;
+            overlay.style.removeProperty('display');
+            overlay.setAttribute('aria-hidden', 'false');
+            robot.hidden = false;
+            robot.style.removeProperty('display');
+            if (tutorialCard) {
+                tutorialCard.hidden = false;
+                tutorialCard.style.removeProperty('display');
+            }
+
+            renderStep(0);
+        }
+
+        function startSignoffModalTutorial() {
+            var modal = document.querySelector('[data-process-signoff-modal]');
+            if (!modal || modal.hidden || viewMode) return;
+
+            currentPhase = 'signoff';
+            active = true;
+            body.classList.add('is-signoff-tutorial-active');
+
+            overlay.hidden = false;
+            overlay.style.removeProperty('display');
+            overlay.setAttribute('aria-hidden', 'false');
+            robot.hidden = false;
+            robot.style.removeProperty('display');
+            if (tutorialCard) {
+                tutorialCard.hidden = false;
+                tutorialCard.style.removeProperty('display');
+            }
+
+            renderStep(0);
+        }
+
         window.W68TriggerConfirmTutorial = function () {
             if (confirmPhasePending) {
                 confirmPhasePending = false;
@@ -1579,6 +1844,44 @@
         window.W68CancelConfirmTutorial = function () {
             if (active && currentPhase === 'confirm') {
                 finishConfirmModalTutorial();
+            }
+        };
+
+        window.W68IsShipmentTutorialExpected = function () {
+            return shipmentPhasePending;
+        };
+
+        window.W68TriggerShipmentTutorial = function () {
+            if (shipmentPhasePending) {
+                shipmentPhasePending = false;
+                window.setTimeout(function () {
+                    startShipmentModalTutorial();
+                }, 220);
+            }
+        };
+
+        window.W68CancelShipmentTutorial = function () {
+            if (active && currentPhase === 'shipment') {
+                finishShipmentModalTutorial();
+            }
+        };
+
+        window.W68IsSignoffTutorialActive = function () {
+            return active && currentPhase === 'signoff';
+        };
+
+        window.W68TriggerSignoffTutorial = function () {
+            if (signoffPhasePending) {
+                signoffPhasePending = false;
+                window.setTimeout(function () {
+                    startSignoffModalTutorial();
+                }, 220);
+            }
+        };
+
+        window.W68CancelSignoffTutorial = function () {
+            if (active && currentPhase === 'signoff') {
+                finishSignoffModalTutorial();
             }
         };
 
@@ -1617,7 +1920,9 @@
             if (event.target && event.target.closest && event.target.closest('[data-w68-tutorial-skip]')) {
                 return;
             }
-            if (event.target && event.target.closest && event.target.closest('[data-remove-selected], [data-final-process], [data-delivery-open], [data-confirm-process]')) {
+            if (event.target && event.target.closest && event.target.closest(
+                '[data-remove-selected], [data-final-process], [data-delivery-open], [data-confirm-process], [data-shipment-forwarder], [data-shipment-save], [data-process-signoff-submit], input'
+            )) {
                 event.preventDefault();
                 event.stopPropagation();
             }

@@ -3326,19 +3326,31 @@ dialog.shipment-modal[open] .shipment-card {
 
 .process-signoff-modal {
     position: fixed;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    left: 0;
     inset: 0;
+    width: 100%;
+    height: 100%;
+    height: 100dvh;
     z-index: 5400;
     display: flex;
     align-items: center;
     justify-content: center;
-    padding: 16px;
+    padding: max(16px, env(safe-area-inset-top, 16px)) max(16px, env(safe-area-inset-right, 16px)) max(16px, env(safe-area-inset-bottom, 16px)) max(16px, env(safe-area-inset-left, 16px));
+    box-sizing: border-box;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
 }
 
 .process-signoff-card {
     position: relative;
     z-index: 1;
+    margin: auto !important;
     width: min(520px, calc(100vw - 28px));
-    max-height: min(88vh, var(--process-viewport-height, 88vh));
+    max-width: calc(100vw - 28px);
+    max-height: min(88vh, var(--process-viewport-height, 88vh), calc(100dvh - 32px));
     overflow: auto;
     -webkit-overflow-scrolling: touch;
     background: #fff;
@@ -3529,6 +3541,21 @@ body.process-signoff-open {
     }
 }
 
+@media (max-width: 1180px), (pointer: coarse) {
+    .process-signoff-modal {
+        align-items: center !important;
+        justify-content: center !important;
+        padding: max(12px, env(safe-area-inset-top, 12px)) max(12px, env(safe-area-inset-right, 12px)) max(12px, env(safe-area-inset-bottom, 12px)) max(12px, env(safe-area-inset-left, 12px)) !important;
+    }
+
+    .process-signoff-card {
+        width: min(520px, calc(100vw - 24px)) !important;
+        max-width: calc(100vw - 24px) !important;
+        max-height: calc(100dvh - 24px) !important;
+        margin: auto !important;
+    }
+}
+
 /* =========================================================
    W68_PROCESS_ORDER_TUTORIAL_20261027
    Responsive tutorial overlay for Process Order page.
@@ -3541,11 +3568,15 @@ body.process-signoff-open {
     display: none !important;
 }
 
-body.is-confirm-tutorial-active .order-confirm-modal {
+body.is-confirm-tutorial-active .order-confirm-modal,
+body.is-shipment-tutorial-active .shipment-modal,
+body.is-signoff-tutorial-active .process-signoff-modal {
     z-index: 15001 !important;
 }
 
-body.is-confirm-tutorial-active .w68-tutorial-scrim {
+body.is-confirm-tutorial-active .w68-tutorial-scrim,
+body.is-shipment-tutorial-active .w68-tutorial-scrim,
+body.is-signoff-tutorial-active .w68-tutorial-scrim {
     display: none !important;
 }
 

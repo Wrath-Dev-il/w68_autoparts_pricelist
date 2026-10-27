@@ -22,8 +22,8 @@
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>W68 Autoparts | {{ $returnViewMode ? 'View Return' : ($viewMode ? 'View Order' : 'Process Order') }}</title>
     <link rel="icon" href="{{ asset('images/sidebar_logo.png') }}">
-    <link rel="stylesheet" href="{{ asset('css/w68-process-order.css') }}?v=20261027-v143">
-    <script src="{{ asset('js/w68-process-order.js') }}?v=20261027-v143" defer></script>
+    <link rel="stylesheet" href="{{ asset('css/w68-process-order.css') }}?v=20261027-v144">
+    <script src="{{ asset('js/w68-process-order.js') }}?v=20261027-v144" defer></script>
 </head>
 <body
     data-process-url="{{ $viewMode ? '' : route('home.orders.process') }}"
@@ -178,11 +178,11 @@
 
             <footer class="process-order-footer">
                 <div class="process-grand-summary" data-tutorial-grand-summary>
-                    <div>
+                    <div data-tutorial-total-items>
                         <span>TOTAL ITEMS</span>
                         <strong data-total-items>{{ number_format($totalItems) }}</strong>
                     </div>
-                    <div>
+                    <div data-tutorial-total-price>
                         <span>TOTAL PRICE</span>
                         <strong data-total-price>{{ number_format($totalPrice, 2) }}</strong>
                     </div>

@@ -3684,6 +3684,7 @@ body.process-signoff-open {
     box-shadow: 0 20px 46px rgba(0,0,0,.28);
     pointer-events: auto;
     cursor: default;
+    transition: top .25s ease, bottom .25s ease;
 }
 
 .w68-tutorial-kicker {
@@ -3743,15 +3744,32 @@ body.process-signoff-open {
 }
 
 .w68-tutorial-target {
+    z-index: 15006 !important;
+}
+
+.w68-tutorial-target:not(.process-remove-item) {
     position: relative !important;
+}
+
+/* Explicitly preserve exact absolute position for delete button */
+.process-remove-item.w68-tutorial-target,
+.process-remove-item.w68-tutorial-protected {
+    position: absolute !important;
+    top: 1px !important;
+    right: 0 !important;
     z-index: 15006 !important;
 }
 
 /* Protected during tutorial: clickable to advance, but prevented from deleting or submitting */
 .w68-tutorial-protected {
-    position: relative !important;
-    z-index: 15006 !important;
     cursor: pointer !important;
+}
+
+.w68-tutorial-highlight-part {
+    outline: 2px solid #ffd633 !important;
+    outline-offset: 2px !important;
+    border-radius: 8px !important;
+    box-shadow: 0 0 12px rgba(255, 214, 51, .55) !important;
 }
 
 @media (max-width: 767px) {

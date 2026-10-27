@@ -2794,7 +2794,7 @@
                 key: 'added-success',
                 title: 'Added to Cart confirmation',
                 body: 'This confirmation appears whenever an item is successfully added to your cart. The W68 robot appears beside it so you can recognize this message.',
-                target: () => getFirstVisibleTutorialTarget('[data-cart-message] .cart-message-card'),
+                target: null,
                 allowNext: false,
                 showDone: false,
                 autoAdvanceMs: 1650,

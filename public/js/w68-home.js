@@ -2794,7 +2794,7 @@
                 key: 'added-success',
                 title: 'Added to Cart confirmation',
                 body: 'This confirmation appears whenever an item is successfully added to your cart. The W68 robot appears beside it so you can recognize this message.',
-                target: null,
+                target: () => getFirstVisibleTutorialTarget('[data-cart-message] .cart-message-card'),
                 allowNext: false,
                 showDone: false,
                 autoAdvanceMs: 1650,
@@ -3259,10 +3259,11 @@
             currentTarget = target;
             currentTarget.classList.add('w68-tutorial-target');
 
-            if (step.key === 'process-order') {
-                // Informational highlight only. Do not allow the tutorial to
-                // navigate away by accidentally pressing PROCESS ORDER.
-                currentTarget.classList.add('w68-tutorial-no-click');
+            if (step.key === 'added-success') {
+                // Informational confirmation only: emphasize the success card
+                // with the robot, but do not show a misleading CLICK hand.
+                currentTarget.classList.remove('w68-tutorial-target');
+                hidePointer();
             }
 
             scrollTargetIntoView(target);
@@ -3275,7 +3276,11 @@
             // the button. Re-measure several times for Safari/iPad accuracy.
             [180, 420, 760].forEach((delay) => {
                 window.setTimeout(() => {
-                    if (active && currentTarget === target) {
+                    if (
+                        active
+                        && currentTarget === target
+                        && steps[currentStepIndex]?.key !== 'added-success'
+                    ) {
                         positionPointer(target);
                     }
                 }, delay);
@@ -3312,9 +3317,15 @@
             }
 
             repositionTimer = window.setTimeout(() => {
-                positionTutorialCardForStep(steps[currentStepIndex]);
-                positionTutorialRobotForStep(steps[currentStepIndex]);
-                positionPointer(currentTarget);
+                const activeStep = steps[currentStepIndex];
+                positionTutorialCardForStep(activeStep);
+                positionTutorialRobotForStep(activeStep);
+
+                if (activeStep?.key === 'added-success') {
+                    hidePointer();
+                } else {
+                    positionPointer(currentTarget);
+                }
             }, 45);
         };
 
@@ -3411,10 +3422,12 @@
                 step.key === 'process-order'
                 && event.target.closest('[data-process-order]')
             ) {
-                // Final tutorial step: do not navigate and do not auto-advance.
-                // FINISH is the only way to close the final lesson.
+                // Final tutorial step: let the customer physically tap the
+                // highlighted button, but do not navigate or auto-advance.
+                // FINISH remains the only way to close this lesson.
                 event.preventDefault();
                 event.stopImmediatePropagation();
+                bodyNode.textContent = 'Correct — this is PROCESS ORDER. In normal use it opens the Process Order review. For this tutorial, press FINISH to close the guide without leaving the page.';
             }
         }, true);
 

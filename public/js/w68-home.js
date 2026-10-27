@@ -3004,7 +3004,7 @@
         ]);
 
         const resetTutorialRobotPlacement = () => {
-            robot.classList.remove('is-added-message');
+            robot.classList.remove('is-added-message', 'is-quantity-guide');
 
             [
                 'left',

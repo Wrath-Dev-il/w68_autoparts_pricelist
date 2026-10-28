@@ -12,9 +12,9 @@
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>W68 Autoparts | Orders</title>
     <link rel="icon" href="{{ asset('images/sidebar_logo.png') }}">
-    <link rel="stylesheet" href="{{ asset('css/w68-orders.css') }}?v=20261028-v146">
+    <link rel="stylesheet" href="{{ asset('css/w68-orders.css') }}?v=20261028-v147">
     <link rel="stylesheet" href="{{ asset('css/w68-notifications.css') }}?v=20260916-v102">
-    <script src="{{ asset('js/w68-orders.js') }}?v=20261028-v146" defer></script>
+    <script src="{{ asset('js/w68-orders.js') }}?v=20261028-v147" defer></script>
     <script src="{{ asset('js/w68-orders-cart.js') }}?v=20261015-v155" defer></script>
     <script src="{{ asset('js/w68-notifications.js') }}?v=20261001-v131" defer></script>
 </head>

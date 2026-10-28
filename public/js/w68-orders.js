@@ -364,7 +364,7 @@
     /* =========================================================
        W68_ORDERS_TUTORIAL_20261028
        First-time ordering onboarding guide for Orders page.
-       Teaches user about dashboard cards and tabs across 10 steps:
+       Teaches user about dashboard cards and tabs across 11 steps:
        1.) dashboard card to ship
        2.) to ship tab
        3.) order card
@@ -375,6 +375,7 @@
        8.) unserved tab and unserved items dashboard card
        9.) cancelled tab
        10.) bills and bills dashboard card
+       11.) NOTIFICATION BELL ICON
        ========================================================= */
     function initOrdersTutorial() {
         var overlay = document.querySelector('[data-w68-tutorial]');
@@ -502,11 +503,17 @@
             return getGroupTarget('[data-orders-tab="bills"]', '.orders-stat-card.orders-stat-bills');
         }
 
+        function getNotificationBellTarget() {
+            return document.querySelector('.w68-notification-bell')
+                || document.querySelector('[data-notification-open]')
+                || document.querySelector('.orders-notification-slot');
+        }
+
         var steps = [
             {
                 key: 'to-ship-card',
                 pointerLabel: 'TO SHIP',
-                kicker: 'W68 ORDERS GUIDE • STEP 1 OF 10',
+                kicker: 'W68 ORDERS GUIDE • STEP 1 OF 11',
                 title: '1. To Ship Dashboard Card',
                 body: 'This dashboard card shows your total count of submitted orders currently being processed and waiting to ship.',
                 borderRadius: '16px',
@@ -515,7 +522,7 @@
             {
                 key: 'to-ship-tab',
                 pointerLabel: 'TAB',
-                kicker: 'W68 ORDERS GUIDE • STEP 2 OF 10',
+                kicker: 'W68 ORDERS GUIDE • STEP 2 OF 11',
                 title: '2. To Ship Tab',
                 body: 'Click this tab anytime to view all open orders waiting for warehouse preparation and dispatch.',
                 borderRadius: '999px',
@@ -524,7 +531,7 @@
             {
                 key: 'order-card',
                 pointerLabel: 'ORDER',
-                kicker: 'W68 ORDERS GUIDE • STEP 3 OF 10',
+                kicker: 'W68 ORDERS GUIDE • STEP 3 OF 11',
                 title: '3. Order Summary Card',
                 body: 'Each order is listed here with its Order ID, Sales Note number, order date, and total amount.',
                 borderRadius: '16px',
@@ -533,7 +540,7 @@
             {
                 key: 'search-bar',
                 pointerLabel: 'SEARCH',
-                kicker: 'W68 ORDERS GUIDE • STEP 4 OF 10',
+                kicker: 'W68 ORDERS GUIDE • STEP 4 OF 11',
                 title: '4. Search Bar',
                 body: 'Use the search bar to locate orders quickly by Order ID, Sales Note, date, or item description.',
                 borderRadius: '12px',
@@ -542,7 +549,7 @@
             {
                 key: 'status',
                 pointerLabel: 'STATUS',
-                kicker: 'W68 ORDERS GUIDE • STEP 5 OF 10',
+                kicker: 'W68 ORDERS GUIDE • STEP 5 OF 11',
                 title: '5. Order Status',
                 body: 'Shows the live progress of your order: PROCESSED when received, or PARTIAL when being served in batches.',
                 borderRadius: '999px',
@@ -551,7 +558,7 @@
             {
                 key: 'view-button',
                 pointerLabel: 'VIEW',
-                kicker: 'W68 ORDERS GUIDE • STEP 6 OF 10',
+                kicker: 'W68 ORDERS GUIDE • STEP 6 OF 11',
                 title: '6. View Button',
                 body: 'Click VIEW to inspect full order details, review item quantities, or make adjustments while Open.',
                 borderRadius: '999px',
@@ -560,7 +567,7 @@
             {
                 key: 'invoiced-group',
                 pointerLabel: 'INVOICED',
-                kicker: 'W68 ORDERS GUIDE • STEP 7 OF 10',
+                kicker: 'W68 ORDERS GUIDE • STEP 7 OF 11',
                 title: '7. Invoiced Tab & Dashboard Card',
                 body: 'The Invoiced card and tab track completed invoice batches once sales order processing and dispatch are confirmed.',
                 borderRadius: '16px',
@@ -569,7 +576,7 @@
             {
                 key: 'unserved-group',
                 pointerLabel: 'UNSERVED',
-                kicker: 'W68 ORDERS GUIDE • STEP 8 OF 10',
+                kicker: 'W68 ORDERS GUIDE • STEP 8 OF 11',
                 title: '8. Unserved Items Tab & Dashboard Card',
                 body: 'Tracks pending items from partial deliveries that are still waiting for warehouse restock and fulfillment.',
                 borderRadius: '16px',
@@ -578,7 +585,7 @@
             {
                 key: 'cancelled-tab',
                 pointerLabel: 'CANCELLED',
-                kicker: 'W68 ORDERS GUIDE • STEP 9 OF 10',
+                kicker: 'W68 ORDERS GUIDE • STEP 9 OF 11',
                 title: '9. Cancelled Tab',
                 body: 'View the history of cancelled orders or sales notes that could not be completed.',
                 borderRadius: '999px',
@@ -587,11 +594,20 @@
             {
                 key: 'bills-group',
                 pointerLabel: 'BILLS',
-                kicker: 'W68 ORDERS GUIDE • STEP 10 OF 10',
+                kicker: 'W68 ORDERS GUIDE • STEP 10 OF 11',
                 title: '10. Bills Tab & Dashboard Card',
                 body: 'Monitor your statements, current and upcoming invoice dues, payment schedules, and accounting receipts.',
                 borderRadius: '16px',
                 target: getBillsGroupTarget
+            },
+            {
+                key: 'notification-bell',
+                pointerLabel: 'ALERTS',
+                kicker: 'W68 ORDERS GUIDE • STEP 11 OF 11',
+                title: '11. Notification Bell Icon',
+                body: 'Click the notification bell icon to check real-time order updates, invoice notices, and important account alerts.',
+                borderRadius: '50%',
+                target: getNotificationBellTarget
             }
         ];
 

@@ -69,6 +69,47 @@ class CustomerOrderController extends Controller
         // the follow-up AJAX request used to refresh the drawer.
         $serverCart = $this->portalCartItems($loginId, $customerId);
 
+        // W68_ORDERS_TUTORIAL_20261028
+        // First-time ordering onboarding guide for the Orders page.
+        // Triggers on:
+        // 1) Query parameter ?tutorial=preview or ?tutorial=1
+        // 2) Session flash flag 'w68_show_orders_tutorial'
+        // 3) First successful order placed (activeOrders or orders not empty, and orders_tutorial_seen is false)
+        $tutorialPreview = $request->query('tutorial') === 'preview' || $request->query('tutorial') === '1';
+        $showOrdersTutorial = false;
+
+        if ($tutorialPreview) {
+            $showOrdersTutorial = true;
+        } else {
+            $showOrdersTutorial = (bool) $request->session()->pull('w68_show_orders_tutorial', false);
+            if ($loginId) {
+                try {
+                    if (Schema::connection('system')->hasTable('customer_portal_accounts')) {
+                        if (!Schema::connection('system')->hasColumn('customer_portal_accounts', 'orders_tutorial_seen')) {
+                            Schema::connection('system')->table('customer_portal_accounts', function ($table): void {
+                                $table->boolean('orders_tutorial_seen')->default(false)->after('process_order_tutorial_seen');
+                            });
+                        }
+
+                        $portalAccount = DB::connection('system')->table('customer_portal_accounts')
+                            ->where('login_id', $loginId)
+                            ->first();
+
+                        $seen = (bool) ($portalAccount->orders_tutorial_seen ?? false);
+
+                        if (!$seen && ($showOrdersTutorial || $activeOrders->isNotEmpty() || $orders->isNotEmpty())) {
+                            $showOrdersTutorial = true;
+                            DB::connection('system')->table('customer_portal_accounts')
+                                ->where('login_id', $loginId)
+                                ->update(['orders_tutorial_seen' => true]);
+                        }
+                    }
+                } catch (Throwable $e) {
+                    // Gracefully ignore schema or database tracking errors.
+                }
+            }
+        }
+
         return view('orders', [
             'account' => $account,
             'profileName' => $profileName,
@@ -82,6 +123,7 @@ class CustomerOrderController extends Controller
             'unservedItemsCount' => $unservedItemsCount,
             'cancelled' => $cancelled,
             'serverCart' => $serverCart,
+            'showOrdersTutorial' => $showOrdersTutorial,
         ]);
     }
 
@@ -933,10 +975,35 @@ class CustomerOrderController extends Controller
             ];
         });
 
+        $redirectUrl = ltrim(route('orders', [], false), '/');
+
+        // W68_ORDERS_TUTORIAL_20261028
+        // If customer has never completed the orders tutorial, flag session and append ?tutorial=1
+        try {
+            if ($loginId && Schema::connection('system')->hasTable('customer_portal_accounts')) {
+                if (!Schema::connection('system')->hasColumn('customer_portal_accounts', 'orders_tutorial_seen')) {
+                    Schema::connection('system')->table('customer_portal_accounts', function ($table): void {
+                        $table->boolean('orders_tutorial_seen')->default(false)->after('process_order_tutorial_seen');
+                    });
+                }
+
+                $portalAccount = DB::connection('system')->table('customer_portal_accounts')
+                    ->where('login_id', $loginId)
+                    ->first();
+
+                if ($portalAccount && empty($portalAccount->orders_tutorial_seen)) {
+                    $request->session()->put('w68_show_orders_tutorial', true);
+                    $redirectUrl .= '?tutorial=1';
+                }
+            }
+        } catch (Throwable $e) {
+            // Gracefully ignore tracking errors.
+        }
+
         return response()->json([
             'ok' => true,
             'message' => 'Order processed and registered as an Open Sales Note.',
-            'redirect_url' => ltrim(route('orders', [], false), '/'),
+            'redirect_url' => $redirectUrl,
             'delivery_option' => $deliveryLabel,
             'shipment_id' => $shipmentId,
             'shipment_name' => $shipmentName,

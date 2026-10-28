@@ -9,9 +9,14 @@
     <link rel="icon" href="{{ asset('images/sidebar_logo.png') }}">
     <link rel="stylesheet" href="{{ asset('css/w68-orders.css') }}?v=20260915-v69">
     <link rel="stylesheet" href="{{ asset('css/w68-discounts.css') }}?v=20260915-v72">
-    <link rel="stylesheet" href="{{ asset('css/w68-notifications.css') }}?v=20260915-v92">
+    <link rel="stylesheet" href="{{ asset('css/w68-notifications.css') }}?v=20261028-v148">
     <script src="{{ asset('js/w68-discounts.js') }}?v=20260915-v93" defer></script>
-    <script src="{{ asset('js/w68-notifications.js') }}?v=20261001-v131" defer></script>
+    <script src="{{ asset('js/w68-notifications.js') }}?v=20261028-v148" defer></script>
+@php
+    $tutorialRobotAsset = is_file(public_path('images/w68_robot_tutorial_mascot.gif'))
+        ? asset('images/w68_robot_tutorial_mascot.gif')
+        : asset('images/w68_robot_tutorial_fallback.svg');
+@endphp
 </head>
 <body
     data-cart-state-url="{{ route('home.cart.state') }}"
@@ -19,6 +24,8 @@
     data-cart-selection-url="{{ route('home.cart.selection') }}"
     data-notifications-url="{{ rtrim(request()->getSchemeAndHttpHost(), '/') }}{{ preg_replace('#/index\.php$#i', '', rtrim(str_replace('\\', '/', (string) request()->getBaseUrl()), '/')) }}/home/notifications"
     data-notifications-read-all-url="{{ rtrim(request()->getSchemeAndHttpHost(), '/') }}{{ preg_replace('#/index\.php$#i', '', rtrim(str_replace('\\', '/', (string) request()->getBaseUrl()), '/')) }}/home/notifications/read-all"
+    data-notifications-tutorial-seen-url="{{ rtrim(request()->getSchemeAndHttpHost(), '/') }}{{ preg_replace('#/index\.php$#i', '', rtrim(str_replace('\\', '/', (string) request()->getBaseUrl()), '/')) }}/home/notifications/tutorial-seen"
+    data-tutorial-robot-gif="{{ $tutorialRobotAsset }}"
 >
 @php
     $logo = asset('images/sidebar_logo.png');

@@ -13,10 +13,10 @@
     <title>W68 Autoparts | Orders</title>
     <link rel="icon" href="{{ asset('images/sidebar_logo.png') }}">
     <link rel="stylesheet" href="{{ asset('css/w68-orders.css') }}?v=20261028-v147">
-    <link rel="stylesheet" href="{{ asset('css/w68-notifications.css') }}?v=20260916-v102">
+    <link rel="stylesheet" href="{{ asset('css/w68-notifications.css') }}?v=20261028-v148">
     <script src="{{ asset('js/w68-orders.js') }}?v=20261028-v147" defer></script>
     <script src="{{ asset('js/w68-orders-cart.js') }}?v=20261015-v155" defer></script>
-    <script src="{{ asset('js/w68-notifications.js') }}?v=20261001-v131" defer></script>
+    <script src="{{ asset('js/w68-notifications.js') }}?v=20261028-v148" defer></script>
 </head>
 {{-- W68_ORDERS_UNSERVED_SEARCH_V109_20260930 --}}
 {{-- W68_ORDERS_INVOICE_PARTIAL_UNSERVED_V110_20260930 --}}
@@ -29,6 +29,7 @@
     data-cart-selection-url="{{ route('home.cart.selection', [], false) }}"
     data-notifications-url="{{ rtrim(request()->getSchemeAndHttpHost(), '/') }}{{ preg_replace('#/index\.php$#i', '', rtrim(str_replace('\\', '/', (string) request()->getBaseUrl()), '/')) }}/home/notifications"
     data-notifications-read-all-url="{{ rtrim(request()->getSchemeAndHttpHost(), '/') }}{{ preg_replace('#/index\.php$#i', '', rtrim(str_replace('\\', '/', (string) request()->getBaseUrl()), '/')) }}/home/notifications/read-all"
+    data-notifications-tutorial-seen-url="{{ rtrim(request()->getSchemeAndHttpHost(), '/') }}{{ preg_replace('#/index\.php$#i', '', rtrim(str_replace('\\', '/', (string) request()->getBaseUrl()), '/')) }}/home/notifications/tutorial-seen"
     data-first-login-tutorial="{{ !empty($showOrdersTutorial) ? '1' : '0' }}"
     data-tutorial-robot-gif="{{ $tutorialRobotAsset }}"
     data-tutorial-robot-fallback="{{ asset('images/w68_robot_tutorial_fallback.svg') }}"

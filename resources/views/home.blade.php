@@ -8,9 +8,9 @@
     <title>W68 Autoparts & Service Center | Home</title>
     <link rel="icon" href="{{ asset('images/sidebar_logo.png') }}">
     <link rel="stylesheet" href="{{ asset('css/w68-home.css') }}?v=20261027-v175">
-    <link rel="stylesheet" href="{{ asset('css/w68-notifications.css') }}?v=20260915-v95">
+    <link rel="stylesheet" href="{{ asset('css/w68-notifications.css') }}?v=20261028-v148">
     <script src="{{ asset('js/w68-home.js') }}?v=20261027-v175" defer></script>
-    <script src="{{ asset('js/w68-notifications.js') }}?v=20261001-v131" defer></script>
+    <script src="{{ asset('js/w68-notifications.js') }}?v=20261028-v148" defer></script>
 </head>
 @php
     // W68_TUTORIAL_CACHE_SYNC_20261027
@@ -47,6 +47,7 @@
     data-orders-url="{{ route('orders') }}"
     data-notifications-url="{{ rtrim(request()->getSchemeAndHttpHost(), '/') }}{{ preg_replace('#/index\.php$#i', '', rtrim(str_replace('\\', '/', (string) request()->getBaseUrl()), '/')) }}/home/notifications"
     data-notifications-read-all-url="{{ rtrim(request()->getSchemeAndHttpHost(), '/') }}{{ preg_replace('#/index\.php$#i', '', rtrim(str_replace('\\', '/', (string) request()->getBaseUrl()), '/')) }}/home/notifications/read-all"
+    data-notifications-tutorial-seen-url="{{ rtrim(request()->getSchemeAndHttpHost(), '/') }}{{ preg_replace('#/index\.php$#i', '', rtrim(str_replace('\\', '/', (string) request()->getBaseUrl()), '/')) }}/home/notifications/tutorial-seen"
 >
     @php
         $logo = asset('images/sidebar_logo.png');

@@ -41,6 +41,11 @@
 
     listUrl = normalizeAppUrl(listUrl);
     readAllUrl = normalizeAppUrl(readAllUrl);
+    var tutorialSeenUrl = String(body.getAttribute('data-notifications-tutorial-seen-url') || '');
+    if (!tutorialSeenUrl && listUrl) {
+        tutorialSeenUrl = listUrl.replace(/\/$/, '') + '/tutorial-seen';
+    }
+    tutorialSeenUrl = normalizeAppUrl(tutorialSeenUrl);
     if (!listUrl) return;
 
     var modal = document.querySelector('[data-notification-modal]');
@@ -252,6 +257,9 @@
             .then(function (payload) {
                 render(payload);
                 loading = false;
+                if (payload && payload.show_tutorial) {
+                    scheduleNotificationTutorial();
+                }
                 return payload;
             }, function (error) {
                 loading = false;
@@ -274,6 +282,12 @@
     }
 
     function closeModal(event) {
+        if (window.W68IsNotificationTutorialActive && window.W68IsNotificationTutorialActive()) {
+            if (window.W68NotificationTutorialAdvance) {
+                window.W68NotificationTutorialAdvance(event);
+            }
+            return;
+        }
         if (event) {
             event.preventDefault();
             event.stopPropagation();
@@ -283,11 +297,23 @@
 
     openButtons.forEach(function (button) {
         button.addEventListener('touchend', function (event) {
+            if (window.W68IsNotificationTutorialActive && window.W68IsNotificationTutorialActive()) {
+                if (window.W68NotificationTutorialAdvance) {
+                    window.W68NotificationTutorialAdvance(event);
+                }
+                return;
+            }
             lastTouchOpenAt = Date.now();
             openModal(event);
         }, { passive: false });
 
         button.addEventListener('click', function (event) {
+            if (window.W68IsNotificationTutorialActive && window.W68IsNotificationTutorialActive()) {
+                if (window.W68NotificationTutorialAdvance) {
+                    window.W68NotificationTutorialAdvance(event);
+                }
+                return;
+            }
             if (Date.now() - lastTouchOpenAt < 650) {
                 event.preventDefault();
                 return;
@@ -366,6 +392,548 @@
     document.addEventListener('visibilitychange', function () {
         if (!document.hidden) loadNotifications(false);
     });
+
+    /* =========================================================
+       W68_NOTIFICATION_TUTORIAL_20261028
+       First-time Notification onboarding walkthrough.
+       Shared across Home, Orders, and Discounts pages.
+       1.) Teaches user about the Notification Bell
+       2.) Auto-opens notification modal on next/tap, explains updates
+       3.) Explains View Details & Mark as Read action buttons
+       4.) Explains Mark All as Read & Dismissal
+       ========================================================= */
+    var tutorialActive = false;
+    var tutorialTriggered = false;
+    var tutorialCurrentStep = 0;
+    var tutorialTarget = null;
+    var tutorialRepositionTimer = null;
+    var tutorialLastAdvanceAt = 0;
+
+    function initNotificationTutorial() {
+        var overlay = document.querySelector('[data-w68-notification-tutorial]');
+        var spotlight = document.querySelector('[data-w68-notification-tutorial-spotlight]');
+        var arrow = document.querySelector('[data-w68-notification-tutorial-arrow]');
+        var robot = document.querySelector('[data-w68-notification-tutorial-robot]');
+        var tutorialCard = document.querySelector('[data-w68-notification-tutorial-card]');
+        var kickerNode = document.querySelector('[data-w68-notification-tutorial-kicker]');
+        var titleNode = document.querySelector('[data-w68-notification-tutorial-title]');
+        var bodyNode = document.querySelector('[data-w68-notification-tutorial-body]');
+        var nextButton = document.querySelector('[data-w68-notification-tutorial-next]');
+        var doneButton = document.querySelector('[data-w68-notification-tutorial-done]');
+        var skipButton = document.querySelector('[data-w68-notification-tutorial-skip]');
+
+        if (!overlay || !spotlight || !arrow || !robot || !titleNode || !bodyNode) {
+            return;
+        }
+
+        if (spotlight.parentElement !== document.body) document.body.appendChild(spotlight);
+        if (arrow.parentElement !== document.body) document.body.appendChild(arrow);
+        if (robot.parentElement !== document.body) document.body.appendChild(robot);
+        if (tutorialCard && tutorialCard.parentElement !== document.body) document.body.appendChild(tutorialCard);
+        if (overlay.parentElement !== document.body) document.body.appendChild(overlay);
+
+        hidePointer();
+        robot.hidden = true;
+        robot.style.display = 'none';
+        if (tutorialCard) {
+            tutorialCard.hidden = true;
+            tutorialCard.style.display = 'none';
+        }
+
+        var robotImage = robot.querySelector('img');
+        var robotGif = String(body.getAttribute('data-tutorial-robot-gif') || '');
+        if (robotImage && robotGif && !robotImage.getAttribute('src')) {
+            robotImage.src = robotGif;
+        }
+
+        function getBellTarget() {
+            return document.querySelector('.w68-notification-bell')
+                || document.querySelector('[data-notification-open]')
+                || document.querySelector('.orders-notification-slot');
+        }
+
+        function getNotificationItemTarget() {
+            return document.querySelector('.w68-notification-item')
+                || document.querySelector('[data-notification-list]')
+                || document.querySelector('.w68-notification-card');
+        }
+
+        function getNotificationActionsTarget() {
+            var firstItem = document.querySelector('.w68-notification-item');
+            if (firstItem) {
+                var actions = firstItem.querySelector('.w68-notification-actions');
+                if (actions) return actions;
+                var view = firstItem.querySelector('.w68-notification-view');
+                if (view) return view;
+            }
+            return document.querySelector('[data-notification-mark-read]')
+                || document.querySelector('.w68-notification-view')
+                || getNotificationItemTarget();
+        }
+
+        function getHeaderActionsTarget() {
+            return document.querySelector('.w68-notification-header-actions')
+                || document.querySelector('[data-notification-read-all]')
+                || document.querySelector('.w68-notification-close')
+                || document.querySelector('.w68-notification-header');
+        }
+
+        var steps = [
+            {
+                key: 'notification-bell',
+                pointerLabel: 'BELL',
+                kicker: 'W68 NOTIFICATIONS GUIDE • STEP 1 OF 4',
+                title: '1. Notification Bell',
+                body: 'This notification bell alerts you whenever you have updates on your orders, sales notes, waybills, and billing statements. Click the bell to open your updates.',
+                borderRadius: '50%',
+                target: getBellTarget,
+                onEnter: function () {
+                    setModalOpen(false);
+                }
+            },
+            {
+                key: 'notification-item',
+                pointerLabel: 'UPDATE',
+                kicker: 'W68 NOTIFICATIONS GUIDE • STEP 2 OF 4',
+                title: '2. Order & Account Updates',
+                body: 'Each notification displays real-time progress on your orders—including order confirmations, sales notes, waybill releases, and payment reminders.',
+                borderRadius: '16px',
+                target: getNotificationItemTarget,
+                onEnter: function () {
+                    setModalOpen(true);
+                    loadNotifications(true);
+                }
+            },
+            {
+                key: 'notification-actions',
+                pointerLabel: 'ACTIONS',
+                kicker: 'W68 NOTIFICATIONS GUIDE • STEP 3 OF 4',
+                title: '3. View Details & Mark Read',
+                body: 'Click VIEW ORDER or VIEW BILLS to jump directly to your order details. Once you have seen the update, click MARK AS READ to clear the unread badge.',
+                borderRadius: '14px',
+                target: getNotificationActionsTarget,
+                onEnter: function () {
+                    setModalOpen(true);
+                }
+            },
+            {
+                key: 'header-actions',
+                pointerLabel: 'HEADER',
+                kicker: 'W68 NOTIFICATIONS GUIDE • STEP 4 OF 4',
+                title: '4. Mark All as Read & Dismiss',
+                body: 'Click MARK ALL AS READ to clear all notification badges at once, or tap the close button (×) anytime to close this notification panel.',
+                borderRadius: '12px',
+                target: getHeaderActionsTarget,
+                onEnter: function () {
+                    setModalOpen(true);
+                }
+            }
+        ];
+
+        function clearTarget() {
+            if (tutorialTarget) {
+                if (tutorialTarget instanceof Element) {
+                    tutorialTarget.classList.remove('w68-notification-tutorial-target');
+                } else if (tutorialTarget.elements && Array.isArray(tutorialTarget.elements)) {
+                    tutorialTarget.elements.forEach(function (el) {
+                        if (el instanceof Element) el.classList.remove('w68-notification-tutorial-target');
+                    });
+                }
+            }
+            document.querySelectorAll('.w68-notification-tutorial-target, .w68-notification-tutorial-highlight-part').forEach(function (el) {
+                el.classList.remove('w68-notification-tutorial-target', 'w68-notification-tutorial-highlight-part');
+            });
+            tutorialTarget = null;
+        }
+
+        function hidePointer() {
+            spotlight.hidden = true;
+            spotlight.style.display = 'none';
+            arrow.hidden = true;
+            arrow.style.display = 'none';
+        }
+
+        function showPointer() {
+            spotlight.hidden = false;
+            spotlight.style.removeProperty('display');
+            arrow.hidden = false;
+            arrow.style.removeProperty('display');
+        }
+
+        function finishNotificationTutorial() {
+            tutorialActive = false;
+            clearTarget();
+            hidePointer();
+            overlay.hidden = true;
+            overlay.style.display = 'none';
+            overlay.setAttribute('aria-hidden', 'true');
+            robot.hidden = true;
+            robot.style.display = 'none';
+            if (tutorialCard) {
+                tutorialCard.hidden = true;
+                tutorialCard.style.display = 'none';
+                tutorialCard.style.removeProperty('top');
+                tutorialCard.style.removeProperty('bottom');
+            }
+            if (robot) {
+                robot.style.removeProperty('top');
+                robot.style.removeProperty('bottom');
+                robot.style.removeProperty('left');
+                robot.style.removeProperty('right');
+                robot.style.removeProperty('transform');
+            }
+            if (tutorialRepositionTimer !== null) {
+                window.clearTimeout(tutorialRepositionTimer);
+                tutorialRepositionTimer = null;
+            }
+
+            try {
+                sessionStorage.setItem('w68_notification_tutorial_done', '1');
+            } catch (_) {}
+
+            var url = tutorialSeenUrl || (listUrl.replace(/\/$/, '') + '/tutorial-seen');
+            if (url) {
+                requestJson(url, {
+                    method: 'POST',
+                    credentials: 'same-origin'
+                }).catch(function () {});
+            }
+        }
+
+        function scrollTargetIntoView(target) {
+            var el = (target instanceof Element) ? target : (target && target.node instanceof Element ? target.node : null);
+            if (!el) return;
+            try {
+                el.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+            } catch (_) {
+                el.scrollIntoView();
+            }
+        }
+
+        function positionTutorialCard(rect) {
+            if (!tutorialCard) return;
+
+            var viewportHeight = (window.visualViewport && window.visualViewport.height)
+                || window.innerHeight
+                || document.documentElement.clientHeight;
+
+            var cardAtTop = false;
+
+            if (rect && rect.top > viewportHeight * 0.45) {
+                tutorialCard.style.top = 'max(14px, env(safe-area-inset-top, 14px))';
+                tutorialCard.style.bottom = 'auto';
+                cardAtTop = true;
+            } else {
+                tutorialCard.style.bottom = 'max(16px, env(safe-area-inset-bottom, 16px))';
+                tutorialCard.style.top = 'auto';
+            }
+
+            if (robot) {
+                var cardRect = tutorialCard.getBoundingClientRect();
+                var robotWidth = robot.offsetWidth || 90;
+                var robotHeight = robot.offsetHeight || 90;
+
+                robot.style.transform = 'none';
+                robot.style.left = Math.min(cardRect.right - robotWidth + 10, window.innerWidth - robotWidth - 4) + 'px';
+
+                if (cardAtTop) {
+                    robot.style.top = Math.min(cardRect.bottom - 10, viewportHeight - robotHeight - 4) + 'px';
+                    robot.style.bottom = 'auto';
+                } else {
+                    robot.style.bottom = 'auto';
+                    robot.style.top = Math.max(4, cardRect.top - robotHeight + 10) + 'px';
+                }
+            }
+        }
+
+        function positionPointer(target) {
+            if (!tutorialActive || !target) {
+                hidePointer();
+                return;
+            }
+
+            var rect = (target instanceof Element)
+                ? target.getBoundingClientRect()
+                : (target && typeof target.top === 'number' ? target : null);
+
+            if (!rect || rect.width <= 0 || rect.height <= 0) {
+                hidePointer();
+                return;
+            }
+
+            var viewportWidth = (window.visualViewport && window.visualViewport.width)
+                || window.innerWidth
+                || document.documentElement.clientWidth;
+            var viewportHeight = (window.visualViewport && window.visualViewport.height)
+                || window.innerHeight
+                || document.documentElement.clientHeight;
+
+            var step = steps[tutorialCurrentStep] || {};
+            var pad = 6;
+
+            showPointer();
+            spotlight.style.left = Math.max(2, rect.left - pad) + 'px';
+            spotlight.style.top = Math.max(2, rect.top - pad) + 'px';
+            spotlight.style.width = Math.max(30, rect.width + (pad * 2)) + 'px';
+            spotlight.style.height = Math.max(30, rect.height + (pad * 2)) + 'px';
+            spotlight.style.borderRadius = step.borderRadius || '14px';
+
+            var pointerWidth = 74;
+            var pointerHeight = 48;
+            var gap = 10;
+            var left = rect.right + gap;
+            var top = rect.top + (rect.height / 2) - (pointerHeight / 2);
+            var side = 'right';
+
+            if (left + pointerWidth > viewportWidth - 6) {
+                left = rect.left - pointerWidth - gap;
+                side = 'left';
+            }
+
+            if (left < 6) {
+                left = Math.max(6, Math.min(viewportWidth - pointerWidth - 6, rect.left + (rect.width / 2) - (pointerWidth / 2)));
+                top = rect.top - pointerHeight - gap;
+                side = 'top';
+            }
+
+            if (top < 6) {
+                top = Math.min(viewportHeight - pointerHeight - 6, rect.bottom + gap);
+                side = 'bottom';
+            }
+
+            if (top + pointerHeight > viewportHeight - 6) {
+                top = Math.max(6, rect.top - pointerHeight - gap);
+                side = 'top';
+            }
+
+            arrow.setAttribute('data-pointer-side', side);
+            arrow.style.left = Math.round(left) + 'px';
+            arrow.style.top = Math.round(top) + 'px';
+            arrow.style.width = pointerWidth + 'px';
+            arrow.style.height = pointerHeight + 'px';
+            arrow.style.transform = 'none';
+
+            var label = step.pointerLabel || 'HERE';
+            arrow.setAttribute('data-pointer-label', label);
+        }
+
+        function updateVisuals() {
+            if (!tutorialActive) return;
+            var step = steps[tutorialCurrentStep];
+            if (!step) return;
+
+            var target = typeof step.target === 'function' ? step.target() : step.target;
+            if (!target) {
+                hidePointer();
+                positionTutorialCard(null);
+                return;
+            }
+
+            var rect = (target instanceof Element)
+                ? target.getBoundingClientRect()
+                : (target && typeof target.top === 'number' ? target : null);
+
+            positionPointer(target);
+            positionTutorialCard(rect);
+        }
+
+        function scheduleReposition() {
+            if (!tutorialActive) return;
+            if (tutorialRepositionTimer !== null) {
+                window.clearTimeout(tutorialRepositionTimer);
+            }
+            tutorialRepositionTimer = window.setTimeout(function () {
+                tutorialRepositionTimer = null;
+                updateVisuals();
+            }, 60);
+        }
+
+        function renderStep() {
+            clearTarget();
+
+            var step = steps[tutorialCurrentStep];
+            if (!step) {
+                finishNotificationTutorial();
+                return;
+            }
+
+            var isLast = tutorialCurrentStep === steps.length - 1;
+
+            if (kickerNode) kickerNode.textContent = step.kicker || 'W68 NOTIFICATIONS GUIDE';
+            if (titleNode) titleNode.textContent = step.title;
+            if (bodyNode) bodyNode.textContent = step.body;
+
+            if (nextButton) {
+                nextButton.hidden = isLast;
+                nextButton.style.display = isLast ? 'none' : '';
+            }
+            if (doneButton) {
+                doneButton.hidden = !isLast;
+                doneButton.style.display = isLast ? '' : 'none';
+            }
+
+            if (typeof step.onEnter === 'function') {
+                step.onEnter();
+            }
+
+            overlay.hidden = false;
+            overlay.style.removeProperty('display');
+            overlay.setAttribute('aria-hidden', 'false');
+
+            robot.hidden = false;
+            robot.style.removeProperty('display');
+
+            if (tutorialCard) {
+                tutorialCard.hidden = false;
+                tutorialCard.style.removeProperty('display');
+            }
+
+            window.setTimeout(function () {
+                var target = typeof step.target === 'function' ? step.target() : step.target;
+                if (target) {
+                    tutorialTarget = target;
+                    if (target instanceof Element) {
+                        target.classList.add('w68-notification-tutorial-target');
+                    } else if (target.elements && Array.isArray(target.elements)) {
+                        target.elements.forEach(function (el) {
+                            if (el instanceof Element) el.classList.add('w68-notification-tutorial-target');
+                        });
+                    }
+                    scrollTargetIntoView(target);
+                }
+                updateVisuals();
+            }, 100);
+        }
+
+        function nextStep() {
+            if (!tutorialActive) return;
+            if (tutorialCurrentStep >= steps.length - 1) {
+                finishNotificationTutorial();
+            } else {
+                tutorialCurrentStep++;
+                renderStep();
+            }
+        }
+
+        function advanceTutorialFromTap(event) {
+            if (!tutorialActive) return;
+            var now = Date.now();
+            if (now - tutorialLastAdvanceAt < 300) {
+                if (event) {
+                    event.preventDefault();
+                    event.stopPropagation();
+                    if (typeof event.stopImmediatePropagation === 'function') event.stopImmediatePropagation();
+                }
+                return;
+            }
+            tutorialLastAdvanceAt = now;
+
+            var target = event && event.target;
+            if (target && target.closest && target.closest('[data-w68-notification-tutorial-skip]')) {
+                if (event) {
+                    event.preventDefault();
+                    event.stopPropagation();
+                    if (typeof event.stopImmediatePropagation === 'function') event.stopImmediatePropagation();
+                }
+                finishNotificationTutorial();
+                return;
+            }
+
+            if (event) {
+                event.preventDefault();
+                event.stopPropagation();
+                if (typeof event.stopImmediatePropagation === 'function') event.stopImmediatePropagation();
+            }
+            nextStep();
+        }
+
+        function startNotificationTutorial() {
+            tutorialActive = true;
+            tutorialCurrentStep = 0;
+            renderStep();
+        }
+
+        window.W68NotificationTutorialStart = startNotificationTutorial;
+        window.W68NotificationTutorialDismiss = finishNotificationTutorial;
+        window.W68NotificationTutorialAdvance = advanceTutorialFromTap;
+        window.W68IsNotificationTutorialActive = function () {
+            return tutorialActive;
+        };
+
+        window.addEventListener('click', advanceTutorialFromTap, true);
+        window.addEventListener('touchend', advanceTutorialFromTap, { capture: true, passive: false });
+
+        if (nextButton) {
+            nextButton.addEventListener('click', function (e) {
+                e.preventDefault();
+                e.stopPropagation();
+                nextStep();
+            });
+        }
+
+        if (doneButton) {
+            doneButton.addEventListener('click', function (e) {
+                e.preventDefault();
+                e.stopPropagation();
+                finishNotificationTutorial();
+            });
+        }
+
+        if (skipButton) {
+            skipButton.addEventListener('click', function (e) {
+                e.preventDefault();
+                e.stopPropagation();
+                finishNotificationTutorial();
+            });
+        }
+
+        window.addEventListener('resize', scheduleReposition, { passive: true });
+        window.addEventListener('scroll', scheduleReposition, { passive: true });
+        if (window.visualViewport) {
+            window.visualViewport.addEventListener('resize', scheduleReposition, { passive: true });
+            window.visualViewport.addEventListener('scroll', scheduleReposition, { passive: true });
+        }
+    }
+
+    function isOtherTutorialActive() {
+        var homeTut = document.querySelector('[data-w68-first-login-tutorial]:not([hidden])');
+        var ordersTut = document.querySelector('[data-w68-tutorial]:not([hidden])');
+        var processTut = document.querySelector('[data-w68-process-order-tutorial]:not([hidden])');
+        return !!(homeTut || ordersTut || processTut);
+    }
+
+    function scheduleNotificationTutorial() {
+        if (tutorialTriggered || tutorialActive) return;
+        try {
+            if (sessionStorage.getItem('w68_notification_tutorial_done') === '1') {
+                if (window.location.search.indexOf('tutorial=notification') === -1) {
+                    return;
+                }
+            }
+        } catch (_) {}
+
+        if (isOtherTutorialActive()) {
+            window.setTimeout(scheduleNotificationTutorial, 1500);
+            return;
+        }
+
+        tutorialTriggered = true;
+        if (window.W68NotificationTutorialStart) {
+            window.W68NotificationTutorialStart();
+        }
+    }
+
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', initNotificationTutorial);
+    } else {
+        initNotificationTutorial();
+    }
+
+    if (window.location.search.indexOf('tutorial=notification') !== -1) {
+        window.setTimeout(function () {
+            scheduleNotificationTutorial();
+        }, 500);
+    }
 
     window.addEventListener('beforeunload', function () {
         if (pollTimer) window.clearInterval(pollTimer);

@@ -169,10 +169,64 @@ class CustomerNotificationController extends Controller
 
         $unreadCount = $this->unreadCount($loginId, $customerId);
 
+        // W68_NOTIFICATION_TUTORIAL_20261028
+        // Show tutorial if:
+        // (1) Query parameter ?tutorial=notification or ?tutorial=preview or ?tutorial=1
+        // (2) User has unread notifications or any notification for the first time, and notification_tutorial_seen is false
+        $tutorialPreview = in_array(
+            (string) $request->query('tutorial', ''),
+            ['notification', 'preview', '1'],
+            true
+        );
+
+        $tutorialSeen = false;
+        try {
+            if (Schema::connection('system')->hasTable('customer_portal_accounts')) {
+                $portalAccount = DB::connection('system')
+                    ->table('customer_portal_accounts')
+                    ->where('login_id', $loginId)
+                    ->first();
+                $tutorialSeen = (bool) ($portalAccount->notification_tutorial_seen ?? false);
+            }
+        } catch (Throwable $exception) {
+            report($exception);
+        }
+
+        $showTutorial = false;
+        if ($tutorialPreview) {
+            $showTutorial = true;
+            if ($notifications->isEmpty()) {
+                $notifications = collect([[
+                    'id' => 'sample:1',
+                    'source' => 'order',
+                    'order_id' => 101,
+                    'order_code' => 'W68-DEMO',
+                    'sales_number' => 'SN-10293',
+                    'event_type' => 'SALES_NOTE_CREATED',
+                    'event_value' => 'SN-10293',
+                    'title' => 'Sales Note Created',
+                    'message' => 'Sales Note SN-10293 has been prepared for Order #W68-DEMO.',
+                    'event_at' => date('M d, Y h:i A'),
+                    'is_read' => false,
+                    'read_at' => null,
+                    'movement' => ['PROCESSED', 'SALES NOTE CREATED'],
+                    'waybill_no' => 'WB-88892',
+                    'portal_status' => 'PROCESSED',
+                    'sales_note_status' => 'IN_PROCESS',
+                    'order_url' => $basePath . '/orders',
+                ]]);
+                $unreadCount = max(1, $unreadCount);
+            }
+        } elseif (!$tutorialSeen && ($unreadCount > 0 || $notifications->isNotEmpty())) {
+            $showTutorial = true;
+        }
+
         return response()->json([
             'ok' => true,
             'unread_count' => $unreadCount,
             'notifications' => $notifications,
+            'show_tutorial' => $showTutorial,
+            'tutorial_seen' => $tutorialSeen,
         ]);
     }
 
@@ -282,6 +336,29 @@ class CustomerNotificationController extends Controller
         return response()->json([
             'ok' => true,
             'unread_count' => 0,
+        ]);
+    }
+
+    public function markTutorialSeen(Request $request): JsonResponse
+    {
+        [, $loginId] = $this->identity($request);
+        $this->ensureStorage();
+
+        try {
+            if (Schema::connection('system')->hasTable('customer_portal_accounts')) {
+                DB::connection('system')
+                    ->table('customer_portal_accounts')
+                    ->where('login_id', $loginId)
+                    ->update([
+                        'notification_tutorial_seen' => 1,
+                    ]);
+            }
+        } catch (Throwable $exception) {
+            report($exception);
+        }
+
+        return response()->json([
+            'ok' => true,
         ]);
     }
 
@@ -918,6 +995,23 @@ SQL);
                 } catch (Throwable $exception) {
                     if (!$schema->hasColumn('w68_portal_orders', 'notification_read_at')) {
                         throw $exception;
+                    }
+                }
+            }
+        }
+
+        // W68_NOTIFICATION_TUTORIAL_20261028
+        // Lazy-ensure the tutorial seen flag on customer_portal_accounts
+        $systemSchema = Schema::connection('system');
+        if ($systemSchema->hasTable('customer_portal_accounts')) {
+            if (!$systemSchema->hasColumn('customer_portal_accounts', 'notification_tutorial_seen')) {
+                try {
+                    DB::connection('system')->statement(
+                        "ALTER TABLE `customer_portal_accounts` ADD COLUMN `notification_tutorial_seen` TINYINT(1) NOT NULL DEFAULT 0 AFTER `orders_tutorial_seen`"
+                    );
+                } catch (Throwable $exception) {
+                    if (!$systemSchema->hasColumn('customer_portal_accounts', 'notification_tutorial_seen')) {
+                        report($exception);
                     }
                 }
             }

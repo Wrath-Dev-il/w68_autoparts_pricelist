@@ -51,10 +51,25 @@ class LoginController extends Controller
             }
         }
 
+        $customerId = (int) $request->session()->get('w68_customer_id', 0);
+        $hasAccount = false;
+        if ($customerId > 0 && Schema::connection('system')->hasTable('customer_portal_accounts')) {
+            try {
+                $hasAccount = DB::connection('system')
+                    ->table('customer_portal_accounts')
+                    ->where('customer_id', $customerId)
+                    ->exists();
+            } catch (Throwable $exception) {
+                report($exception);
+            }
+        }
+
         return view('auth.login', [
             'otpRequired' => $otpRequired,
             'otpPurpose' => $otpPurpose,
             'otpEmail' => $otpEmail,
+            'hasAccount' => $hasAccount,
+            'defaultAuthMode' => $hasAccount ? 'login' : 'register',
         ]);
     }
 

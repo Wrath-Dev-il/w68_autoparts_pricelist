@@ -28,7 +28,8 @@
 
     // W68_PROCESS_ORDER_SIGNOFF_MODAL_20261021
     var signoffModal = document.querySelector('[data-process-signoff-modal]');
-    var preparedByInput = document.querySelector('[data-prepared-by]');
+    var orderedByInput = document.querySelector('[data-ordered-by], [data-prepared-by]');
+    var preparedByInput = orderedByInput;
     var checkedByInput = document.querySelector('[data-checked-by]');
     var signoffError = document.querySelector('[data-process-signoff-error]');
     var signoffSubmit = document.querySelector('[data-process-signoff-submit]');
@@ -145,7 +146,7 @@
 
     function setSignoffError(message) {
         if (!signoffError) return;
-        signoffError.textContent = message || 'Enter PREPARED BY and CHECKED BY before processing the order.';
+        signoffError.textContent = message || 'Enter ORDERED BY and CHECKED BY before processing the order.';
         signoffError.hidden = false;
     }
 
@@ -607,18 +608,23 @@
 
         window.setTimeout(function () {
             if (window.W68IsSignoffTutorialActive && window.W68IsSignoffTutorialActive()) return;
-            if (preparedByInput && preparedByInput.focus) {
+            if (window.W68IsSignoffTutorialExpected && window.W68IsSignoffTutorialExpected()) return;
+            if (orderedByInput && orderedByInput.focus) {
                 try {
-                    preparedByInput.focus({ preventScroll: true });
+                    orderedByInput.focus({ preventScroll: true });
                 } catch (_) {
-                    preparedByInput.focus();
+                    orderedByInput.focus();
                 }
             }
         }, 0);
     }
 
-    function closeSignoffModal() {
+    function closeSignoffModal(force) {
         if (!signoffModal) return;
+
+        if (!force && window.W68IsSignoffTutorialActive && window.W68IsSignoffTutorialActive()) {
+            return;
+        }
 
         if (window.W68CancelSignoffTutorial) {
             window.W68CancelSignoffTutorial();
@@ -640,12 +646,12 @@
 
         if (confirmProcess.disabled) return;
 
-        var preparedBy = preparedByInput ? String(preparedByInput.value || '').trim() : '';
+        var orderedBy = orderedByInput ? String(orderedByInput.value || '').trim() : '';
         var checkedBy = checkedByInput ? String(checkedByInput.value || '').trim() : '';
 
-        if (!preparedBy) {
-            setSignoffError('Enter PREPARED BY before processing the order.');
-            if (preparedByInput && preparedByInput.focus) preparedByInput.focus();
+        if (!orderedBy) {
+            setSignoffError('Enter ORDERED BY before processing the order.');
+            if (orderedByInput && orderedByInput.focus) orderedByInput.focus();
             return;
         }
 
@@ -671,7 +677,8 @@
             window.requestAnimationFrame(function () {
                 requestJson(processUrl, 'POST', {
                     forwarder_id: selectedShipmentId,
-                    prepared_by: preparedBy,
+                    ordered_by: orderedBy,
+                    prepared_by: orderedBy,
                     checked_by: checkedBy
                 })
                     .then(function (data) {
@@ -1218,12 +1225,13 @@
         // ==========================
         // Targets for Phase 4 (Sign-off Modal)
         // ==========================
-        function getSignoffPreparedByTarget() {
+        function getSignoffOrderedByTarget() {
             var modal = document.querySelector('[data-process-signoff-modal]');
             if (!modal) return null;
-            var input = modal.querySelector('[data-prepared-by]');
+            var input = modal.querySelector('[data-ordered-by], [data-prepared-by]');
             return (input && input.closest('.process-signoff-field')) || input;
         }
+        var getSignoffPreparedByTarget = getSignoffOrderedByTarget;
 
         function getSignoffCheckedByTarget() {
             var modal = document.querySelector('[data-process-signoff-modal]');
@@ -1358,13 +1366,13 @@
 
         var signoffSteps = [
             {
-                key: 'signoff-prepared-by',
-                pointerLabel: 'PREPARED',
+                key: 'signoff-ordered-by',
+                pointerLabel: 'ORDERED',
                 kicker: 'W68 ORDER SIGN-OFF GUIDE • STEP 1 OF 3',
-                title: '1. Prepared By',
-                body: 'Enter the name of the person who prepared this order.',
+                title: '1. Ordered By',
+                body: 'Enter the name of the person who placed this order.',
                 borderRadius: '12px',
-                target: getSignoffPreparedByTarget
+                target: getSignoffOrderedByTarget
             },
             {
                 key: 'signoff-checked-by',
@@ -1467,6 +1475,7 @@
             active = false;
             confirmPhasePending = false;
             shipmentPhasePending = true;
+            signoffPhasePending = true;
             clearTarget();
             hidePointer();
             overlay.hidden = true;
@@ -1870,12 +1879,16 @@
             return active && currentPhase === 'signoff';
         };
 
+        window.W68IsSignoffTutorialExpected = function () {
+            return signoffPhasePending;
+        };
+
         window.W68TriggerSignoffTutorial = function () {
             if (signoffPhasePending) {
                 signoffPhasePending = false;
                 window.setTimeout(function () {
                     startSignoffModalTutorial();
-                }, 220);
+                }, 100);
             }
         };
 

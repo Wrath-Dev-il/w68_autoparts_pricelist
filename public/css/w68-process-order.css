@@ -3574,10 +3574,33 @@ body.is-signoff-tutorial-active .process-signoff-modal {
     z-index: 15001 !important;
 }
 
+body.is-signoff-tutorial-active .process-signoff-backdrop,
+body.is-signoff-tutorial-active .process-signoff-x {
+    pointer-events: none !important;
+}
+
 body.is-confirm-tutorial-active .w68-tutorial-scrim,
 body.is-shipment-tutorial-active .w68-tutorial-scrim,
 body.is-signoff-tutorial-active .w68-tutorial-scrim {
     display: none !important;
+}
+
+body.is-signoff-tutorial-active .w68-tutorial-overlay {
+    z-index: 15003 !important;
+    pointer-events: auto !important;
+}
+
+body.is-signoff-tutorial-active .w68-tutorial-card {
+    z-index: 15006 !important;
+}
+
+body.is-signoff-tutorial-active .w68-tutorial-arrow {
+    z-index: 15008 !important;
+}
+
+body.is-signoff-tutorial-active .w68-tutorial-target {
+    position: relative !important;
+    z-index: 15004 !important;
 }
 
 .w68-tutorial-overlay {

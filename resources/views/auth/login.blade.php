@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en" data-auth-mode="{{ session('auth_mode', old('auth_mode', 'login')) }}">
+<html lang="en" data-auth-mode="{{ session('auth_mode', old('auth_mode', $defaultAuthMode ?? (!empty($hasAccount) ? 'login' : 'register'))) }}" data-has-account="{{ !empty($hasAccount) ? '1' : '0' }}">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
@@ -80,6 +80,8 @@ body{
 }
 .auth-panel[hidden]{display:none!important}
 .mobile-register-brand{display:none!important}
+html[data-has-account="1"] [data-auth-switch="register"]{display:none!important}
+html[data-has-account="0"] [data-auth-switch="login"]{opacity:0.45!important;pointer-events:none!important;cursor:not-allowed!important}
 
 /* =========================
    DESKTOP / LAPTOP
@@ -1181,7 +1183,7 @@ html.w68-handheld .otp-button{
     }
 }
 </style>
-<script src="{{ asset('js/w68-auth.js') }}?v=20261006-no-login-register-otp-v24" defer></script>
+<script src="{{ asset('js/w68-auth.js') }}?v=20261029-no-login-register-otp-v25" defer></script>
 </head>
 <body>
 @php
@@ -1248,7 +1250,9 @@ html.w68-handheld .otp-button{
 
                     <div class="auth-actions">
                         <button type="submit" class="auth-button auth-button-primary">LOGIN</button>
-                        <button type="button" class="auth-button auth-button-secondary" data-auth-switch="register">REGISTER</button>
+                        @if(empty($hasAccount))
+                            <button type="button" class="auth-button auth-button-secondary" data-auth-switch="register">REGISTER</button>
+                        @endif
                     </div>
                 </form>
 
@@ -1296,7 +1300,11 @@ html.w68-handheld .otp-button{
 
                     <div class="auth-actions">
                         <button type="submit" class="auth-button auth-button-primary">REGISTER</button>
-                        <button type="button" class="auth-button auth-button-secondary" data-auth-switch="login">GO BACK TO LOGIN</button>
+                        @if(!empty($hasAccount))
+                            <button type="button" class="auth-button auth-button-secondary" data-auth-switch="login">GO BACK TO LOGIN</button>
+                        @else
+                            <button type="button" class="auth-button auth-button-secondary is-disabled" data-auth-switch="login" disabled aria-disabled="true" style="opacity: 0.45; pointer-events: none; cursor: not-allowed;">GO BACK TO LOGIN</button>
+                        @endif
                     </div>
                 </form>
             </section>

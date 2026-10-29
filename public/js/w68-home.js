@@ -1280,7 +1280,13 @@
         syncBodyLock();
     };
 
-    const closeCart = () => {
+    const isTutorialCartLocked = () => {
+        const overlay = document.querySelector('[data-w68-tutorial]');
+        return Boolean(overlay && !overlay.hidden && overlay.getAttribute('aria-hidden') !== 'true');
+    };
+
+    const closeCart = (force = false) => {
+        if (!force && isTutorialCartLocked()) return;
         cartDrawer?.classList.remove('open');
         cartDrawer?.setAttribute('aria-hidden', 'true');
         syncBodyLock();
@@ -2374,6 +2380,7 @@
         }
 
         if (event.target.closest('[data-cart-close]')) {
+            if (isTutorialCartLocked()) return;
             closeCart();
             return;
         }
@@ -2406,6 +2413,7 @@
     // immediately close the drawer on the same tap that opened it.
     const closeCartFromOutside = (event) => {
         if (!cartDrawer?.classList.contains('open')) return;
+        if (isTutorialCartLocked()) return;
         const target = event.target;
         if (target?.closest?.('.cart-panel')) return;
         if (target?.closest?.('[data-cart-open]')) return;
@@ -2435,6 +2443,7 @@
             return;
         }
         if (cartDrawer?.classList.contains('open')) {
+            if (isTutorialCartLocked()) return;
             closeCart();
         }
     });
@@ -2827,8 +2836,9 @@
                 body: 'Tap the highlighted item you just added. This teaches you where the carted product, quantity, price and total are shown.',
                 target: () => getTutorialCartRow()
                     || getFirstVisibleTutorialTarget('[data-cart-items]'),
-                allowNext: false,
+                allowNext: true,
                 showDone: false,
+                autoAdvanceMs: 4000,
             },
             {
                 key: 'select-item',
@@ -3494,13 +3504,9 @@
                 return;
             }
 
-            if (
-                step.key === 'carted-item'
-                && event.target.closest('[data-cart-row-id]')
-                && !event.target.closest('button, input, select, a, label')
-            ) {
-                // This tutorial click identifies the cart row. Prevent the
-                // normal cart-item detail modal from replacing the lesson.
+            if (step.key === 'carted-item') {
+                // If the user tapped the cart item, or anywhere in the cart drawer / screen,
+                // proceed immediately to pointing to the item checkbox.
                 event.preventDefault();
                 event.stopImmediatePropagation();
                 window.setTimeout(() => renderStep(8), 100);

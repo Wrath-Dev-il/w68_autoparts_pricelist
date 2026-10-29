@@ -22,8 +22,8 @@
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>W68 Autoparts | {{ $returnViewMode ? 'View Return' : ($viewMode ? 'View Order' : 'Process Order') }}</title>
     <link rel="icon" href="{{ asset('images/sidebar_logo.png') }}">
-    <link rel="stylesheet" href="{{ asset('css/w68-process-order.css') }}?v=20261027-v147">
-    <script src="{{ asset('js/w68-process-order.js') }}?v=20261027-v147" defer></script>
+    <link rel="stylesheet" href="{{ asset('css/w68-process-order.css') }}?v=20261029-v148">
+    <script src="{{ asset('js/w68-process-order.js') }}?v=20261029-v148" defer></script>
 </head>
 <body
     data-process-url="{{ $viewMode ? '' : route('home.orders.process') }}"
@@ -412,7 +412,7 @@
                         </colgroup>
                         <tr>
                             <td colspan="4" class="signoff-cell">
-                                <span class="signoff-line"><span class="signoff-label">PREPARED BY:</span><span class="signoff-value">{{ $invoiceReceipt['prepared_by'] ?? '' }}</span></span>
+                                <span class="signoff-line"><span class="signoff-label">ORDERED BY:</span><span class="signoff-value">{{ $invoiceReceipt['prepared_by'] ?? '' }}</span></span>
                             </td>
                             <td class="financial-label">INVOICE AMOUNT:</td>
                             @if ($showReceiptDiscount)<td></td>@endif
@@ -563,14 +563,15 @@
 
                 <div class="process-signoff-fields">
                     <label class="process-signoff-field">
-                        <span>PREPARED BY</span>
+                        <span>ORDERED BY</span>
                         <input
                             type="text"
+                            data-ordered-by
                             data-prepared-by
                             maxlength="191"
                             autocomplete="off"
                             autocapitalize="words"
-                            placeholder="Enter prepared by"
+                            placeholder="Enter ordered by"
                             required
                         >
                     </label>

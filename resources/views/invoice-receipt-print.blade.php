@@ -928,7 +928,7 @@
                 @endif
             </colgroup>
             <tr>
-                <td colspan="4"><span class="signoff-line"><span class="signoff-label">PREPARED BY:</span><span class="signoff-value">{{ $invoiceReceipt['prepared_by'] ?? '' }}</span></span></td>
+                <td colspan="4"><span class="signoff-line"><span class="signoff-label">ORDERED BY:</span><span class="signoff-value">{{ $invoiceReceipt['prepared_by'] ?? '' }}</span></span></td>
                 <td class="financial-label">INVOICE AMOUNT:</td>
                 @if ($showDiscountColumn)<td></td>@endif
                 <td class="financial-value">{{ number_format((float) ($invoiceReceipt['invoice_amount'] ?? 0), 2) }}</td>

@@ -13,7 +13,14 @@
     var countdownTimer = null;
 
     function setMode(mode) {
+        var hasAccount = root.getAttribute('data-has-account');
         var selected = mode === 'register' ? 'register' : 'login';
+
+        if (hasAccount === '0') {
+            selected = 'register';
+        } else if (hasAccount === '1') {
+            selected = 'login';
+        }
 
         root.setAttribute('data-auth-mode', selected);
 
@@ -37,7 +44,17 @@
 
     switches.forEach(function (button) {
         button.addEventListener('click', function () {
-            setMode(button.getAttribute('data-auth-switch'));
+            var targetMode = button.getAttribute('data-auth-switch');
+            var hasAccount = root.getAttribute('data-has-account');
+
+            if (hasAccount === '0' && targetMode === 'login') {
+                return;
+            }
+            if (hasAccount === '1' && targetMode === 'register') {
+                return;
+            }
+
+            setMode(targetMode);
         });
     });
 

@@ -702,22 +702,22 @@ class CustomerOrderController extends Controller
         );
 
         // W68_PROCESS_ORDER_SIGNOFF_20261021
-        // PREPARED BY / CHECKED BY belong ONLY to w68_portal_orders.
+        // ORDERED BY (formerly PREPARED BY) / CHECKED BY belong ONLY to w68_portal_orders.
         // Never copy these customer-entered sign-off values to sales_notes.
         $delivery = $request->validate([
             'forwarder_id' => ['required', 'integer', 'min:1'],
-            'prepared_by' => ['required', 'string', 'max:191'],
+            'ordered_by' => ['nullable', 'string', 'max:191'],
+            'prepared_by' => ['nullable', 'string', 'max:191'],
             'checked_by' => ['required', 'string', 'max:191'],
         ], [
             'forwarder_id.required' => 'Choose a Shipment before processing the order.',
-            'prepared_by.required' => 'Enter PREPARED BY before processing the order.',
             'checked_by.required' => 'Enter CHECKED BY before processing the order.',
         ]);
 
-        $preparedBy = trim((string) $delivery['prepared_by']);
+        $preparedBy = trim((string) ($delivery['ordered_by'] ?? ($delivery['prepared_by'] ?? '')));
         $checkedBy = trim((string) $delivery['checked_by']);
 
-        abort_if($preparedBy === '', 422, 'Enter PREPARED BY before processing the order.');
+        abort_if($preparedBy === '', 422, 'Enter ORDERED BY before processing the order.');
         abort_if($checkedBy === '', 422, 'Enter CHECKED BY before processing the order.');
 
         abort_unless(

@@ -1898,6 +1898,15 @@
             }
         };
 
+        var lastProcessOrderAdvanceTime = 0;
+        function advanceTutorialStep() {
+            var now = Date.now();
+            if (now - lastProcessOrderAdvanceTime < 350) return;
+            if (!active) return;
+            lastProcessOrderAdvanceTime = now;
+            nextStep();
+        }
+
         // Capturing click listener
         document.addEventListener('click', function (event) {
             if (!active) return;
@@ -1924,22 +1933,51 @@
             event.stopPropagation();
             event.stopImmediatePropagation();
 
-            nextStep();
+            advanceTutorialStep();
         }, true);
 
-        // Touch protection for mobile and iPad
+        // Touch listener for mobile and iPad
         document.addEventListener('touchstart', function (event) {
             if (!active) return;
             if (event.target && event.target.closest && event.target.closest('[data-w68-tutorial-skip]')) {
                 return;
             }
-            if (event.target && event.target.closest && event.target.closest(
-                '[data-remove-selected], [data-final-process], [data-delivery-open], [data-confirm-process], [data-shipment-forwarder], [data-shipment-save], [data-process-signoff-submit], input'
-            )) {
-                event.preventDefault();
-                event.stopPropagation();
+
+            // In Phase 1, Step 6: if user touched the PROCESS ORDER button directly
+            if (currentPhase === 'review' && currentStepIndex === reviewSteps.length - 1) {
+                if (event.target && event.target.closest && event.target.closest('[data-final-process]')) {
+                    event.preventDefault();
+                    event.stopPropagation();
+                    event.stopImmediatePropagation();
+                    finishReviewPageTutorial();
+                    openConfirmModal();
+                    return;
+                }
             }
+
+            event.preventDefault();
+            event.stopPropagation();
+            event.stopImmediatePropagation();
+
+            advanceTutorialStep();
         }, { passive: false, capture: true });
+
+        if (orderedByInput) {
+            orderedByInput.addEventListener('focus', function () {
+                if (active && currentPhase === 'signoff') {
+                    orderedByInput.blur();
+                    advanceTutorialStep();
+                }
+            });
+        }
+        if (checkedByInput) {
+            checkedByInput.addEventListener('focus', function () {
+                if (active && currentPhase === 'signoff') {
+                    checkedByInput.blur();
+                    advanceTutorialStep();
+                }
+            });
+        }
 
         if (skipButton) skipButton.addEventListener('click', dismissTutorialEntirely);
         if (doneButton) {

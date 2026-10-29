@@ -3579,6 +3579,20 @@ body.is-signoff-tutorial-active .process-signoff-x {
     pointer-events: none !important;
 }
 
+body.is-shipment-tutorial-active .shipment-forwarder-card,
+body.is-shipment-tutorial-active .shipment-forwarder-list input,
+body.is-shipment-tutorial-active [data-shipment-save] {
+    pointer-events: none !important;
+}
+
+body.is-signoff-tutorial-active .process-signoff-modal input,
+body.is-signoff-tutorial-active .process-signoff-modal textarea,
+body.is-signoff-tutorial-active .process-signoff-modal button:not([data-w68-tutorial-skip]):not([data-w68-tutorial-next]):not([data-w68-tutorial-done]) {
+    pointer-events: none !important;
+    user-select: none !important;
+    -webkit-user-select: none !important;
+}
+
 body.is-confirm-tutorial-active .w68-tutorial-scrim,
 body.is-shipment-tutorial-active .w68-tutorial-scrim,
 body.is-signoff-tutorial-active .w68-tutorial-scrim {

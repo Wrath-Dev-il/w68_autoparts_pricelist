@@ -2833,7 +2833,7 @@
                 key: 'carted-item',
                 pointerLabel: 'ITEM',
                 title: 'Step 6: This is your carted item',
-                body: 'Tap the highlighted item you just added. This teaches you where the carted product, quantity, price and total are shown.',
+                body: 'This is the item you added. Tap anywhere or click NEXT to proceed to selecting it.',
                 target: () => getTutorialCartRow()
                     || getFirstVisibleTutorialTarget('[data-cart-items]'),
                 allowNext: true,
@@ -3436,6 +3436,14 @@
             renderStep(1);
         };
 
+        const advanceFromCartedItem = () => {
+            const now = Date.now();
+            if (now - lastStepAdvanceTime < 350) return;
+            if (!active || steps[currentStepIndex]?.key !== 'carted-item') return;
+            lastStepAdvanceTime = now;
+            renderStep(8);
+        };
+
         // W68_TUTORIAL_STRICT_ACTION_GATE_20261027
         // On touch devices pointer/touch starts can trigger underlying controls
         // before click. Swallow every unrelated interaction. Only the current
@@ -3451,6 +3459,17 @@
                 event.preventDefault();
                 event.stopImmediatePropagation();
                 advanceFromWelcome();
+                return;
+            }
+
+            // In carted-item step, tapping or touching anywhere advances to select-item (checkbox)
+            if (steps[currentStepIndex]?.key === 'carted-item') {
+                if (event.target.closest('[data-w68-tutorial-skip]')) {
+                    return;
+                }
+                event.preventDefault();
+                event.stopImmediatePropagation();
+                advanceFromCartedItem();
                 return;
             }
 
@@ -3480,6 +3499,17 @@
                 event.preventDefault();
                 event.stopImmediatePropagation();
                 advanceFromWelcome();
+                return;
+            }
+
+            // In carted-item step, clicking/tapping anywhere advances to select-item (checkbox)
+            if (step.key === 'carted-item') {
+                if (event.target.closest('[data-w68-tutorial-skip]')) {
+                    return;
+                }
+                event.preventDefault();
+                event.stopImmediatePropagation();
+                advanceFromCartedItem();
                 return;
             }
 

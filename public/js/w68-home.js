@@ -2770,7 +2770,7 @@
             {
                 key: 'welcome',
                 title: 'Welcome to W68!',
-                body: 'I will guide you using an item from the PRODUCTS section. Follow the hand cursor and click each highlighted control.',
+                body: 'I will guide you using an item from the PRODUCTS section. Tap anywhere or click NEXT to start.',
                 target: null,
                 allowNext: true,
                 showDone: false,
@@ -2885,8 +2885,12 @@
             overlay.hidden = true;
             overlay.setAttribute('aria-hidden', 'true');
             overlay.classList.remove('is-finishable');
+            overlay.classList.remove('is-welcome-stage');
             robot.hidden = true;
-            if (tutorialCard) tutorialCard.hidden = true;
+            if (tutorialCard) {
+                tutorialCard.hidden = true;
+                tutorialCard.classList.remove('is-welcome-stage');
+            }
             resetTutorialCardPlacement();
             resetTutorialRobotPlacement();
 
@@ -3277,9 +3281,14 @@
             doneButton.hidden = !step.showDone;
             doneButton.textContent = step.key === 'process-order' ? 'PROCEED' : 'DONE';
 
-            // No background/scrim click can advance or close the tutorial.
-            // PROCESS ORDER is the final manual FINISH step.
             overlay.classList.remove('is-finishable');
+            if (step.key === 'welcome') {
+                overlay.classList.add('is-welcome-stage');
+                if (tutorialCard) tutorialCard.classList.add('is-welcome-stage');
+            } else {
+                overlay.classList.remove('is-welcome-stage');
+                if (tutorialCard) tutorialCard.classList.remove('is-welcome-stage');
+            }
 
             positionTutorialCardForStep(step);
             positionTutorialRobotForStep(step);
@@ -3418,12 +3427,33 @@
                 && (target === currentTarget || currentTarget.contains(target));
         };
 
+        let lastStepAdvanceTime = 0;
+        const advanceFromWelcome = () => {
+            const now = Date.now();
+            if (now - lastStepAdvanceTime < 350) return;
+            if (!active || steps[currentStepIndex]?.key !== 'welcome') return;
+            lastStepAdvanceTime = now;
+            renderStep(1);
+        };
+
         // W68_TUTORIAL_STRICT_ACTION_GATE_20261027
         // On touch devices pointer/touch starts can trigger underlying controls
         // before click. Swallow every unrelated interaction. Only the current
         // highlighted control and tutorial buttons are actionable.
         const blockUnrelatedTutorialInteraction = (event) => {
             if (!active || !(event.target instanceof Element)) return;
+
+            // In welcome step, tapping or touching anywhere advances to add-to-cart
+            if (steps[currentStepIndex]?.key === 'welcome') {
+                if (event.target.closest('[data-w68-tutorial-skip]')) {
+                    return;
+                }
+                event.preventDefault();
+                event.stopImmediatePropagation();
+                advanceFromWelcome();
+                return;
+            }
+
             if (isAllowedTutorialInteraction(event.target)) return;
 
             event.preventDefault();
@@ -3441,6 +3471,17 @@
 
             const step = steps[currentStepIndex];
             if (!step) return;
+
+            // In welcome step, clicking/tapping anywhere advances to add-to-cart
+            if (step.key === 'welcome') {
+                if (event.target.closest('[data-w68-tutorial-skip]')) {
+                    return;
+                }
+                event.preventDefault();
+                event.stopImmediatePropagation();
+                advanceFromWelcome();
+                return;
+            }
 
             // Random clicks/taps can never advance, finish, navigate or alter
             // the page while a tutorial step is waiting for another control.

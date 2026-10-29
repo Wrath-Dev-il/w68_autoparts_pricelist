@@ -81,7 +81,7 @@ body{
 .auth-panel[hidden]{display:none!important}
 .mobile-register-brand{display:none!important}
 html[data-has-account="1"] [data-auth-switch="register"]{display:none!important}
-html[data-has-account="0"] [data-auth-switch="login"]{opacity:0.45!important;pointer-events:none!important;cursor:not-allowed!important}
+html[data-has-account="0"] [data-auth-switch="login"]{display:none!important}
 
 /* =========================
    DESKTOP / LAPTOP
@@ -1183,7 +1183,7 @@ html.w68-handheld .otp-button{
     }
 }
 </style>
-<script src="{{ asset('js/w68-auth.js') }}?v=20261029-no-login-register-otp-v25" defer></script>
+<script src="{{ asset('js/w68-auth.js') }}?v=20261029-no-login-register-otp-v26" defer></script>
 </head>
 <body>
 @php
@@ -1214,7 +1214,15 @@ html.w68-handheld .otp-button{
             </div>
 
             @if (session('status'))
-                <div class="auth-message auth-message-success">{{ session('status') }}</div>
+                @php
+                    $renderedStatus = (string) session('status');
+                    if (stripos($renderedStatus, 'authorization') !== false && (stripos($renderedStatus, 'accepted') !== false || stripos($renderedStatus, 'register') !== false || stripos($renderedStatus, 'log in') !== false || stripos($renderedStatus, 'login') !== false)) {
+                        $renderedStatus = !empty($hasAccount)
+                            ? 'Authorization token accepted. You may now login.'
+                            : 'Authorization token accepted. You may now register.';
+                    }
+                @endphp
+                <div class="auth-message auth-message-success">{{ $renderedStatus }}</div>
             @endif
 
             @if ($errors->any() && !($showOtpModal && $errors->has('otp')))
@@ -1302,8 +1310,6 @@ html.w68-handheld .otp-button{
                         <button type="submit" class="auth-button auth-button-primary">REGISTER</button>
                         @if(!empty($hasAccount))
                             <button type="button" class="auth-button auth-button-secondary" data-auth-switch="login">GO BACK TO LOGIN</button>
-                        @else
-                            <button type="button" class="auth-button auth-button-secondary is-disabled" data-auth-switch="login" disabled aria-disabled="true" style="opacity: 0.45; pointer-events: none; cursor: not-allowed;">GO BACK TO LOGIN</button>
                         @endif
                     </div>
                 </form>

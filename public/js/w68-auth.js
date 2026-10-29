@@ -24,6 +24,23 @@
 
         root.setAttribute('data-auth-mode', selected);
 
+        if (hasAccount === '0') {
+            document.querySelectorAll('[data-auth-switch="login"]').forEach(function (btn) {
+                btn.style.setProperty('display', 'none', 'important');
+            });
+        } else if (hasAccount === '1') {
+            document.querySelectorAll('[data-auth-switch="register"]').forEach(function (btn) {
+                btn.style.setProperty('display', 'none', 'important');
+            });
+        }
+
+        var authMessage = document.querySelector('.auth-message-success');
+        if (authMessage && /authorization.*accepted|token.*accepted/i.test(authMessage.textContent)) {
+            authMessage.textContent = (hasAccount === '1' || selected === 'login')
+                ? 'Authorization token accepted. You may now login.'
+                : 'Authorization token accepted. You may now register.';
+        }
+
         panels.forEach(function (panel) {
             var active = panel.getAttribute('data-auth-panel') === selected;
             var controls;

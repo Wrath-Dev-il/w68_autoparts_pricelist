@@ -119,9 +119,25 @@ class AuthorizedAccessController extends Controller
                 'w68_pending_authorization_id',
             ]);
 
+            $hasAccount = false;
+            if (Schema::connection('system')->hasTable('customer_portal_accounts')) {
+                try {
+                    $hasAccount = DB::connection('system')
+                        ->table('customer_portal_accounts')
+                        ->where('customer_id', (int) $authorization->customer_id)
+                        ->exists();
+                } catch (Throwable $accountCheckException) {
+                    report($accountCheckException);
+                }
+            }
+
+            $statusMessage = $hasAccount
+                ? 'Authorization token accepted. You may now login.'
+                : 'Authorization token accepted. You may now register.';
+
             return redirect()
                 ->route('login')
-                ->with('status', 'Customer authorization accepted. You may now log in or register.');
+                ->with('status', $statusMessage);
         } catch (Throwable $exception) {
             report($exception);
 

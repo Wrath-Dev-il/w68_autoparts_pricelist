@@ -250,6 +250,7 @@
     }
 
     function isOrderConfirmationReady() {
+        syncDeliveryStateFromDom();
         var termsAccepted = !!(termsCheckbox && termsCheckbox.checked);
         var deliveryReady = (selectedDeliveryType === 'rush' || selectedDeliveryType === 'regular')
             && selectedShipmentId > 0;
@@ -269,7 +270,7 @@
     function updateConfirmProcessState() {
         if (!confirmProcess || viewMode) return;
         var status = isOrderConfirmationReady();
-        confirmProcess.disabled = !status.ready;
+        confirmProcess.disabled = false;
         confirmProcess.classList.toggle('is-inactive', !status.ready);
         confirmProcess.setAttribute('aria-disabled', !status.ready ? 'true' : 'false');
     }
@@ -707,8 +708,9 @@
         submitOrder();
     }
 
+    var orderSubmitting = false;
     function submitOrder() {
-        if (viewMode || !confirmProcess || !processUrl) return;
+        if (viewMode || !confirmProcess || !processUrl || orderSubmitting) return;
 
         syncDeliveryStateFromDom();
         var status = isOrderConfirmationReady();
@@ -721,7 +723,7 @@
         var checkedBy = checkedByInput ? String(checkedByInput.value || '').trim() : '';
 
         clearConfirmError();
-        confirmProcess.disabled = true;
+        orderSubmitting = true;
         showProcessLoader();
 
         // Give Safari/iPad two paint frames so the W68 animation is visibly
@@ -749,8 +751,8 @@
                         window.location.replace(redirectUrl);
                     })
                     .catch(function (error) {
+                        orderSubmitting = false;
                         hideProcessLoader();
-                        confirmProcess.disabled = false;
                         updateConfirmProcessState();
                         setConfirmError(error && error.message ? error.message : 'Unable to process this order. Please try again.');
                     });
@@ -817,18 +819,8 @@
         });
     });
 
-    bindProcessTap(confirmProcess, function () {
-        if (!confirmProcess.disabled) openSignoffModal();
-    });
-
-    bindProcessTap(signoffSubmit, function () {
-        if (!signoffSubmit.disabled) submitOrder();
-    });
-
-    signoffCloseButtons.forEach(function (button) {
-        bindProcessTap(button, function () {
-            closeSignoffModal();
-        });
+    bindProcessTap(confirmProcess, function (event) {
+        onFinalizeOrderClicked(event);
     });
 
     document.addEventListener('click', function (event) {
@@ -1067,11 +1059,6 @@
         }, false);
     }
 
-    if (confirmProcess) {
-        confirmProcess.addEventListener('click', function (event) {
-            onFinalizeOrderClicked(event);
-        }, false);
-    }
 
     document.addEventListener('keydown', function (event) {
         if (event.key !== 'Escape') return;

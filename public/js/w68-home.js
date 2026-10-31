@@ -3245,6 +3245,9 @@
 
         const renderStep = (index) => {
             clearStepTimer();
+            // Reset advance debounce so delayed events from the previous tap
+            // cannot accidentally skip this newly rendered step.
+            lastAdvanceTime = Date.now();
             const step = steps[index];
 
             if (!step) {
@@ -3440,7 +3443,7 @@
             }
         };
 
-        let isPointerAdvancing = false;
+        let lastPointerUpTime = 0;
         const blockAndAdvance = (event) => {
             if (!active || !(event.target instanceof Element)) return;
             if (event && event.isTrusted === false) return;
@@ -3453,21 +3456,17 @@
             event.preventDefault();
             event.stopImmediatePropagation();
 
-            if (event.type === 'click' && isPointerAdvancing) {
-                isPointerAdvancing = false;
-                return;
+            // pointerup is the primary advance trigger (instant on touch + mouse).
+            // click only advances as a fallback when pointer events are absent.
+            if (event.type === 'pointerup') {
+                lastPointerUpTime = Date.now();
+                advanceTutorial();
+            } else if (event.type === 'click' && Date.now() - lastPointerUpTime > 800) {
+                advanceTutorial();
             }
-
-            if (event.type === 'pointerup' || event.type === 'touchend') {
-                isPointerAdvancing = true;
-                window.setTimeout(() => { isPointerAdvancing = false; }, 450);
-            }
-
-            advanceTutorial();
         };
 
         document.addEventListener('pointerup', blockAndAdvance, true);
-        document.addEventListener('touchend', blockAndAdvance, true);
         document.addEventListener('click', blockAndAdvance, true);
 
         const openTutorial = () => {

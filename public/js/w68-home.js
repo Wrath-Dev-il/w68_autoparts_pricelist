@@ -3259,10 +3259,10 @@
             titleNode.textContent = step.title;
             bodyNode.textContent = step.body;
             arrow.dataset.pointerLabel = String(step.pointerLabel || 'CLICK');
-            const isLastStep = step.key === 'process-order';
-            nextButton.hidden = isLastStep;
-            doneButton.hidden = !isLastStep;
-            doneButton.textContent = 'DONE';
+
+            // Hide NEXT/DONE — user taps anywhere to advance.
+            nextButton.hidden = true;
+            doneButton.hidden = true;
 
             // All steps are tap-anywhere; keep scrim clickable.
             overlay.classList.remove('is-finishable');
@@ -3370,7 +3370,7 @@
         const advanceTutorial = () => {
             clearStepTimer();
             const now = Date.now();
-            if (now - lastAdvanceTime < 380) return;
+            if (now - lastAdvanceTime < 600) return;
             if (!active) return;
             lastAdvanceTime = now;
 
@@ -3443,29 +3443,26 @@
             }
         };
 
-        let lastPointerUpTime = 0;
         const blockAndAdvance = (event) => {
             if (!active || !(event.target instanceof Element)) return;
             if (event && event.isTrusted === false) return;
+
+            event.preventDefault();
+            event.stopImmediatePropagation();
 
             if (event.target.closest('[data-w68-tutorial-skip]')) {
                 finishTutorial();
                 return;
             }
 
-            event.preventDefault();
-            event.stopImmediatePropagation();
-
-            // pointerup is the primary advance trigger (instant on touch + mouse).
-            // click only advances as a fallback when pointer events are absent.
-            if (event.type === 'pointerup') {
-                lastPointerUpTime = Date.now();
-                advanceTutorial();
-            } else if (event.type === 'click' && Date.now() - lastPointerUpTime > 800) {
+            // Only click advances (fires exactly once per tap on all platforms).
+            // pointerdown just blocks underlying handlers from firing.
+            if (event.type === 'click') {
                 advanceTutorial();
             }
         };
 
+        document.addEventListener('pointerdown', blockAndAdvance, true);
         document.addEventListener('pointerup', blockAndAdvance, true);
         document.addEventListener('click', blockAndAdvance, true);
 

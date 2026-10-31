@@ -1281,6 +1281,12 @@
     };
 
     const isTutorialCartLocked = () => {
+        if (
+            document.body?.classList.contains('w68-tutorial-active')
+            || document.documentElement.classList.contains('w68-tutorial-active')
+        ) {
+            return true;
+        }
         const overlay = document.querySelector('[data-w68-tutorial]');
         return Boolean(overlay && !overlay.hidden && overlay.getAttribute('aria-hidden') !== 'true');
     };
@@ -1487,7 +1493,7 @@
        Product full-view modal
        ===================================================== */
     const openProductModal = (product) => {
-        if (!productModal) return;
+        if (!productModal || isTutorialCartLocked()) return;
 
         const fields = {
             '[data-product-modal-description]': product.description || '\u2014',
@@ -1559,7 +1565,7 @@
        Cart item full-view modal
        ===================================================== */
     const openCartItemModal = (item) => {
-        if (!cartItemModal) return;
+        if (!cartItemModal || isTutorialCartLocked()) return;
 
         const fields = {
             '[data-cart-item-modal-description]': item.description || '\u2014',
@@ -1796,9 +1802,13 @@
             copy.append(code, description, attributes, priceLines, qtyRow);
             row.append(selectWrap, image, copy);
 
-            row.addEventListener('click', () => openCartItemModal(item));
+            row.addEventListener('click', () => {
+                if (isTutorialCartLocked()) return;
+                openCartItemModal(item);
+            });
             row.addEventListener('keydown', (event) => {
                 if (event.key === 'Enter' || event.key === ' ') {
+                    if (isTutorialCartLocked()) return;
                     event.preventDefault();
                     openCartItemModal(item);
                 }
@@ -2319,11 +2329,13 @@
         const product = getProductData(card);
 
         card.addEventListener('click', (event) => {
+            if (isTutorialCartLocked()) return;
             if (event.target.closest('button, input, select, a, label')) return;
             openProductModal(product);
         });
 
         card.addEventListener('keydown', (event) => {
+            if (isTutorialCartLocked()) return;
             if (event.key !== 'Enter' && event.key !== ' ') return;
             if (event.target.closest('button, input, select, a, label')) return;
             event.preventDefault();
@@ -2775,7 +2787,6 @@
                 title: 'Welcome to W68!',
                 body: 'I will guide you through ordering. Tap anywhere to start.',
                 target: null,
-                autoAdvanceMs: 3500,
             },
             {
                 key: 'add-to-cart',
@@ -2783,7 +2794,6 @@
                 title: 'Step 1: Add to Cart',
                 body: 'This is the ADD TO CART button. Tap anywhere to add this item.',
                 target: () => getTutorialPurchasableAddButton(),
-                autoAdvanceMs: 2500,
             },
             {
                 key: 'qty-controls',
@@ -2791,14 +2801,12 @@
                 title: 'Step 2: Quantity Controls',
                 body: 'Use −, input, and + to set your quantity. Tap anywhere to add it to cart.',
                 target: () => getFirstVisibleTutorialTarget('.quantity-stepper'),
-                autoAdvanceMs: 3000,
             },
             {
                 key: 'added-success',
                 title: 'Step 3: Added to Cart!',
                 body: 'Your item was added successfully. Tap anywhere to open your cart.',
                 target: () => getFirstVisibleTutorialTarget('[data-cart-message] .cart-message-card'),
-                autoAdvanceMs: 2500,
             },
             {
                 key: 'cart-button',
@@ -2806,7 +2814,6 @@
                 title: 'Step 4: Open Cart',
                 body: 'This is your CART button. Tap anywhere to open it.',
                 target: () => getFirstVisibleTutorialTarget('[data-cart-open]'),
-                autoAdvanceMs: 2200,
             },
             {
                 key: 'carted-item',
@@ -2815,7 +2822,6 @@
                 body: 'This is the item you added with its checkbox checked. Tap anywhere to continue.',
                 target: () => getTutorialCartRow()
                     || getFirstVisibleTutorialTarget('[data-cart-items]'),
-                autoAdvanceMs: 2500,
             },
             {
                 key: 'process-order',
@@ -2823,7 +2829,6 @@
                 title: 'Step 6: Process Order',
                 body: 'This is the PROCESS ORDER button. Tap anywhere to finish the guide.',
                 target: () => getFirstVisibleTutorialTarget('[data-process-order]'),
-                autoAdvanceMs: 0,
             },
         ];
 
@@ -3313,16 +3318,6 @@
                     }, delay);
                 });
             }
-
-            // Automatic advance timer if user doesn't touch the screen
-            if (Number(step.autoAdvanceMs || 0) > 0) {
-                const expectedIndex = index;
-                stepAutoTimer = window.setTimeout(() => {
-                    if (active && currentStepIndex === expectedIndex) {
-                        advanceTutorial();
-                    }
-                }, Number(step.autoAdvanceMs));
-            }
         };
 
         nextButton.addEventListener('click', (event) => {
@@ -3411,6 +3406,10 @@
                 }
 
                 case 'added-success':
+                    if (cartMessage) {
+                        cartMessage.hidden = true;
+                        cartMessage.setAttribute('aria-hidden', 'true');
+                    }
                     renderStep(4);
                     break;
 
@@ -3441,6 +3440,7 @@
             }
         };
 
+        let isPointerAdvancing = false;
         const blockAndAdvance = (event) => {
             if (!active || !(event.target instanceof Element)) return;
             if (event && event.isTrusted === false) return;
@@ -3452,14 +3452,29 @@
 
             event.preventDefault();
             event.stopImmediatePropagation();
+
+            if (event.type === 'click' && isPointerAdvancing) {
+                isPointerAdvancing = false;
+                return;
+            }
+
+            if (event.type === 'pointerup' || event.type === 'touchend') {
+                isPointerAdvancing = true;
+                window.setTimeout(() => { isPointerAdvancing = false; }, 450);
+            }
+
             advanceTutorial();
         };
 
-        document.addEventListener('pointerdown', blockAndAdvance, true);
+        document.addEventListener('pointerup', blockAndAdvance, true);
+        document.addEventListener('touchend', blockAndAdvance, true);
         document.addEventListener('click', blockAndAdvance, true);
 
         const openTutorial = () => {
             active = true;
+
+            closeProductModal();
+            closeCartItemModal();
 
             // W68_TUTORIAL_CART_PRINT_LAYER_FIX_20261026
             // The iPad print launcher intentionally uses an extreme z-index.

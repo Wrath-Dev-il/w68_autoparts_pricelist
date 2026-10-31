@@ -6998,7 +6998,8 @@ html.w68-ipad .orders-cart-drawer.open .orders-cart-print-button {
     position: fixed;
     inset: 0;
     z-index: 15000;
-    pointer-events: none;
+    pointer-events: auto !important;
+    cursor: pointer;
 }
 
 .w68-tutorial-scrim {
@@ -7007,16 +7008,30 @@ html.w68-ipad .orders-cart-drawer.open .orders-cart-print-button {
     background: rgba(5, 28, 22, .70);
     backdrop-filter: blur(1.2px);
     -webkit-backdrop-filter: blur(1.2px);
-    pointer-events: none;
+    pointer-events: auto !important;
+    cursor: pointer;
+}
+
+body.w68-tutorial-active .product-card,
+body.w68-tutorial-active [data-product-card],
+body.w68-tutorial-active .cart-item-row,
+body.w68-tutorial-active .product-modal,
+body.w68-tutorial-active .cart-item-modal {
+    pointer-events: none !important;
+}
+
+body.w68-tutorial-active .product-modal,
+body.w68-tutorial-active .cart-item-modal {
+    display: none !important;
 }
 
 .w68-tutorial-overlay.is-finishable .w68-tutorial-scrim,
 .w68-tutorial-overlay.is-welcome-stage .w68-tutorial-scrim {
-    pointer-events: auto;
+    pointer-events: auto !important;
     cursor: pointer;
 }
 
-.w68-tutorial-card.is-welcome-stage {
+.w68-tutorial-card {
     cursor: pointer;
 }
 
@@ -7580,14 +7595,13 @@ body.w68-tutorial-active .cart-message-modal:not([hidden]) .cart-message-card {
 
 
 /* =========================================================
-   W68_TUTORIAL_EXACT_ACTION_FLOW_20261027
-   Random screen taps must never finish/advance the guide.
-   Quantity robot stays small and beside the dialog.
+   W68_TUTORIAL_TAP_ANYWHERE_20261031
+   Scrim catches tap/click anywhere to advance tutorial.
    ========================================================= */
 .w68-tutorial-overlay.is-finishable .w68-tutorial-scrim,
 .w68-tutorial-overlay .w68-tutorial-scrim {
-    pointer-events: none !important;
-    cursor: default !important;
+    pointer-events: auto !important;
+    cursor: pointer !important;
 }
 
 body > .w68-tutorial-robot.is-quantity-guide {

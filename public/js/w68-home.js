@@ -2640,9 +2640,12 @@
     // Teach Add to Cart from the main PRODUCTS section only. NEW ARRIVAL cards
     // are intentionally excluded even though they also use data-product-card.
     const getTutorialPurchasableAddButton = () => {
-        const cards = Array.from(
+        let cards = Array.from(
             document.querySelectorAll('#products .product-grid [data-product-card]')
         );
+        if (!cards.length) {
+            cards = Array.from(document.querySelectorAll('[data-product-card]'));
+        }
 
         for (const card of cards) {
             if (!(card instanceof Element)) continue;
@@ -2666,7 +2669,7 @@
             return addButton;
         }
 
-        return null;
+        return getFirstVisibleTutorialTarget('[data-add-cart]');
     };
 
     const initFirstLoginTutorial = () => {
@@ -2772,6 +2775,7 @@
                 title: 'Welcome to W68!',
                 body: 'I will guide you through ordering. Tap anywhere to start.',
                 target: null,
+                autoAdvanceMs: 3500,
             },
             {
                 key: 'add-to-cart',
@@ -2779,6 +2783,7 @@
                 title: 'Step 1: Add to Cart',
                 body: 'This is the ADD TO CART button. Tap anywhere to add this item.',
                 target: () => getTutorialPurchasableAddButton(),
+                autoAdvanceMs: 2500,
             },
             {
                 key: 'qty-controls',
@@ -2786,12 +2791,14 @@
                 title: 'Step 2: Quantity Controls',
                 body: 'Use −, input, and + to set your quantity. Tap anywhere to add it to cart.',
                 target: () => getFirstVisibleTutorialTarget('.quantity-stepper'),
+                autoAdvanceMs: 3000,
             },
             {
                 key: 'added-success',
                 title: 'Step 3: Added to Cart!',
                 body: 'Your item was added successfully. Tap anywhere to open your cart.',
                 target: () => getFirstVisibleTutorialTarget('[data-cart-message] .cart-message-card'),
+                autoAdvanceMs: 2500,
             },
             {
                 key: 'cart-button',
@@ -2799,14 +2806,16 @@
                 title: 'Step 4: Open Cart',
                 body: 'This is your CART button. Tap anywhere to open it.',
                 target: () => getFirstVisibleTutorialTarget('[data-cart-open]'),
+                autoAdvanceMs: 2200,
             },
             {
                 key: 'carted-item',
                 pointerLabel: 'ITEM',
                 title: 'Step 5: Your Carted Item',
-                body: 'This is the item you added with its checkbox. Tap anywhere to continue.',
+                body: 'This is the item you added with its checkbox checked. Tap anywhere to continue.',
                 target: () => getTutorialCartRow()
                     || getFirstVisibleTutorialTarget('[data-cart-items]'),
+                autoAdvanceMs: 2500,
             },
             {
                 key: 'process-order',
@@ -2814,6 +2823,7 @@
                 title: 'Step 6: Process Order',
                 body: 'This is the PROCESS ORDER button. Tap anywhere to finish the guide.',
                 target: () => getFirstVisibleTutorialTarget('[data-process-order]'),
+                autoAdvanceMs: 0,
             },
         ];
 
@@ -2821,6 +2831,14 @@
         let currentTarget = null;
         let active = false;
         let repositionTimer = null;
+        let stepAutoTimer = null;
+
+        const clearStepTimer = () => {
+            if (stepAutoTimer !== null) {
+                window.clearTimeout(stepAutoTimer);
+                stepAutoTimer = null;
+            }
+        };
 
         const clearTarget = () => {
             if (currentTarget instanceof Element) {
@@ -2836,6 +2854,7 @@
         };
 
         const finishTutorial = () => {
+            clearStepTimer();
             active = false;
             clearTarget();
             hidePointer();
@@ -3220,6 +3239,7 @@
         };
 
         const renderStep = (index) => {
+            clearStepTimer();
             const step = steps[index];
 
             if (!step) {
@@ -3246,6 +3266,17 @@
 
             clearTarget();
 
+            // When entering carted-item step: automatically ensure the item is checked!
+            if (step.key === 'carted-item') {
+                if (tutorialProductId) {
+                    setCartSelected(tutorialProductId, true);
+                }
+                const cb = getTutorialCartCheckbox();
+                if (cb) {
+                    cb.checked = true;
+                }
+            }
+
             const target = targetForStep(step);
 
             if (!target) {
@@ -3255,38 +3286,43 @@
                     titleNode.textContent = 'No available item in Products';
                     bodyNode.textContent = 'This PRODUCTS page has no available ADD TO CART item with a price greater than 0. Move to another Products page and tap anywhere to continue.';
                 }
-                return;
+            } else {
+                currentTarget = target;
+                currentTarget.classList.add('w68-tutorial-target');
+
+                if (step.key === 'added-success') {
+                    currentTarget.classList.remove('w68-tutorial-target');
+                    hidePointer();
+                }
+
+                scrollTargetIntoView(target);
+
+                if (repositionTimer !== null) {
+                    window.clearTimeout(repositionTimer);
+                }
+
+                [180, 420, 760].forEach((delay) => {
+                    window.setTimeout(() => {
+                        if (
+                            active
+                            && currentTarget === target
+                            && steps[currentStepIndex]?.key !== 'added-success'
+                        ) {
+                            positionPointer(target);
+                        }
+                    }, delay);
+                });
             }
 
-            currentTarget = target;
-            currentTarget.classList.add('w68-tutorial-target');
-
-            if (step.key === 'added-success') {
-                // Informational confirmation only: emphasize the success card
-                // with the robot, but do not show a misleading CLICK hand.
-                currentTarget.classList.remove('w68-tutorial-target');
-                hidePointer();
-            }
-
-            scrollTargetIntoView(target);
-
-            if (repositionTimer !== null) {
-                window.clearTimeout(repositionTimer);
-            }
-
-            // Smooth scrolling needs a little time to finish before we measure
-            // the button. Re-measure several times for Safari/iPad accuracy.
-            [180, 420, 760].forEach((delay) => {
-                window.setTimeout(() => {
-                    if (
-                        active
-                        && currentTarget === target
-                        && steps[currentStepIndex]?.key !== 'added-success'
-                    ) {
-                        positionPointer(target);
+            // Automatic advance timer if user doesn't touch the screen
+            if (Number(step.autoAdvanceMs || 0) > 0) {
+                const expectedIndex = index;
+                stepAutoTimer = window.setTimeout(() => {
+                    if (active && currentStepIndex === expectedIndex) {
+                        advanceTutorial();
                     }
-                }, delay);
-            });
+                }, Number(step.autoAdvanceMs));
+            }
         };
 
         nextButton.addEventListener('click', (event) => {
@@ -3334,8 +3370,9 @@
            ===================================================== */
         let lastAdvanceTime = 0;
         const advanceTutorial = () => {
+            clearStepTimer();
             const now = Date.now();
-            if (now - lastAdvanceTime < 400) return;
+            if (now - lastAdvanceTime < 380) return;
             if (!active) return;
             lastAdvanceTime = now;
 
@@ -3349,18 +3386,26 @@
 
                 case 'add-to-cart': {
                     const addBtn = getTutorialPurchasableAddButton();
-                    if (addBtn) {
-                        const pc = addBtn.closest('[data-product-card]');
-                        tutorialProductId = String(pc?.dataset.productId || '');
-                        addBtn.click();
+                    const productCard = addBtn?.closest('[data-product-card]');
+                    const product = productCard ? getProductData(productCard) : null;
+                    if (product) {
+                        tutorialProductId = String(product.id || '');
+                        openQuantityModal(product);
                     }
-                    window.setTimeout(() => renderStep(2), 280);
+                    window.setTimeout(() => renderStep(2), 220);
                     break;
                 }
 
                 case 'qty-controls': {
-                    const confirmBtn = quantityModal?.querySelector('[data-quantity-confirm]');
-                    if (confirmBtn) confirmBtn.click();
+                    const product = pendingQuantityProduct
+                        || (tutorialProductId ? getProductData(document.querySelector(`[data-product-card][data-product-id="${tutorialProductId}"]`)) : null);
+                    const qtyInput = quantityModal?.querySelector('[data-quantity-input]');
+                    const qty = safeQty(qtyInput?.value || 1);
+
+                    closeQuantityModal();
+                    if (product) {
+                        commitAddToCart(product, qty);
+                    }
                     window.setTimeout(() => renderStep(3), 200);
                     break;
                 }
@@ -3371,13 +3416,18 @@
 
                 case 'cart-button':
                     openCart();
-                    window.setTimeout(() => renderStep(5), 400);
+                    window.setTimeout(() => renderStep(5), 320);
                     break;
 
                 case 'carted-item': {
+                    if (tutorialProductId) {
+                        setCartSelected(tutorialProductId, true);
+                    }
                     const cb = getTutorialCartCheckbox();
-                    if (cb && !cb.checked) cb.click();
-                    window.setTimeout(() => renderStep(6), 300);
+                    if (cb) {
+                        cb.checked = true;
+                    }
+                    window.setTimeout(() => renderStep(6), 200);
                     break;
                 }
 
@@ -3393,13 +3443,19 @@
 
         const blockAndAdvance = (event) => {
             if (!active || !(event.target instanceof Element)) return;
+            if (event && event.isTrusted === false) return;
+
+            if (event.target.closest('[data-w68-tutorial-skip]')) {
+                finishTutorial();
+                return;
+            }
+
             event.preventDefault();
             event.stopImmediatePropagation();
             advanceTutorial();
         };
 
         document.addEventListener('pointerdown', blockAndAdvance, true);
-        document.addEventListener('touchstart', blockAndAdvance, { capture: true, passive: false });
         document.addEventListener('click', blockAndAdvance, true);
 
         const openTutorial = () => {

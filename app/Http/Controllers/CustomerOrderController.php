@@ -708,17 +708,17 @@ class CustomerOrderController extends Controller
             'forwarder_id' => ['required', 'integer', 'min:1'],
             'ordered_by' => ['nullable', 'string', 'max:191'],
             'prepared_by' => ['nullable', 'string', 'max:191'],
-            'checked_by' => ['required', 'string', 'max:191'],
+            'checked_by' => ['nullable', 'string', 'max:191'],
+            'confirmed_by' => ['nullable', 'string', 'max:191'],
         ], [
             'forwarder_id.required' => 'Choose a Shipment before processing the order.',
-            'checked_by.required' => 'Enter CHECKED BY before processing the order.',
         ]);
 
         $preparedBy = trim((string) ($delivery['ordered_by'] ?? ($delivery['prepared_by'] ?? '')));
-        $checkedBy = trim((string) $delivery['checked_by']);
+        $checkedBy = trim((string) ($delivery['confirmed_by'] ?? ($delivery['checked_by'] ?? '')));
 
         abort_if($preparedBy === '', 422, 'Enter ORDERED BY before processing the order.');
-        abort_if($checkedBy === '', 422, 'Enter CHECKED BY before processing the order.');
+        abort_if($checkedBy === '', 422, 'Enter CONFIRMED BY before processing the order.');
 
         abort_unless(
             Schema::connection('masterlist')->hasTable('forwarders')

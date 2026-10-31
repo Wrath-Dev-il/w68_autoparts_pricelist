@@ -22,8 +22,8 @@
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>W68 Autoparts | {{ $returnViewMode ? 'View Return' : ($viewMode ? 'View Order' : 'Process Order') }}</title>
     <link rel="icon" href="{{ asset('images/sidebar_logo.png') }}">
-    <link rel="stylesheet" href="{{ asset('css/w68-process-order.css') }}?v=20261029-v149">
-    <script src="{{ asset('js/w68-process-order.js') }}?v=20261029-v149" defer></script>
+    <link rel="stylesheet" href="{{ asset('css/w68-process-order.css') }}?v=20261031-v188">
+    <script src="{{ asset('js/w68-process-order.js') }}?v=20261031-v188" defer></script>
 </head>
 <body
     data-process-url="{{ $viewMode ? '' : route('home.orders.process') }}"
@@ -221,7 +221,7 @@
         <section class="order-confirm-card {{ $invoiceViewMode ? 'has-invoice-receipt' : '' }}" role="dialog" aria-modal="true" aria-labelledby="order-confirm-title">
             <header class="order-confirm-header">
                 <div>
-                    <span class="order-confirm-kicker">PRINT PREVIEW</span>
+                    <span class="order-confirm-kicker">{{ $viewMode ? 'PRINT PREVIEW' : 'CONFIRM ORDER' }}</span>
                     <h2 id="order-confirm-title">{{ $viewMode ? ($orderCode ?: ($returnViewMode ? 'Return' : 'Order')) : 'Order Confirmation' }}</h2>
                 </div>
                 <button type="button" class="order-confirm-x" data-order-confirm-close aria-label="Close">
@@ -229,6 +229,7 @@
                 </button>
             </header>
 
+            @if ($viewMode)
             @if ($invoiceViewMode && $invoiceReceipt)
                 @php
                     $receiptDate = trim((string) ($invoiceReceipt['date'] ?? ''));
@@ -496,7 +497,6 @@
             </div>
             @endif
 
-            @if ($viewMode)
                 <footer class="order-confirm-actions print-only-actions {{ $invoiceViewMode ? 'has-invoice-print' : '' }}">
                     <button type="button" class="order-confirm-cancel print-preview-close" data-order-confirm-close>CLOSE</button>
                     @if ($invoiceViewMode)
@@ -504,7 +504,7 @@
                     @endif
                 </footer>
             @else
-                {{-- W68 v107: choose the forwarder directly; its type tells the customer Rush/Regular. --}}
+                {{-- Delivery option --}}
                 <div class="order-delivery-zone" data-delivery-zone>
                     <div class="order-delivery-copy">
                         <div class="order-delivery-heading-row">
@@ -526,44 +526,19 @@
                     </button>
                 </div>
 
+                {{-- Check to confirm order --}}
                 <div class="order-terms-zone" data-terms-zone>
                     <label class="order-terms-check">
                         <input type="checkbox" data-terms-checkbox>
                         <span class="order-terms-box" aria-hidden="true"></span>
-                        <span>TERMS AND AGREEMENT</span>
+                        <span class="order-terms-label-text">Check to confirm order</span>
                     </label>
-                    <small>Tap to read and agree before processing your order.</small>
                 </div>
 
-                <div class="order-confirm-error" data-confirm-error hidden></div>
-
-                <footer class="order-confirm-actions">
-                    <button type="button" class="order-confirm-cancel" data-order-confirm-close>CANCEL</button>
-                    <button type="button" class="order-confirm-process" data-confirm-process disabled>PROCESS ORDER</button>
-                </footer>
-            @endif
-        </section>
-    </div>
-
-    @unless($viewMode)
-        {{-- W68_PROCESS_ORDER_SIGNOFF_MODAL_20261021 --}}
-        <div class="process-signoff-modal" data-process-signoff-modal hidden aria-hidden="true">
-            <button type="button" class="order-modal-backdrop process-signoff-backdrop" data-process-signoff-close aria-label="Close Checked By form"></button>
-            <section class="process-signoff-card" role="dialog" aria-modal="true" aria-labelledby="process-signoff-title">
-                <header class="process-signoff-header">
-                    <div>
-                        <span>ORDER SIGN-OFF</span>
-                        <h2 id="process-signoff-title">Checked By</h2>
-                        <p>Enter the names that will be recorded with this W68 portal order.</p>
-                    </div>
-                    <button type="button" class="process-signoff-x" data-process-signoff-close aria-label="Close">
-                        <span aria-hidden="true">&#10005;</span>
-                    </button>
-                </header>
-
-                <div class="process-signoff-fields">
-                    <label class="process-signoff-field">
-                        <span>ORDERED BY</span>
+                {{-- Sign-off fields directly inside confirmation modal --}}
+                <div class="order-signoff-zone" data-signoff-fields>
+                    <label class="order-signoff-field">
+                        <span class="order-signoff-label">ORDERED BY</span>
                         <input
                             type="text"
                             data-ordered-by
@@ -576,29 +551,32 @@
                         >
                     </label>
 
-                    <label class="process-signoff-field">
-                        <span>CHECKED BY</span>
+                    <label class="order-signoff-field">
+                        <span class="order-signoff-label">CONFIRMED BY</span>
                         <input
                             type="text"
+                            data-confirmed-by
                             data-checked-by
                             maxlength="191"
                             autocomplete="off"
                             autocapitalize="words"
-                            placeholder="Enter checked by"
+                            placeholder="Enter confirmed by"
                             required
                         >
                     </label>
                 </div>
 
-                <div class="process-signoff-error" data-process-signoff-error hidden></div>
+                <div class="order-confirm-error" data-confirm-error hidden></div>
 
-                <footer class="process-signoff-actions">
-                    <button type="button" class="process-signoff-cancel" data-process-signoff-close>CANCEL</button>
-                    <button type="button" class="process-signoff-submit" data-process-signoff-submit>FINAL PROCESS ORDER</button>
+                <footer class="order-confirm-actions">
+                    <button type="button" class="order-confirm-cancel" data-order-confirm-close>CANCEL</button>
+                    <button type="button" class="order-confirm-process is-inactive" data-confirm-process aria-disabled="true">FINALIZED ORDER</button>
                 </footer>
-            </section>
-        </div>
+            @endif
+        </section>
+    </div>
 
+    @unless($viewMode)
         {{-- W68_PROCESS_DELIVERY_HIDDEN_UNTIL_CLICK_20261007 --}}
         <dialog class="shipment-modal" data-shipment-modal hidden aria-hidden="true">
             <button type="button" class="order-modal-backdrop shipment-backdrop" data-shipment-cancel aria-label="Close Shipment selection" onclick="return window.W68CloseShipmentModal ? window.W68CloseShipmentModal(event) : false;"></button>
@@ -675,24 +653,6 @@
                 </div>
             </section>
         </dialog>
-
-        <div class="terms-agreement-modal" data-terms-modal hidden aria-hidden="true">
-            <button type="button" class="order-modal-backdrop terms-backdrop" data-terms-cancel aria-label="Cancel terms and agreement"></button>
-            <section class="terms-agreement-card" role="dialog" aria-modal="true" aria-labelledby="terms-title">
-                <div class="terms-agreement-icon">!</div>
-                <span class="terms-agreement-kicker">TERMS AND AGREEMENT</span>
-                <h2 id="terms-title">Please review before agreeing</h2>
-                <div class="terms-agreement-copy">
-                    <p>I confirm that I reviewed the selected products, quantities, prices, discounts, and total amount shown in the Print Preview.</p>
-                    <p>I understand that selecting <strong>PROCESS ORDER</strong> will register this order in W68 and create an <strong>Open Sales Note</strong> for processing.</p>
-                    <p>I confirm that the order details shown are correct before I continue.</p>
-                </div>
-                <div class="terms-agreement-actions">
-                    <button type="button" class="terms-cancel" data-terms-cancel>CANCEL</button>
-                    <button type="button" class="terms-agree" data-terms-agree>AGREE</button>
-                </div>
-            </section>
-        </div>
 
         {{-- Same W68 tracing loader used on Home, shown while the Sales Note/order is being created. --}}
         <div class="process-loading" data-process-loading hidden aria-hidden="true">
@@ -997,10 +957,10 @@
             <span class="w68-tutorial-kicker" data-w68-tutorial-kicker>W68 ORDER REVIEW GUIDE</span>
             <h2 id="w68-tutorial-title" data-w68-tutorial-title>Order Review Guide</h2>
             <p data-w68-tutorial-body>Review the items in your order.</p>
-            <div class="w68-tutorial-actions">
-                <button type="button" class="w68-tutorial-skip" data-w68-tutorial-skip>SKIP</button>
-                <button type="button" class="w68-tutorial-next" data-w68-tutorial-next>NEXT</button>
-                <button type="button" class="w68-tutorial-done" data-w68-tutorial-done hidden>DONE</button>
+            <div class="w68-tutorial-actions" style="display: none !important;">
+                <button type="button" class="w68-tutorial-skip" data-w68-tutorial-skip hidden style="display: none !important;">SKIP</button>
+                <button type="button" class="w68-tutorial-next" data-w68-tutorial-next hidden style="display: none !important;">NEXT</button>
+                <button type="button" class="w68-tutorial-done" data-w68-tutorial-done hidden style="display: none !important;">DONE</button>
             </div>
         </section>
     </div>

@@ -30,7 +30,7 @@
     var signoffModal = document.querySelector('[data-process-signoff-modal]');
     var orderedByInput = document.querySelector('[data-ordered-by], [data-prepared-by]');
     var preparedByInput = orderedByInput;
-    var checkedByInput = document.querySelector('[data-checked-by]');
+    var checkedByInput = document.querySelector('[data-confirmed-by], [data-checked-by]');
     var signoffError = document.querySelector('[data-process-signoff-error]');
     var signoffSubmit = document.querySelector('[data-process-signoff-submit]');
     var signoffCloseButtons = Array.prototype.slice.call(document.querySelectorAll('[data-process-signoff-close]'));
@@ -249,12 +249,29 @@
             });
     }
 
-    function updateConfirmProcessState() {
-        if (!confirmProcess || viewMode) return;
+    function isOrderConfirmationReady() {
         var termsAccepted = !!(termsCheckbox && termsCheckbox.checked);
         var deliveryReady = (selectedDeliveryType === 'rush' || selectedDeliveryType === 'regular')
             && selectedShipmentId > 0;
-        confirmProcess.disabled = !(termsAccepted && deliveryReady);
+        var orderedByVal = orderedByInput ? String(orderedByInput.value || '').trim() : '';
+        var checkedByVal = checkedByInput ? String(checkedByInput.value || '').trim() : '';
+        var signoffReady = orderedByVal !== '' && checkedByVal !== '';
+
+        return {
+            ready: termsAccepted && deliveryReady && signoffReady,
+            deliveryReady: deliveryReady,
+            termsAccepted: termsAccepted,
+            orderedByReady: orderedByVal !== '',
+            checkedByReady: checkedByVal !== ''
+        };
+    }
+
+    function updateConfirmProcessState() {
+        if (!confirmProcess || viewMode) return;
+        var status = isOrderConfirmationReady();
+        confirmProcess.disabled = !status.ready;
+        confirmProcess.classList.toggle('is-inactive', !status.ready);
+        confirmProcess.setAttribute('aria-disabled', !status.ready ? 'true' : 'false');
     }
 
     function setTermsChecked(checked) {
@@ -419,10 +436,10 @@
 
         if (!confirmModal || !getCards().length) return;
         clearConfirmError();
-        if (!viewMode) setTermsChecked(false);
         confirmModal.hidden = false;
         confirmModal.setAttribute('aria-hidden', 'false');
         syncProcessViewport();
+        updateConfirmProcessState();
 
         if (window.W68TriggerConfirmTutorial) {
             window.W68TriggerConfirmTutorial();
@@ -433,12 +450,11 @@
         if (!confirmModal) return;
         confirmModal.hidden = true;
         confirmModal.setAttribute('aria-hidden', 'true');
+        if (window._w68PointerCleanup) {
+            window._w68PointerCleanup();
+        }
         if (window.W68CancelConfirmTutorial) {
             window.W68CancelConfirmTutorial();
-        }
-        if (termsModal) {
-            termsModal.hidden = true;
-            termsModal.setAttribute('aria-hidden', 'true');
         }
         if (shipmentModal) {
             if (window.W68CloseShipmentModal) {
@@ -457,31 +473,12 @@
             }
         }
         if (body && body.classList) body.classList.remove('shipment-modal-open');
-        if (!viewMode) setTermsChecked(false);
         clearConfirmError();
     }
 
-    function openTermsModal() {
-        if (!termsModal) return;
-        termsModal.hidden = false;
-        termsModal.setAttribute('aria-hidden', 'false');
-    }
-
-    function cancelTerms() {
-        if (termsModal) {
-            termsModal.hidden = true;
-            termsModal.setAttribute('aria-hidden', 'true');
-        }
-        setTermsChecked(false);
-    }
-
-    function agreeTerms() {
-        if (termsModal) {
-            termsModal.hidden = true;
-            termsModal.setAttribute('aria-hidden', 'true');
-        }
-        setTermsChecked(true);
-    }
+    function openTermsModal() {}
+    function cancelTerms() {}
+    function agreeTerms() {}
 
     function initializeLoaderPaths() {
         loaderLengths = [];
@@ -586,89 +583,145 @@
         loading.setAttribute('aria-hidden', 'true');
     }
 
-    function openSignoffModal() {
-        if (viewMode || !signoffModal || !confirmProcess || !processUrl) return;
-
-        syncDeliveryStateFromDom();
-        updateConfirmProcessState();
-
-        if (confirmProcess.disabled) return;
-
-        clearConfirmError();
-        clearSignoffError();
-
-        signoffModal.hidden = false;
-        signoffModal.setAttribute('aria-hidden', 'false');
-        if (body && body.classList) body.classList.add('process-signoff-open');
-        syncProcessViewport();
-
-        if (window.W68TriggerSignoffTutorial) {
-            window.W68TriggerSignoffTutorial();
+    function pointToMissingField(target, label, message) {
+        if (!target) return;
+        if (confirmError) {
+            confirmError.textContent = message;
+            confirmError.hidden = false;
         }
 
-        window.setTimeout(function () {
-            if (window.W68IsSignoffTutorialActive && window.W68IsSignoffTutorialActive()) return;
-            if (window.W68IsSignoffTutorialExpected && window.W68IsSignoffTutorialExpected()) return;
-            if (orderedByInput && orderedByInput.focus) {
-                try {
-                    orderedByInput.focus({ preventScroll: true });
-                } catch (_) {
-                    orderedByInput.focus();
-                }
-            }
-        }, 0);
+        if (window._w68PointerCleanup) {
+            window._w68PointerCleanup();
+        }
+
+        target.classList.add('w68-missing-field-target');
+
+        var spotlight = document.querySelector('[data-w68-tutorial-spotlight]');
+        var arrow = document.querySelector('[data-w68-tutorial-arrow]');
+        if (!spotlight || !arrow) return;
+
+        var rect = target.getBoundingClientRect();
+        if (!rect || rect.width <= 0) return;
+
+        var pad = 6;
+        spotlight.hidden = false;
+        spotlight.style.display = 'block';
+        spotlight.style.left = Math.max(2, rect.left - pad) + 'px';
+        spotlight.style.top = Math.max(2, rect.top - pad) + 'px';
+        spotlight.style.width = Math.max(30, rect.width + (pad * 2)) + 'px';
+        spotlight.style.height = Math.max(30, rect.height + (pad * 2)) + 'px';
+        spotlight.style.borderRadius = '12px';
+
+        var pointerWidth = 74;
+        var pointerHeight = 48;
+        var gap = 10;
+        var left = rect.right + gap;
+        var top = rect.top + (rect.height / 2) - (pointerHeight / 2);
+        var side = 'right';
+
+        var viewportWidth = window.innerWidth;
+        var viewportHeight = window.innerHeight;
+
+        if (left + pointerWidth > viewportWidth - 6) {
+            left = rect.left - pointerWidth - gap;
+            side = 'left';
+        }
+        if (left < 6) {
+            left = Math.max(6, Math.min(viewportWidth - pointerWidth - 6, rect.left + (rect.width / 2) - (pointerWidth / 2)));
+            top = rect.top - pointerHeight - gap;
+            side = 'top';
+        }
+        if (top < 6) {
+            top = Math.min(viewportHeight - pointerHeight - 6, rect.bottom + gap);
+            side = 'bottom';
+        }
+
+        arrow.setAttribute('data-pointer-side', side);
+        arrow.setAttribute('data-pointer-label', label);
+        arrow.style.left = Math.round(left) + 'px';
+        arrow.style.top = Math.round(top) + 'px';
+        arrow.style.width = pointerWidth + 'px';
+        arrow.style.height = pointerHeight + 'px';
+        arrow.style.transform = 'none';
+        arrow.hidden = false;
+        arrow.style.display = 'block';
+
+        var cleanup = function () {
+            target.classList.remove('w68-missing-field-target');
+            spotlight.hidden = true;
+            spotlight.style.display = 'none';
+            arrow.hidden = true;
+            arrow.style.display = 'none';
+            window._w68PointerCleanup = null;
+        };
+
+        window._w68PointerCleanup = cleanup;
+        var timer = window.setTimeout(cleanup, 4500);
+
+        var onInteract = function () {
+            window.clearTimeout(timer);
+            cleanup();
+            target.removeEventListener('input', onInteract);
+            target.removeEventListener('change', onInteract);
+            target.removeEventListener('click', onInteract);
+        };
+
+        target.addEventListener('input', onInteract, { once: true });
+        target.addEventListener('change', onInteract, { once: true });
+        target.addEventListener('click', onInteract, { once: true });
     }
 
-    function closeSignoffModal(force) {
-        if (!signoffModal) return;
+    function onFinalizeOrderClicked(event) {
+        if (event) {
+            event.preventDefault();
+            event.stopPropagation();
+        }
+        syncDeliveryStateFromDom();
+        var status = isOrderConfirmationReady();
+        updateConfirmProcessState();
 
-        if (!force && window.W68IsSignoffTutorialActive && window.W68IsSignoffTutorialActive()) {
+        if (!status.ready) {
+            if (!status.deliveryReady) {
+                pointToMissingField(deliveryZone || deliveryOpenButton, 'DELIVERY', 'Choose a Delivery Option before finalizing.');
+                return;
+            }
+            if (!status.termsAccepted) {
+                pointToMissingField(termsZone || termsCheckbox, 'CONFIRM', 'Please check "Check to confirm order".');
+                return;
+            }
+            if (!status.orderedByReady) {
+                var target = orderedByInput ? (orderedByInput.closest('.order-signoff-field') || orderedByInput) : null;
+                pointToMissingField(target, 'ORDERED', 'Enter ORDERED BY before finalizing.');
+                if (orderedByInput && orderedByInput.focus) orderedByInput.focus();
+                return;
+            }
+            if (!status.checkedByReady) {
+                var target = checkedByInput ? (checkedByInput.closest('.order-signoff-field') || checkedByInput) : null;
+                pointToMissingField(target, 'CONFIRMED', 'Enter CONFIRMED BY before finalizing.');
+                if (checkedByInput && checkedByInput.focus) checkedByInput.focus();
+                return;
+            }
             return;
         }
 
-        if (window.W68CancelSignoffTutorial) {
-            window.W68CancelSignoffTutorial();
-        }
-
-        signoffModal.hidden = true;
-        signoffModal.setAttribute('aria-hidden', 'true');
-        if (body && body.classList) body.classList.remove('process-signoff-open');
-        clearSignoffError();
-
-        if (confirmProcess && confirmProcess.focus) confirmProcess.focus();
+        submitOrder();
     }
 
     function submitOrder() {
         if (viewMode || !confirmProcess || !processUrl) return;
 
         syncDeliveryStateFromDom();
-        updateConfirmProcessState();
-
-        if (confirmProcess.disabled) return;
+        var status = isOrderConfirmationReady();
+        if (!status.ready) {
+            onFinalizeOrderClicked();
+            return;
+        }
 
         var orderedBy = orderedByInput ? String(orderedByInput.value || '').trim() : '';
         var checkedBy = checkedByInput ? String(checkedByInput.value || '').trim() : '';
 
-        if (!orderedBy) {
-            setSignoffError('Enter ORDERED BY before processing the order.');
-            if (orderedByInput && orderedByInput.focus) orderedByInput.focus();
-            return;
-        }
-
-        if (!checkedBy) {
-            setSignoffError('Enter CHECKED BY before processing the order.');
-            if (checkedByInput && checkedByInput.focus) checkedByInput.focus();
-            return;
-        }
-
-        if (!selectedDeliveryType || selectedShipmentId < 1) {
-            setConfirmError('Choose a Shipment before processing the order.');
-            return;
-        }
-
         clearConfirmError();
-        clearSignoffError();
-        if (signoffSubmit) signoffSubmit.disabled = true;
+        confirmProcess.disabled = true;
         showProcessLoader();
 
         // Give Safari/iPad two paint frames so the W68 animation is visibly
@@ -679,7 +732,8 @@
                     forwarder_id: selectedShipmentId,
                     ordered_by: orderedBy,
                     prepared_by: orderedBy,
-                    checked_by: checkedBy
+                    checked_by: checkedBy,
+                    confirmed_by: checkedBy
                 })
                     .then(function (data) {
                         var redirectUrl = data && data.redirect_url ? String(data.redirect_url) : (ordersUrl || 'orders');
@@ -696,9 +750,9 @@
                     })
                     .catch(function (error) {
                         hideProcessLoader();
-                        if (signoffSubmit) signoffSubmit.disabled = false;
-                        setTermsChecked(termsCheckbox && termsCheckbox.checked);
-                        setSignoffError(error && error.message ? error.message : 'Unable to process this order. Please try again.');
+                        confirmProcess.disabled = false;
+                        updateConfirmProcessState();
+                        setConfirmError(error && error.message ? error.message : 'Unable to process this order. Please try again.');
                     });
             });
         });
@@ -805,38 +859,23 @@
             return;
         }
 
-        var termsAgree = closestFrom(event.target, '[data-terms-agree]');
-        if (termsAgree) {
-            event.preventDefault();
-            agreeTerms();
-            return;
-        }
-
         var termsTrigger = closestFrom(event.target, '[data-terms-zone]');
-        if (termsTrigger) {
+        if (termsTrigger && event.target !== termsCheckbox) {
             event.preventDefault();
-            openTermsModal();
+            if (termsCheckbox) {
+                termsCheckbox.checked = !termsCheckbox.checked;
+                setTermsChecked(termsCheckbox.checked);
+                clearConfirmError();
+                if (window._w68PointerCleanup) window._w68PointerCleanup();
+            }
             return;
         }
 
         var submit = closestFrom(event.target, '[data-confirm-process]');
         if (submit) {
             event.preventDefault();
-            openSignoffModal();
+            onFinalizeOrderClicked(event);
             return;
-        }
-
-        var signoffSubmitButton = closestFrom(event.target, '[data-process-signoff-submit]');
-        if (signoffSubmitButton) {
-            event.preventDefault();
-            submitOrder();
-            return;
-        }
-
-        var signoffClose = closestFrom(event.target, '[data-process-signoff-close]');
-        if (signoffClose) {
-            event.preventDefault();
-            closeSignoffModal();
         }
     }, false);
 
@@ -1005,10 +1044,32 @@
     }
 
     if (termsCheckbox) {
-        termsCheckbox.addEventListener('click', function (event) {
-            event.preventDefault();
-            event.stopPropagation();
-            openTermsModal();
+        termsCheckbox.addEventListener('change', function () {
+            setTermsChecked(termsCheckbox.checked);
+            clearConfirmError();
+            if (window._w68PointerCleanup) window._w68PointerCleanup();
+        }, false);
+    }
+
+    if (orderedByInput) {
+        orderedByInput.addEventListener('input', function () {
+            updateConfirmProcessState();
+            clearConfirmError();
+            if (window._w68PointerCleanup) window._w68PointerCleanup();
+        }, false);
+    }
+
+    if (checkedByInput) {
+        checkedByInput.addEventListener('input', function () {
+            updateConfirmProcessState();
+            clearConfirmError();
+            if (window._w68PointerCleanup) window._w68PointerCleanup();
+        }, false);
+    }
+
+    if (confirmProcess) {
+        confirmProcess.addEventListener('click', function (event) {
+            onFinalizeOrderClicked(event);
         }, false);
     }
 
@@ -1094,10 +1155,10 @@
             tutorialCard.style.display = 'none';
         }
 
-        var loginNumber = Math.max(
-            1,
-            Math.min(3, parseInt(String(body.getAttribute('data-tutorial-login-number') || '1'), 10) || 1)
-        );
+        // Hide skip, next, and done buttons as requested
+        if (skipButton) skipButton.style.display = 'none';
+        if (nextButton) nextButton.style.display = 'none';
+        if (doneButton) doneButton.style.display = 'none';
 
         var robotImage = robot.querySelector('img');
         var robotGif = String(body.getAttribute('data-tutorial-robot-gif') || '');
@@ -1105,310 +1166,140 @@
             robotImage.src = robotGif;
         }
 
-        // ==========================
-        // Targets for Phase 1 (Review)
-        // ==========================
-        function getProductInfoGroupTarget() {
+        // =========================================================================
+        // Targets for the 8 unified tutorial steps
+        // 1.) Whole product (description, code, part number, app, brand, price, qty, total)
+        // 2.) Delete button
+        // 3.) Total items and total price
+        // 4.) Process order button
+        // 5.) Delivery option
+        // 6.) Check to confirm order
+        // 7.) Ordered by and confirmed by
+        // 8.) Finalized order button
+        // =========================================================================
+        function getWholeProductTarget() {
             var item = document.querySelector('[data-process-item]');
-            if (!item) return document.querySelector('.process-order-panel') || document.body;
-            var desc = item.querySelector('[data-tutorial-description]') || item.querySelector('.process-description-row');
-            var meta = item.querySelector('[data-tutorial-meta]') || item.querySelector('.process-meta-stack');
-            var brand = item.querySelector('[data-tutorial-brand]') || item.querySelector('.process-brand-cell');
-
-            var parts = [desc, meta, brand].filter(Boolean);
-            if (parts.length > 0) {
-                var top = Infinity;
-                var left = Infinity;
-                var right = -Infinity;
-                var bottom = -Infinity;
-
-                parts.forEach(function (el) {
-                    var r = el.getBoundingClientRect();
-                    if (r.top < top) top = r.top;
-                    if (r.left < left) left = r.left;
-                    if (r.right > right) right = r.right;
-                    if (r.bottom > bottom) bottom = r.bottom;
-                    el.classList.add('w68-tutorial-highlight-part');
-                });
-
-                return {
-                    top: top,
-                    left: left,
-                    width: right - left,
-                    height: bottom - top,
-                    right: right,
-                    bottom: bottom,
-                    node: desc || meta,
-                    elements: parts
-                };
-            }
-            return desc || meta || item;
-        }
-
-        function getMathAndPricingTarget() {
-            var item = document.querySelector('[data-process-item]');
-            if (!item) return document.querySelector('[data-tutorial-grand-summary]') || document.querySelector('.process-grand-summary');
-            var math = item.querySelector('[data-tutorial-math]') || item.querySelector('.process-order-math');
-            return math || item;
-        }
-
-        function getTotalItemsTarget() {
-            var target = document.querySelector('[data-tutorial-total-items]') ||
-                (document.querySelector('[data-total-items]') ? document.querySelector('[data-total-items]').parentElement : null);
-            return target || document.querySelector('[data-tutorial-grand-summary]');
-        }
-
-        function getTotalPriceTarget() {
-            var target = document.querySelector('[data-tutorial-total-price]') ||
-                (document.querySelector('[data-total-price]') ? document.querySelector('[data-total-price]').parentElement : null);
-            return target || document.querySelector('[data-tutorial-grand-summary]');
+            return item || document.querySelector('.process-order-panel') || document.body;
         }
 
         function getDeleteButtonTarget() {
             var item = document.querySelector('[data-process-item]');
             if (!item) return document.querySelector('[data-remove-selected]');
-            return item.querySelector('[data-remove-selected]');
+            return item.querySelector('[data-remove-selected]') || document.querySelector('[data-remove-selected]');
+        }
+
+        function getTotalSummaryTarget() {
+            return document.querySelector('[data-tutorial-grand-summary]') ||
+                document.querySelector('.process-grand-summary') ||
+                (document.querySelector('[data-total-items]') ? document.querySelector('[data-total-items]').parentElement : null);
         }
 
         function getProcessButtonTarget() {
             return document.querySelector('[data-final-process]');
         }
 
-        // ==========================
-        // Targets for Phase 2 (Confirmation Modal)
-        // ==========================
-        function getPrintPreviewTarget() {
-            if (!confirmModal) return null;
-            return confirmModal.querySelector('[data-tutorial-print-preview]') ||
-                confirmModal.querySelector('.order-print-preview') ||
-                confirmModal.querySelector('.order-print-table-wrap') ||
-                confirmModal.querySelector('.order-confirm-card');
-        }
-
         function getDeliveryOptionTarget() {
             if (!confirmModal) return null;
-            return confirmModal.querySelector('[data-delivery-zone]');
+            return confirmModal.querySelector('[data-delivery-zone]') ||
+                confirmModal.querySelector('.order-delivery-zone');
         }
 
-        function getTermsAgreementTarget() {
+        function getCheckToConfirmTarget() {
             if (!confirmModal) return null;
-            return confirmModal.querySelector('[data-terms-zone]');
+            return confirmModal.querySelector('[data-terms-zone]') ||
+                confirmModal.querySelector('.order-terms-zone');
         }
 
-        // ==========================
-        // Targets for Phase 3 (Shipment Modal)
-        // ==========================
-        function getShipmentRushTarget() {
-            var modal = document.querySelector('[data-shipment-modal]');
-            if (!modal) return null;
-            return modal.querySelector('.shipment-group-rush') ||
-                modal.querySelector('.shipment-group-rush .shipment-group-list') ||
-                modal.querySelector('[data-shipment-forwarder-type="rush"]') ||
-                modal.querySelector('.shipment-picker');
+        function getSignoffFieldsTarget() {
+            if (!confirmModal) return null;
+            return confirmModal.querySelector('[data-signoff-fields]') ||
+                confirmModal.querySelector('.order-signoff-zone');
         }
 
-        function getShipmentRegularTarget() {
-            var modal = document.querySelector('[data-shipment-modal]');
-            if (!modal) return null;
-            return modal.querySelector('.shipment-group-regular') ||
-                modal.querySelector('.shipment-group-regular .shipment-group-list') ||
-                modal.querySelector('[data-shipment-forwarder-type="regular"]') ||
-                modal.querySelector('.shipment-picker');
+        function getFinalizedOrderButtonTarget() {
+            if (!confirmModal) return null;
+            return confirmModal.querySelector('[data-confirm-process]');
         }
 
-        function getShipmentSaveTarget() {
-            var modal = document.querySelector('[data-shipment-modal]');
-            if (!modal) return null;
-            return modal.querySelector('[data-shipment-save]');
-        }
-
-        // ==========================
-        // Targets for Phase 4 (Sign-off Modal)
-        // ==========================
-        function getSignoffOrderedByTarget() {
-            var modal = document.querySelector('[data-process-signoff-modal]');
-            if (!modal) return null;
-            var input = modal.querySelector('[data-ordered-by], [data-prepared-by]');
-            return (input && input.closest('.process-signoff-field')) || input;
-        }
-        var getSignoffPreparedByTarget = getSignoffOrderedByTarget;
-
-        function getSignoffCheckedByTarget() {
-            var modal = document.querySelector('[data-process-signoff-modal]');
-            if (!modal) return null;
-            var input = modal.querySelector('[data-checked-by]');
-            return (input && input.closest('.process-signoff-field')) || input;
-        }
-
-        function getSignoffSubmitTarget() {
-            var modal = document.querySelector('[data-process-signoff-modal]');
-            if (!modal) return null;
-            return modal.querySelector('[data-process-signoff-submit]');
-        }
-
-        // Step definitions
-        var reviewSteps = [
+        var tutorialSteps = [
             {
-                key: 'product-info-group',
-                pointerLabel: 'INFO',
-                kicker: 'W68 ORDER REVIEW GUIDE • STEP 1 OF 6',
-                title: '1. Product Information',
-                body: 'Review the Description, Product Code, Part Number, Application, and Brand for this item.',
-                borderRadius: '14px',
-                target: getProductInfoGroupTarget
+                key: 'step-1-product',
+                pointerLabel: 'ITEM',
+                kicker: 'W68 ORDER REVIEW GUIDE • STEP 1 OF 8',
+                title: '1. Product Details',
+                body: 'Review your product details: Description, Code, Part Number, Application, Brand, Price, Quantity, and Line Total. Tap or click anywhere to continue.',
+                borderRadius: '16px',
+                target: getWholeProductTarget
             },
             {
-                key: 'pricing-group',
-                pointerLabel: 'PRICING',
-                kicker: 'W68 ORDER REVIEW GUIDE • STEP 2 OF 6',
-                title: '2. Price, Qty & Total',
-                body: 'Check the Unit Price, ordered Quantity, and line Total for this item.',
-                borderRadius: '12px',
-                target: getMathAndPricingTarget
-            },
-            {
-                key: 'total-items',
-                pointerLabel: 'ITEMS',
-                kicker: 'W68 ORDER REVIEW GUIDE • STEP 3 OF 6',
-                title: '3. Total Items',
-                body: 'This shows the total count of items in your order.',
-                borderRadius: '12px',
-                target: getTotalItemsTarget
-            },
-            {
-                key: 'total-price',
-                pointerLabel: 'TOTAL',
-                kicker: 'W68 ORDER REVIEW GUIDE • STEP 4 OF 6',
-                title: '4. Total Price',
-                body: 'This shows the grand total price for all items in your order.',
-                borderRadius: '12px',
-                target: getTotalPriceTarget
-            },
-            {
-                key: 'delete-button',
+                key: 'step-2-delete',
                 pointerLabel: 'DELETE',
-                kicker: 'W68 ORDER REVIEW GUIDE • STEP 5 OF 6',
-                title: '5. Delete Button',
-                body: 'This button removes an item from your order review. During this guide, it is protected so clicking it will not delete your item.',
+                kicker: 'W68 ORDER REVIEW GUIDE • STEP 2 OF 8',
+                title: '2. Delete Button',
+                body: 'This button removes an item from your order review. (Protected during the guide). Tap or click anywhere to continue.',
                 borderRadius: '50%',
                 target: getDeleteButtonTarget
             },
             {
-                key: 'process-order',
-                pointerLabel: 'ORDER',
-                kicker: 'W68 ORDER REVIEW GUIDE • STEP 6 OF 6',
-                title: '6. PROCESS ORDER Button',
-                body: 'Click PROCESS ORDER when you are ready to review your order details. Tap anywhere to close this guide, then click PROCESS ORDER to continue.',
-                borderRadius: '999px',
-                target: getProcessButtonTarget
-            }
-        ];
-
-        var confirmSteps = [
-            {
-                key: 'confirm-print-preview',
-                pointerLabel: 'PREVIEW',
-                kicker: 'W68 ORDER CONFIRMATION • STEP 1 OF 3',
-                title: '1. Print Preview',
-                body: 'Review the print preview here to verify the product details, quantities, discounts, and total invoice amount.',
+                key: 'step-3-total',
+                pointerLabel: 'TOTAL',
+                kicker: 'W68 ORDER REVIEW GUIDE • STEP 3 OF 8',
+                title: '3. Total Items & Total Price',
+                body: 'Review your order summary: the total count of items and the grand total price. Tap or click anywhere to continue.',
                 borderRadius: '14px',
-                target: getPrintPreviewTarget
+                target: getTotalSummaryTarget
             },
             {
-                key: 'confirm-delivery-option',
+                key: 'step-4-process',
+                pointerLabel: 'ORDER',
+                kicker: 'W68 ORDER REVIEW GUIDE • STEP 4 OF 8',
+                title: '4. Process Order Button',
+                body: 'This is the PROCESS ORDER button. Tap or click anywhere to open your Order Confirmation.',
+                borderRadius: '999px',
+                target: getProcessButtonTarget
+            },
+            {
+                key: 'step-5-delivery',
                 pointerLabel: 'DELIVERY',
-                kicker: 'W68 ORDER CONFIRMATION • STEP 2 OF 3',
-                title: '2. Delivery Option',
-                body: 'Select your preferred forwarder under RUSH or REGULAR by tapping SET DELIVERY OPTION.',
-                borderRadius: '12px',
+                kicker: 'W68 ORDER CONFIRMATION • STEP 5 OF 8',
+                title: '5. Delivery Option',
+                body: 'Select your preferred forwarder under RUSH or REGULAR by tapping SET DELIVERY OPTION. Tap or click anywhere to continue.',
+                borderRadius: '14px',
                 target: getDeliveryOptionTarget
             },
             {
-                key: 'confirm-terms-agreement',
-                pointerLabel: 'TERMS',
-                kicker: 'W68 ORDER CONFIRMATION • STEP 3 OF 3',
-                title: '3. Terms and Agreement',
-                body: 'Review and check the Terms and Agreement to unlock the final PROCESS ORDER button.',
+                key: 'step-6-confirm',
+                pointerLabel: 'CONFIRM',
+                kicker: 'W68 ORDER CONFIRMATION • STEP 6 OF 8',
+                title: '6. Check to Confirm Order',
+                body: 'Tap this checkbox to confirm your order details. Tap or click anywhere to continue.',
                 borderRadius: '12px',
-                target: getTermsAgreementTarget
-            }
-        ];
-
-        var shipmentSteps = [
+                target: getCheckToConfirmTarget
+            },
             {
-                key: 'shipment-rush',
-                pointerLabel: 'RUSH',
-                kicker: 'W68 DELIVERY OPTION GUIDE • STEP 1 OF 3',
-                title: '1. Rush Shipments',
-                body: 'Choose from the available Rush forwarders if you need expedited delivery.',
+                key: 'step-7-signoff',
+                pointerLabel: 'SIGNOFF',
+                kicker: 'W68 ORDER CONFIRMATION • STEP 7 OF 8',
+                title: '7. Ordered By & Confirmed By',
+                body: 'Enter the names for ORDERED BY and CONFIRMED BY. Tap or click anywhere to continue.',
                 borderRadius: '14px',
-                target: getShipmentRushTarget
+                target: getSignoffFieldsTarget
             },
             {
-                key: 'shipment-regular',
-                pointerLabel: 'REGULAR',
-                kicker: 'W68 DELIVERY OPTION GUIDE • STEP 2 OF 3',
-                title: '2. Regular Shipments',
-                body: 'Choose from Regular forwarders for standard scheduled delivery.',
-                borderRadius: '14px',
-                target: getShipmentRegularTarget
-            },
-            {
-                key: 'shipment-save',
-                pointerLabel: 'SET',
-                kicker: 'W68 DELIVERY OPTION GUIDE • STEP 3 OF 3',
-                title: '3. SET SHIPMENT Button',
-                body: 'Tap SET SHIPMENT to confirm your selected delivery forwarder. Tap anywhere to close this guide, then select your forwarder.',
-                borderRadius: '10px',
-                target: getShipmentSaveTarget
+                key: 'step-8-finalize',
+                pointerLabel: 'FINALIZE',
+                kicker: 'W68 ORDER CONFIRMATION • STEP 8 OF 8',
+                title: '8. Finalized Order Button',
+                body: 'Click FINALIZED ORDER to complete and register your order. Tap or click anywhere to finish this guide.',
+                borderRadius: '12px',
+                target: getFinalizedOrderButtonTarget
             }
         ];
 
-        var signoffSteps = [
-            {
-                key: 'signoff-ordered-by',
-                pointerLabel: 'ORDERED',
-                kicker: 'W68 ORDER SIGN-OFF GUIDE • STEP 1 OF 3',
-                title: '1. Ordered By',
-                body: 'Enter the name of the person who placed this order.',
-                borderRadius: '12px',
-                target: getSignoffOrderedByTarget
-            },
-            {
-                key: 'signoff-checked-by',
-                pointerLabel: 'CHECKED',
-                kicker: 'W68 ORDER SIGN-OFF GUIDE • STEP 2 OF 3',
-                title: '2. Checked By',
-                body: 'Enter the name of the person who checked and verified the items.',
-                borderRadius: '12px',
-                target: getSignoffCheckedByTarget
-            },
-            {
-                key: 'signoff-submit',
-                pointerLabel: 'PROCESS',
-                kicker: 'W68 ORDER SIGN-OFF GUIDE • STEP 3 OF 3',
-                title: '3. FINAL PROCESS ORDER Button',
-                body: 'Click FINAL PROCESS ORDER to complete and register your order in W68. Tap anywhere to finish this guide, then fill out the names and submit.',
-                borderRadius: '10px',
-                target: getSignoffSubmitTarget
-            }
-        ];
-
-        var currentPhase = 'review'; // 'review' | 'confirm' | 'shipment' | 'signoff' | 'done'
         var currentStepIndex = 0;
         var currentTarget = null;
         var active = false;
-        var confirmPhasePending = false;
-        var shipmentPhasePending = false;
-        var signoffPhasePending = false;
         var repositionTimer = null;
-
-        function getStepsForPhase(phase) {
-            if (phase === 'confirm') return confirmSteps;
-            if (phase === 'shipment') return shipmentSteps;
-            if (phase === 'signoff') return signoffSteps;
-            return reviewSteps;
-        }
 
         function clearTarget() {
             if (currentTarget) {
@@ -1440,42 +1331,8 @@
             arrow.style.removeProperty('display');
         }
 
-        function finishReviewPageTutorial() {
+        function finishTutorial() {
             active = false;
-            clearTarget();
-            hidePointer();
-            overlay.hidden = true;
-            overlay.style.display = 'none';
-            overlay.setAttribute('aria-hidden', 'true');
-            robot.hidden = true;
-            robot.style.display = 'none';
-            if (tutorialCard) {
-                tutorialCard.hidden = true;
-                tutorialCard.style.display = 'none';
-                tutorialCard.style.removeProperty('top');
-                tutorialCard.style.removeProperty('bottom');
-            }
-            if (robot) {
-                robot.style.removeProperty('top');
-                robot.style.removeProperty('bottom');
-                robot.style.removeProperty('left');
-                robot.style.removeProperty('right');
-                robot.style.removeProperty('transform');
-            }
-
-            confirmPhasePending = true;
-
-            if (repositionTimer !== null) {
-                window.clearTimeout(repositionTimer);
-                repositionTimer = null;
-            }
-        }
-
-        function finishConfirmModalTutorial() {
-            active = false;
-            confirmPhasePending = false;
-            shipmentPhasePending = true;
-            signoffPhasePending = true;
             clearTarget();
             hidePointer();
             overlay.hidden = true;
@@ -1497,93 +1354,10 @@
                 robot.style.removeProperty('transform');
             }
             body.classList.remove('is-confirm-tutorial-active');
-
             if (repositionTimer !== null) {
                 window.clearTimeout(repositionTimer);
                 repositionTimer = null;
             }
-        }
-
-        function finishShipmentModalTutorial() {
-            active = false;
-            shipmentPhasePending = false;
-            signoffPhasePending = true;
-            clearTarget();
-            hidePointer();
-            overlay.hidden = true;
-            overlay.style.display = 'none';
-            overlay.setAttribute('aria-hidden', 'true');
-            robot.hidden = true;
-            robot.style.display = 'none';
-            if (tutorialCard) {
-                tutorialCard.hidden = true;
-                tutorialCard.style.display = 'none';
-                tutorialCard.style.removeProperty('top');
-                tutorialCard.style.removeProperty('bottom');
-            }
-            if (robot) {
-                robot.style.removeProperty('top');
-                robot.style.removeProperty('bottom');
-                robot.style.removeProperty('left');
-                robot.style.removeProperty('right');
-                robot.style.removeProperty('transform');
-            }
-            body.classList.remove('is-shipment-tutorial-active');
-
-            if (repositionTimer !== null) {
-                window.clearTimeout(repositionTimer);
-                repositionTimer = null;
-            }
-        }
-
-        function finishSignoffModalTutorial() {
-            active = false;
-            currentPhase = 'done';
-            confirmPhasePending = false;
-            shipmentPhasePending = false;
-            signoffPhasePending = false;
-            clearTarget();
-            hidePointer();
-            overlay.hidden = true;
-            overlay.style.display = 'none';
-            overlay.setAttribute('aria-hidden', 'true');
-            robot.hidden = true;
-            robot.style.display = 'none';
-            if (tutorialCard) {
-                tutorialCard.hidden = true;
-                tutorialCard.style.display = 'none';
-                tutorialCard.style.removeProperty('top');
-                tutorialCard.style.removeProperty('bottom');
-            }
-            if (robot) {
-                robot.style.removeProperty('top');
-                robot.style.removeProperty('bottom');
-                robot.style.removeProperty('left');
-                robot.style.removeProperty('right');
-                robot.style.removeProperty('transform');
-            }
-            body.classList.remove('is-signoff-tutorial-active');
-
-            if (repositionTimer !== null) {
-                window.clearTimeout(repositionTimer);
-                repositionTimer = null;
-            }
-        }
-
-        function dismissTutorialEntirely() {
-            confirmPhasePending = false;
-            shipmentPhasePending = false;
-            signoffPhasePending = false;
-            if (currentPhase === 'signoff') {
-                finishSignoffModalTutorial();
-            } else if (currentPhase === 'shipment') {
-                finishShipmentModalTutorial();
-            } else if (currentPhase === 'confirm') {
-                finishConfirmModalTutorial();
-            } else {
-                finishReviewPageTutorial();
-            }
-            currentPhase = 'done';
         }
 
         function scrollTargetIntoView(target) {
@@ -1618,22 +1392,18 @@
                 tutorialCard.style.top = 'auto';
             }
 
-            // Dock robot to the card's top-right shoulder
             if (robot) {
                 var cardRect = tutorialCard.getBoundingClientRect();
                 var robotWidth = robot.offsetWidth || 90;
                 var robotHeight = robot.offsetHeight || 90;
 
-                // Position robot on the right shoulder of the card
                 robot.style.transform = 'none';
                 robot.style.left = Math.min(cardRect.right - robotWidth + 10, window.innerWidth - robotWidth - 4) + 'px';
 
                 if (cardAtTop) {
-                    // Card is at top, robot sits just below the card
                     robot.style.top = Math.min(cardRect.bottom - 10, viewportHeight - robotHeight - 4) + 'px';
                     robot.style.bottom = 'auto';
                 } else {
-                    // Card is at bottom, robot sits just above the card
                     robot.style.bottom = 'auto';
                     robot.style.top = Math.max(4, cardRect.top - robotHeight + 10) + 'px';
                 }
@@ -1662,9 +1432,8 @@
                 || window.innerHeight
                 || document.documentElement.clientHeight;
 
-            var currentSteps = getStepsForPhase(currentPhase);
-            var step = currentSteps[currentStepIndex] || {};
-            var pad = step.key === 'delete-button' ? 5 : 7;
+            var step = tutorialSteps[currentStepIndex] || {};
+            var pad = step.key === 'step-2-delete' ? 5 : 7;
 
             showPointer();
             spotlight.style.left = Math.max(2, rect.left - pad) + 'px';
@@ -1712,37 +1481,28 @@
         }
 
         function renderStep(index) {
-            var currentSteps = getStepsForPhase(currentPhase);
-            var step = currentSteps[index];
-            if (!step) {
-                if (currentPhase === 'signoff') {
-                    finishSignoffModalTutorial();
-                } else if (currentPhase === 'shipment') {
-                    finishShipmentModalTutorial();
-                } else if (currentPhase === 'confirm') {
-                    finishConfirmModalTutorial();
-                } else {
-                    finishReviewPageTutorial();
-                }
+            var step = tutorialSteps[index];
+            if (!step || index >= tutorialSteps.length) {
+                finishTutorial();
                 return;
             }
 
             currentStepIndex = index;
-            if (kickerNode) {
-                kickerNode.textContent = currentPhase === 'review'
-                    ? ('W68 ORDER REVIEW GUIDE • LOGIN ' + loginNumber + ' OF 3')
-                    : step.kicker;
+
+            // When at step 5 or above (modal steps), make sure confirm modal is open and has high z-index
+            if (index >= 4) {
+                if (confirmModal && (confirmModal.hidden || confirmModal.getAttribute('aria-hidden') === 'true')) {
+                    openConfirmModal();
+                }
+                body.classList.add('is-confirm-tutorial-active');
+            } else {
+                body.classList.remove('is-confirm-tutorial-active');
             }
+
+            if (kickerNode) kickerNode.textContent = step.kicker;
             titleNode.textContent = step.title;
             bodyNode.textContent = step.body;
             arrow.setAttribute('data-pointer-label', String(step.pointerLabel || 'LOOK'));
-
-            var isLast = index >= currentSteps.length - 1;
-            if (nextButton) nextButton.hidden = isLast;
-            if (doneButton) {
-                doneButton.hidden = !isLast;
-                doneButton.textContent = (currentPhase === 'review' || currentPhase === 'shipment') ? 'NEXT' : 'FINISH';
-            }
 
             clearTarget();
 
@@ -1763,237 +1523,62 @@
         }
 
         function nextStep() {
-            var currentSteps = getStepsForPhase(currentPhase);
-            if (currentStepIndex < currentSteps.length - 1) {
-                renderStep(currentStepIndex + 1);
-            } else {
-                if (currentPhase === 'signoff') {
-                    finishSignoffModalTutorial();
-                } else if (currentPhase === 'shipment') {
-                    finishShipmentModalTutorial();
-                } else if (currentPhase === 'confirm') {
-                    finishConfirmModalTutorial();
-                } else {
-                    finishReviewPageTutorial();
+            if (currentStepIndex < tutorialSteps.length - 1) {
+                var nextIndex = currentStepIndex + 1;
+                if (currentStepIndex === 3) {
+                    // Advancing from Step 4 (process order button) to Step 5 (delivery option)
+                    openConfirmModal();
+                    body.classList.add('is-confirm-tutorial-active');
+                    window.setTimeout(function () {
+                        renderStep(nextIndex);
+                    }, 220);
+                    return;
                 }
+                renderStep(nextIndex);
+            } else {
+                finishTutorial();
             }
         }
 
-        function startConfirmModalTutorial() {
-            if (!confirmModal || confirmModal.hidden || viewMode) return;
-
-            currentPhase = 'confirm';
-            active = true;
-            body.classList.add('is-confirm-tutorial-active');
-
-            overlay.hidden = false;
-            overlay.style.removeProperty('display');
-            overlay.setAttribute('aria-hidden', 'false');
-            robot.hidden = false;
-            robot.style.removeProperty('display');
-            if (tutorialCard) {
-                tutorialCard.hidden = false;
-                tutorialCard.style.removeProperty('display');
-            }
-
-            renderStep(0);
-        }
-
-        function startShipmentModalTutorial() {
-            var modal = document.querySelector('[data-shipment-modal]');
-            if (!modal || modal.hidden || viewMode) return;
-
-            currentPhase = 'shipment';
-            active = true;
-            body.classList.add('is-shipment-tutorial-active');
-
-            overlay.hidden = false;
-            overlay.style.removeProperty('display');
-            overlay.setAttribute('aria-hidden', 'false');
-            robot.hidden = false;
-            robot.style.removeProperty('display');
-            if (tutorialCard) {
-                tutorialCard.hidden = false;
-                tutorialCard.style.removeProperty('display');
-            }
-
-            renderStep(0);
-        }
-
-        function startSignoffModalTutorial() {
-            var modal = document.querySelector('[data-process-signoff-modal]');
-            if (!modal || modal.hidden || viewMode) return;
-
-            currentPhase = 'signoff';
-            active = true;
-            body.classList.add('is-signoff-tutorial-active');
-
-            overlay.hidden = false;
-            overlay.style.removeProperty('display');
-            overlay.setAttribute('aria-hidden', 'false');
-            robot.hidden = false;
-            robot.style.removeProperty('display');
-            if (tutorialCard) {
-                tutorialCard.hidden = false;
-                tutorialCard.style.removeProperty('display');
-            }
-
-            renderStep(0);
-        }
-
-        window.W68TriggerConfirmTutorial = function () {
-            if (confirmPhasePending) {
-                confirmPhasePending = false;
-                window.setTimeout(function () {
-                    startConfirmModalTutorial();
-                }, 220);
-            }
-        };
-
-        window.W68CancelConfirmTutorial = function () {
-            if (active && currentPhase === 'confirm') {
-                finishConfirmModalTutorial();
-            }
-        };
-
-        window.W68IsShipmentTutorialExpected = function () {
-            return shipmentPhasePending;
-        };
-
-        window.W68TriggerShipmentTutorial = function () {
-            if (shipmentPhasePending) {
-                shipmentPhasePending = false;
-                window.setTimeout(function () {
-                    startShipmentModalTutorial();
-                }, 220);
-            }
-        };
-
-        window.W68CancelShipmentTutorial = function () {
-            if (active && currentPhase === 'shipment') {
-                finishShipmentModalTutorial();
-            }
-        };
-
-        window.W68IsSignoffTutorialActive = function () {
-            return active && currentPhase === 'signoff';
-        };
-
-        window.W68IsSignoffTutorialExpected = function () {
-            return signoffPhasePending;
-        };
-
-        window.W68TriggerSignoffTutorial = function () {
-            if (signoffPhasePending) {
-                signoffPhasePending = false;
-                window.setTimeout(function () {
-                    startSignoffModalTutorial();
-                }, 100);
-            }
-        };
-
-        window.W68CancelSignoffTutorial = function () {
-            if (active && currentPhase === 'signoff') {
-                finishSignoffModalTutorial();
-            }
-        };
-
-        var lastProcessOrderAdvanceTime = 0;
+        var lastAdvanceTime = 0;
         function advanceTutorialStep() {
             var now = Date.now();
-            if (now - lastProcessOrderAdvanceTime < 350) return;
+            if (now - lastAdvanceTime < 320) return;
             if (!active) return;
-            lastProcessOrderAdvanceTime = now;
+            lastAdvanceTime = now;
             nextStep();
         }
 
-        // Capturing click listener
-        document.addEventListener('click', function (event) {
+        var blockAndAdvance = function (event) {
             if (!active) return;
-
-            // If user clicked SKIP
-            if (event.target && event.target.closest && event.target.closest('[data-w68-tutorial-skip]')) {
-                dismissTutorialEntirely();
-                return;
-            }
-
-            // In Phase 1, Step 6: if user clicked the PROCESS ORDER button directly
-            if (currentPhase === 'review' && currentStepIndex === reviewSteps.length - 1) {
-                if (event.target && event.target.closest && event.target.closest('[data-final-process]')) {
-                    event.preventDefault();
-                    event.stopPropagation();
-                    event.stopImmediatePropagation();
-                    finishReviewPageTutorial();
-                    openConfirmModal();
-                    return;
-                }
-            }
-
+            if (event && event.isTrusted === false) return;
             event.preventDefault();
             event.stopPropagation();
             event.stopImmediatePropagation();
-
             advanceTutorialStep();
+        };
+
+        document.addEventListener('pointerdown', function (event) {
+            if (!active) return;
+            event.preventDefault();
+            event.stopPropagation();
+            event.stopImmediatePropagation();
         }, true);
 
-        // Touch listener for mobile and iPad
-        document.addEventListener('touchstart', function (event) {
+        if (window.PointerEvent) {
+            document.addEventListener('pointerup', blockAndAdvance, true);
+        } else {
+            document.addEventListener('touchend', blockAndAdvance, true);
+            document.addEventListener('click', blockAndAdvance, true);
+        }
+
+        document.addEventListener('click', function (event) {
             if (!active) return;
-            if (event.target && event.target.closest && event.target.closest('[data-w68-tutorial-skip]')) {
-                return;
-            }
-
-            // In Phase 1, Step 6: if user touched the PROCESS ORDER button directly
-            if (currentPhase === 'review' && currentStepIndex === reviewSteps.length - 1) {
-                if (event.target && event.target.closest && event.target.closest('[data-final-process]')) {
-                    event.preventDefault();
-                    event.stopPropagation();
-                    event.stopImmediatePropagation();
-                    finishReviewPageTutorial();
-                    openConfirmModal();
-                    return;
-                }
-            }
-
             event.preventDefault();
             event.stopPropagation();
             event.stopImmediatePropagation();
-
             advanceTutorialStep();
-        }, { passive: false, capture: true });
-
-        if (orderedByInput) {
-            orderedByInput.addEventListener('focus', function () {
-                if (active && currentPhase === 'signoff') {
-                    orderedByInput.blur();
-                    advanceTutorialStep();
-                }
-            });
-        }
-        if (checkedByInput) {
-            checkedByInput.addEventListener('focus', function () {
-                if (active && currentPhase === 'signoff') {
-                    checkedByInput.blur();
-                    advanceTutorialStep();
-                }
-            });
-        }
-
-        if (skipButton) skipButton.addEventListener('click', dismissTutorialEntirely);
-        if (doneButton) {
-            doneButton.addEventListener('click', function (e) {
-                e.preventDefault();
-                e.stopPropagation();
-                nextStep();
-            });
-        }
-        if (nextButton) {
-            nextButton.addEventListener('click', function (e) {
-                e.preventDefault();
-                e.stopPropagation();
-                nextStep();
-            });
-        }
+        }, true);
 
         function reposition() {
             if (!active || !currentTarget) return;
@@ -2010,8 +1595,18 @@
             window.visualViewport.addEventListener('scroll', reposition, { passive: true });
         }
 
-        // Start Phase 1 on the review page
-        currentPhase = 'review';
+        // Legacy hook stubs so inline or external scripts don't fail
+        window.W68TriggerConfirmTutorial = function () {};
+        window.W68CancelConfirmTutorial = function () {};
+        window.W68IsShipmentTutorialExpected = function () { return false; };
+        window.W68TriggerShipmentTutorial = function () {};
+        window.W68CancelShipmentTutorial = function () {};
+        window.W68IsSignoffTutorialActive = function () { return false; };
+        window.W68IsSignoffTutorialExpected = function () { return false; };
+        window.W68TriggerSignoffTutorial = function () {};
+        window.W68CancelSignoffTutorial = function () {};
+
+        // Start tutorial
         active = true;
         overlay.hidden = false;
         overlay.style.removeProperty('display');

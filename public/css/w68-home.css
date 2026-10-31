@@ -7020,6 +7020,10 @@ html.w68-ipad .orders-cart-drawer.open .orders-cart-print-button {
     cursor: pointer;
 }
 
+.w68-tutorial-skip {
+    display: none !important;
+}
+
 .w68-tutorial-no-click {
     pointer-events: none !important;
 }

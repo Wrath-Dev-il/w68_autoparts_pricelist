@@ -7,9 +7,9 @@
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>W68 Autoparts & Service Center | Home</title>
     <link rel="icon" href="{{ asset('images/sidebar_logo.png') }}">
-    <link rel="stylesheet" href="{{ asset('css/w68-home.css') }}?v=20261029-v178">
+    <link rel="stylesheet" href="{{ asset('css/w68-home.css') }}?v=20261031-v179">
     <link rel="stylesheet" href="{{ asset('css/w68-notifications.css') }}?v=20261028-v148">
-    <script src="{{ asset('js/w68-home.js') }}?v=20261029-v178" defer></script>
+    <script src="{{ asset('js/w68-home.js') }}?v=20261031-v179" defer></script>
     <script src="{{ asset('js/w68-notifications.js') }}?v=20261028-v148" defer></script>
 </head>
 @php
@@ -861,7 +861,7 @@
                 and continue to Process Order.
             </p>
             <div class="w68-tutorial-actions">
-                <button type="button" class="w68-tutorial-skip" data-w68-tutorial-skip>SKIP</button>
+                <button type="button" class="w68-tutorial-skip" data-w68-tutorial-skip hidden style="display:none!important">SKIP</button>
                 <button type="button" class="w68-tutorial-next" data-w68-tutorial-next>NEXT</button>
                 <button type="button" class="w68-tutorial-done" data-w68-tutorial-done hidden>DONE</button>
             </div>

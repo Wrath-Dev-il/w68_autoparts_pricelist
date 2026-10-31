@@ -2865,6 +2865,11 @@
 
         const finishTutorial = () => {
             clearStepTimer();
+            window.clearTimeout(messageTimer);
+            if (cartMessage) {
+                cartMessage.hidden = true;
+                cartMessage.setAttribute('aria-hidden', 'true');
+            }
             active = false;
             clearTarget();
             hidePointer();
@@ -3291,6 +3296,20 @@
                 if (cb) {
                     cb.checked = true;
                 }
+            }
+
+            // When entering added-success step: auto-advance to cart-button as soon as message modal disappears!
+            if (step.key === 'added-success') {
+                window.clearTimeout(messageTimer);
+                messageTimer = window.setTimeout(() => {
+                    if (cartMessage) {
+                        cartMessage.hidden = true;
+                        cartMessage.setAttribute('aria-hidden', 'true');
+                    }
+                    if (active && steps[currentStepIndex]?.key === 'added-success') {
+                        advanceTutorial();
+                    }
+                }, 1800);
             }
 
             const target = targetForStep(step);

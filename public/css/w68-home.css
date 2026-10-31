@@ -7035,6 +7035,9 @@ body.w68-tutorial-active .cart-item-modal {
     cursor: pointer;
 }
 
+.w68-tutorial-actions,
+.w68-tutorial-next,
+.w68-tutorial-done,
 .w68-tutorial-skip {
     display: none !important;
 }

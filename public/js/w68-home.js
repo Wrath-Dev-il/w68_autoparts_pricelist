@@ -1131,9 +1131,7 @@
         // W68_TUTORIAL_ADDED_MESSAGE_DURATION_20261027
         // Normal customers keep the 2-second confirmation. During the guided
         // tutorial, leave it visible long enough for the robot to explain it.
-        const cartMessageDuration = document.body?.classList.contains('w68-tutorial-active')
-            ? 3600
-            : 2000;
+        const cartMessageDuration = 1800;
 
         messageTimer = window.setTimeout(() => {
             cartMessage.hidden = true;
@@ -2799,26 +2797,33 @@
                 key: 'qty-controls',
                 pointerLabel: 'QTY',
                 title: 'Step 2: Quantity Controls',
-                body: 'Use −, input, and + to set your quantity. Tap anywhere to add it to cart.',
+                body: 'Use −, input, and + to set your quantity. Tap anywhere to continue.',
                 target: () => getFirstVisibleTutorialTarget('.quantity-stepper'),
             },
             {
+                key: 'qty-add-btn',
+                pointerLabel: 'ADD',
+                title: 'Step 3: Add to Cart',
+                body: 'Tap anywhere to confirm your quantity and add this item to cart.',
+                target: () => getFirstVisibleTutorialTarget('[data-quantity-confirm]'),
+            },
+            {
                 key: 'added-success',
-                title: 'Step 3: Added to Cart!',
+                title: 'Step 4: Added to Cart!',
                 body: 'Your item was added successfully. Tap anywhere to open your cart.',
                 target: () => getFirstVisibleTutorialTarget('[data-cart-message] .cart-message-card'),
             },
             {
                 key: 'cart-button',
                 pointerLabel: 'CART',
-                title: 'Step 4: Open Cart',
+                title: 'Step 5: Open Cart',
                 body: 'This is your CART button. Tap anywhere to open it.',
                 target: () => getFirstVisibleTutorialTarget('[data-cart-open]'),
             },
             {
                 key: 'carted-item',
                 pointerLabel: 'ITEM',
-                title: 'Step 5: Your Carted Item',
+                title: 'Step 6: Your Carted Item',
                 body: 'This is the item you added with its checkbox checked. Tap anywhere to continue.',
                 target: () => getTutorialCartRow()
                     || getFirstVisibleTutorialTarget('[data-cart-items]'),
@@ -2826,7 +2831,7 @@
             {
                 key: 'process-order',
                 pointerLabel: 'HERE',
-                title: 'Step 6: Process Order',
+                title: 'Step 7: Process Order',
                 body: 'This is the PROCESS ORDER button. Tap anywhere to finish the guide.',
                 target: () => getFirstVisibleTutorialTarget('[data-process-order]'),
             },
@@ -2996,6 +3001,7 @@
 
         const quantityStageKeys = new Set([
             'qty-controls',
+            'qty-add-btn',
         ]);
 
         const resetTutorialRobotPlacement = () => {
@@ -3262,7 +3268,9 @@
 
             // Hide NEXT/DONE — user taps anywhere to advance.
             nextButton.hidden = true;
+            nextButton.style.display = 'none';
             doneButton.hidden = true;
+            doneButton.style.display = 'none';
 
             // All steps are tap-anywhere; keep scrim clickable.
             overlay.classList.remove('is-finishable');
@@ -3370,7 +3378,7 @@
         const advanceTutorial = () => {
             clearStepTimer();
             const now = Date.now();
-            if (now - lastAdvanceTime < 600) return;
+            if (now - lastAdvanceTime < 260) return;
             if (!active) return;
             lastAdvanceTime = now;
 
@@ -3390,11 +3398,15 @@
                         tutorialProductId = String(product.id || '');
                         openQuantityModal(product);
                     }
-                    window.setTimeout(() => renderStep(2), 220);
+                    renderStep(2);
                     break;
                 }
 
-                case 'qty-controls': {
+                case 'qty-controls':
+                    renderStep(3);
+                    break;
+
+                case 'qty-add-btn': {
                     const product = pendingQuantityProduct
                         || (tutorialProductId ? getProductData(document.querySelector(`[data-product-card][data-product-id="${tutorialProductId}"]`)) : null);
                     const qtyInput = quantityModal?.querySelector('[data-quantity-input]');
@@ -3404,7 +3416,7 @@
                     if (product) {
                         commitAddToCart(product, qty);
                     }
-                    window.setTimeout(() => renderStep(3), 200);
+                    renderStep(4);
                     break;
                 }
 
@@ -3413,12 +3425,13 @@
                         cartMessage.hidden = true;
                         cartMessage.setAttribute('aria-hidden', 'true');
                     }
-                    renderStep(4);
+                    window.clearTimeout(messageTimer);
+                    renderStep(5);
                     break;
 
                 case 'cart-button':
                     openCart();
-                    window.setTimeout(() => renderStep(5), 320);
+                    renderStep(6);
                     break;
 
                 case 'carted-item': {
@@ -3429,7 +3442,7 @@
                     if (cb) {
                         cb.checked = true;
                     }
-                    window.setTimeout(() => renderStep(6), 200);
+                    renderStep(7);
                     break;
                 }
 
@@ -3455,16 +3468,21 @@
                 return;
             }
 
-            // Only click advances (fires exactly once per tap on all platforms).
-            // pointerdown just blocks underlying handlers from firing.
-            if (event.type === 'click') {
-                advanceTutorial();
-            }
+            advanceTutorial();
         };
 
-        document.addEventListener('pointerdown', blockAndAdvance, true);
-        document.addEventListener('pointerup', blockAndAdvance, true);
-        document.addEventListener('click', blockAndAdvance, true);
+        document.addEventListener('pointerdown', (event) => {
+            if (!active || !(event.target instanceof Element)) return;
+            event.preventDefault();
+            event.stopImmediatePropagation();
+        }, true);
+
+        if (window.PointerEvent) {
+            document.addEventListener('pointerup', blockAndAdvance, true);
+        } else {
+            document.addEventListener('touchend', blockAndAdvance, true);
+            document.addEventListener('click', blockAndAdvance, true);
+        }
 
         const openTutorial = () => {
             active = true;

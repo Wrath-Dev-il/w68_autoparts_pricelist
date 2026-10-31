@@ -7,9 +7,9 @@
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>W68 Autoparts & Service Center | Home</title>
     <link rel="icon" href="{{ asset('images/sidebar_logo.png') }}">
-    <link rel="stylesheet" href="{{ asset('css/w68-home.css') }}?v=20261031-v184">
+    <link rel="stylesheet" href="{{ asset('css/w68-home.css') }}?v=20261031-v185">
     <link rel="stylesheet" href="{{ asset('css/w68-notifications.css') }}?v=20261028-v148">
-    <script src="{{ asset('js/w68-home.js') }}?v=20261031-v184" defer></script>
+    <script src="{{ asset('js/w68-home.js') }}?v=20261031-v185" defer></script>
     <script src="{{ asset('js/w68-notifications.js') }}?v=20261028-v148" defer></script>
 </head>
 @php
@@ -860,10 +860,10 @@
                 I will show you how to add an item, open your cart, review the carted item,
                 and continue to Process Order.
             </p>
-            <div class="w68-tutorial-actions">
+            <div class="w68-tutorial-actions" hidden style="display:none!important">
                 <button type="button" class="w68-tutorial-skip" data-w68-tutorial-skip hidden style="display:none!important">SKIP</button>
-                <button type="button" class="w68-tutorial-next" data-w68-tutorial-next>NEXT</button>
-                <button type="button" class="w68-tutorial-done" data-w68-tutorial-done hidden>DONE</button>
+                <button type="button" class="w68-tutorial-next" data-w68-tutorial-next hidden style="display:none!important">NEXT</button>
+                <button type="button" class="w68-tutorial-done" data-w68-tutorial-done hidden style="display:none!important">DONE</button>
             </div>
         </section>
     </div>

@@ -1,9 +1,3 @@
-@php
-    // W68_ORDERS_TUTORIAL_20261028
-    $tutorialRobotAsset = is_file(public_path('images/w68_robot_tutorial_mascot.gif'))
-        ? asset('images/w68_robot_tutorial_mascot.gif')
-        : asset('images/w68_robot_tutorial_fallback.svg');
-@endphp
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -12,9 +6,9 @@
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>W68 Autoparts | Orders</title>
     <link rel="icon" href="{{ asset('images/sidebar_logo.png') }}">
-    <link rel="stylesheet" href="{{ asset('css/w68-orders.css') }}?v=20261028-v147">
+    <link rel="stylesheet" href="{{ asset('css/w68-orders.css') }}?v=20261103-v190">
     <link rel="stylesheet" href="{{ asset('css/w68-notifications.css') }}?v=20261028-v148">
-    <script src="{{ asset('js/w68-orders.js') }}?v=20261028-v147" defer></script>
+    <script src="{{ asset('js/w68-orders.js') }}?v=20261103-v190" defer></script>
     <script src="{{ asset('js/w68-orders-cart.js') }}?v=20261015-v155" defer></script>
     <script src="{{ asset('js/w68-notifications.js') }}?v=20261028-v148" defer></script>
 </head>
@@ -30,9 +24,6 @@
     data-notifications-url="{{ rtrim(request()->getSchemeAndHttpHost(), '/') }}{{ preg_replace('#/index\.php$#i', '', rtrim(str_replace('\\', '/', (string) request()->getBaseUrl()), '/')) }}/home/notifications"
     data-notifications-read-all-url="{{ rtrim(request()->getSchemeAndHttpHost(), '/') }}{{ preg_replace('#/index\.php$#i', '', rtrim(str_replace('\\', '/', (string) request()->getBaseUrl()), '/')) }}/home/notifications/read-all"
     data-notifications-tutorial-seen-url="{{ rtrim(request()->getSchemeAndHttpHost(), '/') }}{{ preg_replace('#/index\.php$#i', '', rtrim(str_replace('\\', '/', (string) request()->getBaseUrl()), '/')) }}/home/notifications/tutorial-seen"
-    data-first-login-tutorial="{{ !empty($showOrdersTutorial) ? '1' : '0' }}"
-    data-tutorial-robot-gif="{{ $tutorialRobotAsset }}"
-    data-tutorial-robot-fallback="{{ asset('images/w68_robot_tutorial_fallback.svg') }}"
 >
 @php
     $logo = asset('images/sidebar_logo.png');
@@ -77,25 +68,25 @@
             <h1>Orders</h1>
         </div>
         <div class="orders-stats" aria-label="Order dashboard">
-            <div class="orders-stat-card orders-stat-to-ship">
+            <div class="orders-stat-card orders-stat-to-ship is-active" data-orders-tab-target="to-ship" role="button" tabindex="0" aria-label="Switch to To Ship orders tab">
                 <span class="orders-stat-icon" aria-hidden="true">
                     <svg viewBox="0 0 24 24"><path d="M3 7h11v10H3zM14 10h4l3 3v4h-7zM7 20a2 2 0 1 0 0-4 2 2 0 0 0 0 4Zm10 0a2 2 0 1 0 0-4 2 2 0 0 0 0 4Z"/></svg>
                 </span>
                 <span class="orders-stat-copy"><strong>{{ $toShip->count() }}</strong><span>TO SHIP</span></span>
             </div>
-            <div class="orders-stat-card orders-stat-invoiced">
+            <div class="orders-stat-card orders-stat-invoiced" data-orders-tab-target="invoiced" role="button" tabindex="0" aria-label="Switch to Invoiced tab">
                 <span class="orders-stat-icon" aria-hidden="true">
                     <svg viewBox="0 0 24 24"><path d="M6 3h12v18l-3-2-3 2-3-2-3 2zM9 8h6M9 12h6M9 16h4"/></svg>
                 </span>
                 <span class="orders-stat-copy"><strong>{{ ($invoices ?? collect())->count() }}</strong><span>INVOICED</span></span>
             </div>
-            <div class="orders-stat-card orders-stat-unserved">
+            <div class="orders-stat-card orders-stat-unserved" data-orders-tab-target="unserved" role="button" tabindex="0" aria-label="Switch to Unserved Items tab">
                 <span class="orders-stat-icon" aria-hidden="true">
                     <svg viewBox="0 0 24 24"><path d="M4 5h16v14H4zM8 9h8M8 13h5M16 16h.01"/></svg>
                 </span>
                 <span class="orders-stat-copy"><strong>{{ $unservedItemsCount ?? 0 }}</strong><span>UNSERVED ITEMS</span></span>
             </div>
-            <div class="orders-stat-card orders-stat-bills">
+            <div class="orders-stat-card orders-stat-bills" data-orders-tab-target="bills" role="button" tabindex="0" aria-label="Switch to Bills tab">
                 <span class="orders-stat-icon" aria-hidden="true">
                     <svg viewBox="0 0 24 24"><path d="M5 3h14v18l-3-2-4 2-4-2-3 2V3Zm3 5h8M8 12h8M8 16h5"/></svg>
                 </span>
@@ -492,39 +483,5 @@
 <script type="application/json" id="w68-orders-payload">{!! json_encode($allOrders->all(), $jsonFlags) !!}</script>
 <script type="application/json" id="w68-orders-cart-payload">{!! json_encode($serverCart ?? [], $jsonFlags) !!}</script>
 @include('partials.notification-modal')
-
-{{-- W68_ORDERS_TUTORIAL_20261028 --}}
-<div class="w68-tutorial-overlay" data-w68-tutorial hidden aria-hidden="true">
-    <div class="w68-tutorial-scrim" data-w68-tutorial-scrim></div>
-    <div class="w68-tutorial-spotlight" data-w68-tutorial-spotlight hidden></div>
-    <div class="w68-tutorial-arrow" data-w68-tutorial-arrow hidden><span></span></div>
-
-    <div class="w68-tutorial-robot" data-w68-tutorial-robot>
-        <img
-            src="{{ $tutorialRobotAsset }}"
-            data-w68-tutorial-robot-image
-            data-fallback="{{ asset('images/w68_robot_tutorial_fallback.svg') }}"
-            onerror="if(this.dataset.fallback && this.src !== this.dataset.fallback){this.src=this.dataset.fallback;}"
-            alt="W68 tutorial robot"
-        >
-    </div>
-
-    <section
-        class="w68-tutorial-card"
-        data-w68-tutorial-card
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby="w68-tutorial-title"
-    >
-        <span class="w68-tutorial-kicker" data-w68-tutorial-kicker>W68 ORDERS GUIDE</span>
-        <h2 id="w68-tutorial-title" data-w68-tutorial-title>Orders Guide</h2>
-        <p data-w68-tutorial-body>Welcome to your W68 Orders dashboard.</p>
-        <div class="w68-tutorial-actions">
-            <button type="button" class="w68-tutorial-skip" data-w68-tutorial-skip>SKIP</button>
-            <button type="button" class="w68-tutorial-next" data-w68-tutorial-next>NEXT</button>
-            <button type="button" class="w68-tutorial-done" data-w68-tutorial-done hidden>DONE</button>
-        </div>
-    </section>
-</div>
 </body>
 </html>

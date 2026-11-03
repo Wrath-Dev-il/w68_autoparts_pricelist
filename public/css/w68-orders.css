@@ -614,6 +614,36 @@ body.orders-cart-open { overflow: hidden; }
     border-radius: 15px;
     text-align: left;
     box-shadow: 0 9px 22px rgba(5, 55, 41, .14);
+    cursor: pointer;
+    user-select: none;
+    -webkit-user-select: none;
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
+    transition: transform .18s cubic-bezier(.2, .8, .2, 1), box-shadow .18s ease, outline .18s ease, filter .18s ease;
+    outline: 2px solid transparent;
+    outline-offset: 2px;
+}
+
+.orders-stats .orders-stat-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 14px 28px rgba(0, 0, 0, .22);
+    filter: brightness(1.06);
+}
+
+.orders-stats .orders-stat-card:active {
+    transform: translateY(1px) scale(.99);
+    filter: brightness(.96);
+}
+
+.orders-stats .orders-stat-card:focus-visible {
+    outline: 3px solid #ffe358;
+    outline-offset: 2px;
+}
+
+.orders-stats .orders-stat-card.is-active {
+    outline: 3px solid #ffe358;
+    outline-offset: 2px;
+    box-shadow: 0 12px 26px rgba(0, 0, 0, .26), 0 0 0 1px rgba(255, 227, 88, .4);
 }
 
 .orders-stat-to-ship { background: linear-gradient(135deg, #064e3b, #0b6b50) !important; }

@@ -147,6 +147,7 @@ class LoginController extends Controller
         $request->session()->regenerate();
         $this->markFirstLoginTutorial($request, (int) $account->login_ID);
         $request->session()->put('w68_show_available_items_modal', true);
+        $request->session()->save();
 
         return redirect()
             ->route('home')
@@ -385,7 +386,13 @@ class LoginController extends Controller
         Auth::login($account, false);
         $request->session()->regenerate();
         $this->markFirstLoginTutorial($request, (int) $account->login_ID);
-        $request->session()->put('w68_show_available_items_modal', true);
+        $request->session()->put([
+            'w68_show_first_login_tutorial' => true,
+            'w68_tutorial_login_number' => 1,
+            'w68_show_process_order_tutorial' => true,
+            'w68_show_available_items_modal' => true,
+        ]);
+        $request->session()->save();
 
         return redirect()
             ->route('home')
@@ -615,6 +622,7 @@ class LoginController extends Controller
         $request->session()->regenerate();
         $this->markFirstLoginTutorial($request, (int) $account->login_ID);
         $request->session()->put('w68_show_available_items_modal', true);
+        $request->session()->save();
 
         return redirect()
             ->route('home')
@@ -1003,36 +1011,47 @@ HTML;
     private function markFirstLoginTutorial(Request $request, int $loginId): void
     {
         try {
-            if (
-                !Schema::connection('system')->hasTable('customer_portal_accounts')
-                || !Schema::connection('system')->hasColumn('customer_portal_accounts', 'tutorial_login_count')
-            ) {
-                return;
+            if (Schema::connection('system')->hasTable('customer_portal_accounts')) {
+                if (!Schema::connection('system')->hasColumn('customer_portal_accounts', 'tutorial_login_count')) {
+                    try {
+                        DB::connection('system')->statement(
+                            "ALTER TABLE `customer_portal_accounts` ADD COLUMN `tutorial_login_count` TINYINT UNSIGNED NOT NULL DEFAULT 0 AFTER `authorization_id`"
+                        );
+                    } catch (Throwable $alterException) {
+                        // Ignore concurrent addition or restricted privileges
+                    }
+                }
             }
 
-            $loginNumber = DB::connection('system')->transaction(function () use ($loginId): int {
-                $row = DB::connection('system')
-                    ->table('customer_portal_accounts')
-                    ->where('login_id', $loginId)
-                    ->lockForUpdate()
-                    ->first();
+            $loginNumber = 1;
+            if (
+                Schema::connection('system')->hasTable('customer_portal_accounts')
+                && Schema::connection('system')->hasColumn('customer_portal_accounts', 'tutorial_login_count')
+            ) {
+                $loginNumber = DB::connection('system')->transaction(function () use ($loginId): int {
+                    $row = DB::connection('system')
+                        ->table('customer_portal_accounts')
+                        ->where('login_id', $loginId)
+                        ->lockForUpdate()
+                        ->first();
 
-                if (!$row) {
-                    return 0;
-                }
+                    if (!$row) {
+                        return 1;
+                    }
 
-                $next = max(0, (int) ($row->tutorial_login_count ?? 0)) + 1;
+                    $next = max(0, (int) ($row->tutorial_login_count ?? 0)) + 1;
 
-                DB::connection('system')
-                    ->table('customer_portal_accounts')
-                    ->where('id', $row->id)
-                    ->update([
-                        'tutorial_login_count' => $next,
-                        'updated_at' => now(),
-                    ]);
+                    DB::connection('system')
+                        ->table('customer_portal_accounts')
+                        ->where('id', $row->id)
+                        ->update([
+                            'tutorial_login_count' => $next,
+                            'updated_at' => now(),
+                        ]);
 
-                return $next;
-            });
+                    return $next;
+                });
+            }
 
             if ($loginNumber >= 1 && $loginNumber <= 3) {
                 $request->session()->put([
@@ -1051,6 +1070,13 @@ HTML;
         } catch (Throwable $exception) {
             // Tutorial tracking must never block a valid customer login.
             report($exception);
+
+            // Resilient fallback: ensure first login tutorial runs
+            $request->session()->put([
+                'w68_show_first_login_tutorial' => true,
+                'w68_tutorial_login_number' => 1,
+                'w68_show_process_order_tutorial' => true,
+            ]);
         }
     }
 

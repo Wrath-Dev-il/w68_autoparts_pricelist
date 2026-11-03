@@ -7650,12 +7650,23 @@ body > .w68-tutorial-card.is-quantity-stage + * {
     box-sizing: border-box;
 }
 
+.w68-apple-touch .available-items-modal {
+    inset: auto !important;
+    top: var(--w68-vv-top, 0px) !important;
+    left: var(--w68-vv-left, 0px) !important;
+    width: var(--w68-vv-width, 100vw) !important;
+    height: var(--w68-vv-height, 100vh) !important;
+    z-index: 55000 !important;
+}
+
 .available-items-backdrop {
     position: absolute;
     inset: 0;
     background: rgba(3, 20, 14, 0.78);
     backdrop-filter: blur(6px);
     -webkit-backdrop-filter: blur(6px);
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
 }
 
 .available-items-card {
@@ -7821,6 +7832,7 @@ body > .w68-tutorial-card.is-quantity-stage + * {
     user-select: none;
     -webkit-user-select: none;
     touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
 }
 
 .available-items-btn:hover {

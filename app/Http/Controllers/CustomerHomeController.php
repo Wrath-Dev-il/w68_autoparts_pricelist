@@ -101,6 +101,32 @@ class CustomerHomeController extends Controller
                 'w68_tutorial_login_number',
                 0
             );
+
+            // Resilient DB fallback: if session was dropped (e.g. iPad Safari cookie redirect),
+            // inspect customer_portal_accounts to see if this account has tutorial remaining (login 1..3).
+            if (!$showFirstLoginTutorial && $portalLoginId) {
+                try {
+                    if (
+                        Schema::connection('system')->hasTable('customer_portal_accounts')
+                        && Schema::connection('system')->hasColumn('customer_portal_accounts', 'tutorial_login_count')
+                    ) {
+                        $portalRow = DB::connection('system')
+                            ->table('customer_portal_accounts')
+                            ->where('login_id', $portalLoginId)
+                            ->first();
+
+                        if ($portalRow) {
+                            $count = (int) ($portalRow->tutorial_login_count ?? 0);
+                            if ($count >= 1 && $count <= 3) {
+                                $showFirstLoginTutorial = true;
+                                $tutorialLoginNumber = $count;
+                            }
+                        }
+                    }
+                } catch (Throwable $tutorialFallbackException) {
+                    // Ignore DB fallback error
+                }
+            }
         }
 
         $profileName = trim(
@@ -114,13 +140,15 @@ class CustomerHomeController extends Controller
         }
 
         // W68_AVAILABLE_ITEMS_MODAL_20261103
-        // Pops up upon login or registration.
+        // Pops up upon login or registration before any tutorial.
+        // Also shown for users with no tutorial left.
         // Can also be previewed with ?items_modal=1 or ?tutorial=preview.
         $showAvailableItemsModal = (bool) $request->session()->pull(
             'w68_show_available_items_modal',
             false
         ) || in_array($request->query('items_modal'), ['1', 'preview'], true)
-          || $request->query('tutorial') === 'preview';
+          || $request->query('tutorial') === 'preview'
+          || $showFirstLoginTutorial;
 
         $availableItemsRows = $this->availableItemsSummary();
 

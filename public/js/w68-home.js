@@ -152,7 +152,10 @@
             '[data-quantity-plus]',
             '[data-process-order]',
             '[data-process-order-close]',
-            '[data-process-proceed]'
+            '[data-process-proceed]',
+            '[data-available-items-got-it]',
+            '.available-items-btn',
+            '.available-items-backdrop'
         ].join(',');
 
         document.addEventListener('touchstart', (event) => {
@@ -2730,16 +2733,41 @@
                 const starter = pendingTutorialStarter;
                 pendingTutorialStarter = null;
                 window.setTimeout(starter, 350);
+            } else if (String(body?.dataset.firstLoginTutorial || '0') === '1') {
+                if (typeof window.W68StartFirstLoginTutorial === 'function') {
+                    window.setTimeout(window.W68StartFirstLoginTutorial, 350);
+                }
             }
+        };
+
+        let lastGotItAt = 0;
+        const handleGotIt = (e) => {
+            const now = Date.now();
+            if (now - lastGotItAt < 400) {
+                if (e) {
+                    try {
+                        e.preventDefault();
+                        e.stopPropagation();
+                    } catch (_) {}
+                }
+                return;
+            }
+            lastGotItAt = now;
+
+            if (e) {
+                try {
+                    e.preventDefault();
+                    e.stopPropagation();
+                } catch (_) {}
+            }
+            closeAvailableItems();
         };
 
         const gotItButtons = modal.querySelectorAll('[data-available-items-got-it]');
         gotItButtons.forEach((btn) => {
-            btn.addEventListener('click', (e) => {
-                e.preventDefault();
-                e.stopPropagation();
-                closeAvailableItems();
-            });
+            btn.addEventListener('click', handleGotIt);
+            btn.addEventListener('touchend', handleGotIt, { passive: false });
+            btn.addEventListener('pointerup', handleGotIt);
         });
 
         document.addEventListener('keydown', (e) => {
@@ -3542,14 +3570,33 @@
             }
         };
 
+        let lastAdvanceAt = 0;
         const blockAndAdvance = (event) => {
-            if (!active || !(event.target instanceof Element)) return;
+            if (!active) return;
             if (event && event.isTrusted === false) return;
 
-            event.preventDefault();
-            event.stopImmediatePropagation();
+            const now = Date.now();
+            if (now - lastAdvanceAt < 380) {
+                if (event) {
+                    try {
+                        event.preventDefault();
+                        event.stopPropagation();
+                        event.stopImmediatePropagation();
+                    } catch (_) {}
+                }
+                return;
+            }
+            lastAdvanceAt = now;
 
-            if (event.target.closest('[data-w68-tutorial-skip]')) {
+            if (event) {
+                try {
+                    event.preventDefault();
+                    event.stopPropagation();
+                    event.stopImmediatePropagation();
+                } catch (_) {}
+            }
+
+            if (event && event.target instanceof Element && event.target.closest('[data-w68-tutorial-skip]')) {
                 finishTutorial();
                 return;
             }
@@ -3557,18 +3604,24 @@
             advanceTutorial();
         };
 
+        // On iPad / iOS / touch devices, calling preventDefault() on pointerdown
+        // causes WebKit to cancel the gesture and fire pointercancel instead of pointerup/click!
+        // We only prevent pointerdown for mouse events to stop unwanted text selection,
+        // and never suppress touch pointers on touch/Apple devices.
         document.addEventListener('pointerdown', (event) => {
             if (!active || !(event.target instanceof Element)) return;
+            if (event.pointerType === 'touch' || isAppleTouchDevice) {
+                return;
+            }
             event.preventDefault();
             event.stopImmediatePropagation();
         }, true);
 
-        if (window.PointerEvent) {
-            document.addEventListener('pointerup', blockAndAdvance, true);
-        } else {
-            document.addEventListener('touchend', blockAndAdvance, true);
-            document.addEventListener('click', blockAndAdvance, true);
-        }
+        // Listen on pointerup, touchend, and click simultaneously with debounce so that
+        // PC, iPad, iPhone, and Android touch devices all advance smoothly on tap!
+        document.addEventListener('pointerup', blockAndAdvance, true);
+        document.addEventListener('touchend', blockAndAdvance, true);
+        document.addEventListener('click', blockAndAdvance, true);
 
         const openTutorial = () => {
             if (active) return;
@@ -3594,6 +3647,8 @@
             if (tutorialCard) tutorialCard.hidden = false;
             renderStep(0);
         };
+
+        window.W68StartFirstLoginTutorial = openTutorial;
 
         cartHydrationPromise.finally(() => {
             if (isAvailableItemsModalActive()) {

@@ -146,6 +146,7 @@ class LoginController extends Controller
         Auth::login($account, false);
         $request->session()->regenerate();
         $this->markFirstLoginTutorial($request, (int) $account->login_ID);
+        $request->session()->put('w68_show_available_items_modal', true);
 
         return redirect()
             ->route('home')
@@ -384,6 +385,7 @@ class LoginController extends Controller
         Auth::login($account, false);
         $request->session()->regenerate();
         $this->markFirstLoginTutorial($request, (int) $account->login_ID);
+        $request->session()->put('w68_show_available_items_modal', true);
 
         return redirect()
             ->route('home')
@@ -612,6 +614,7 @@ class LoginController extends Controller
         Auth::login($account, false);
         $request->session()->regenerate();
         $this->markFirstLoginTutorial($request, (int) $account->login_ID);
+        $request->session()->put('w68_show_available_items_modal', true);
 
         return redirect()
             ->route('home')

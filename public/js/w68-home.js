@@ -2682,6 +2682,73 @@
         return getFirstVisibleTutorialTarget('[data-add-cart]');
     };
 
+    /* =========================================================
+       W68_AVAILABLE_ITEMS_MODAL_20261103
+       Pop-up modal for list of available items across brands.
+       Triggered upon login or registration.
+       If user has tutorial left, this modal appears first; clicking
+       "GOT IT" closes the modal and starts the tutorial.
+       Also applies to users who have no tutorial left.
+       ========================================================= */
+    let availableItemsModalOpen = false;
+    let pendingTutorialStarter = null;
+
+    const isAvailableItemsModalActive = () => availableItemsModalOpen;
+
+    const deferTutorialLaunch = (fn) => {
+        pendingTutorialStarter = fn;
+    };
+
+    const initAvailableItemsModal = () => {
+        const modal = document.querySelector('[data-available-items-modal]');
+        if (!modal) return;
+
+        const shouldShow = String(body?.dataset.showAvailableItemsModal || '0') === '1'
+            || window.location.search.indexOf('items_modal=') !== -1;
+
+        if (!shouldShow) {
+            modal.hidden = true;
+            modal.setAttribute('aria-hidden', 'true');
+            availableItemsModalOpen = false;
+            return;
+        }
+
+        availableItemsModalOpen = true;
+        modal.hidden = false;
+        modal.setAttribute('aria-hidden', 'false');
+        document.body?.classList.add('available-items-modal-open');
+
+        const closeAvailableItems = () => {
+            if (!availableItemsModalOpen) return;
+            availableItemsModalOpen = false;
+            modal.hidden = true;
+            modal.setAttribute('aria-hidden', 'true');
+            document.body?.classList.remove('available-items-modal-open');
+
+            // If the user has a deferred tutorial waiting, launch it now!
+            if (typeof pendingTutorialStarter === 'function') {
+                const starter = pendingTutorialStarter;
+                pendingTutorialStarter = null;
+                window.setTimeout(starter, 350);
+            }
+        };
+
+        const gotItButtons = modal.querySelectorAll('[data-available-items-got-it]');
+        gotItButtons.forEach((btn) => {
+            btn.addEventListener('click', (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                closeAvailableItems();
+            });
+        });
+
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape' && availableItemsModalOpen) {
+                closeAvailableItems();
+            }
+        });
+    };
+
     const initFirstLoginTutorial = () => {
         if (String(body?.dataset.firstLoginTutorial || '0') !== '1') return;
 
@@ -3504,6 +3571,11 @@
         }
 
         const openTutorial = () => {
+            if (active) return;
+            if (isAvailableItemsModalActive()) {
+                deferTutorialLaunch(openTutorial);
+                return;
+            }
             active = true;
 
             closeProductModal();
@@ -3524,11 +3596,16 @@
         };
 
         cartHydrationPromise.finally(() => {
-            window.setTimeout(openTutorial, 700);
+            if (isAvailableItemsModalActive()) {
+                deferTutorialLaunch(openTutorial);
+            } else {
+                window.setTimeout(openTutorial, 700);
+            }
         });
     };
 
     initNewItemsCarousel();
+    initAvailableItemsModal();
     initFirstLoginTutorial();
 
     renderCart();

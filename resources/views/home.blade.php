@@ -7,9 +7,9 @@
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>W68 Autoparts & Service Center | Home</title>
     <link rel="icon" href="{{ asset('images/sidebar_logo.png') }}">
-    <link rel="stylesheet" href="{{ asset('css/w68-home.css') }}?v=20261031-v186">
+    <link rel="stylesheet" href="{{ asset('css/w68-home.css') }}?v=20261103-v191">
     <link rel="stylesheet" href="{{ asset('css/w68-notifications.css') }}?v=20261028-v148">
-    <script src="{{ asset('js/w68-home.js') }}?v=20261031-v186" defer></script>
+    <script src="{{ asset('js/w68-home.js') }}?v=20261103-v191" defer></script>
     <script src="{{ asset('js/w68-notifications.js') }}?v=20261028-v148" defer></script>
 </head>
 @php
@@ -31,6 +31,7 @@
     data-brand-discounts="{{ e(json_encode($brandDiscounts ?? [], JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP | JSON_HEX_QUOT)) }}"
     data-cart-account-key="{{ $cartAccountKey ?? 'unknown' }}"
     data-cart-storage-ready="{{ !empty($cartStorageReady) ? '1' : '0' }}"
+    data-show-available-items-modal="{{ !empty($showAvailableItemsModal) ? '1' : '0' }}"
     data-first-login-tutorial="{{ !empty($showFirstLoginTutorial) ? '1' : '0' }}"
     data-tutorial-login-number="{{ (int) ($tutorialLoginNumber ?? 0) }}"
     data-tutorial-robot-gif="{{ $tutorialRobotAsset }}"
@@ -864,6 +865,49 @@
                 <button type="button" class="w68-tutorial-skip" data-w68-tutorial-skip hidden style="display:none!important">SKIP</button>
                 <button type="button" class="w68-tutorial-next" data-w68-tutorial-next hidden style="display:none!important">NEXT</button>
                 <button type="button" class="w68-tutorial-done" data-w68-tutorial-done hidden style="display:none!important">DONE</button>
+            </div>
+        </section>
+    </div>
+
+    {{-- W68_AVAILABLE_ITEMS_MODAL_20261103 --}}
+    <div class="available-items-modal" data-available-items-modal {{ empty($showAvailableItemsModal) ? 'hidden aria-hidden=true' : 'aria-hidden=false' }}>
+        <div class="available-items-backdrop" data-available-items-got-it></div>
+        <section class="available-items-card" role="dialog" aria-modal="true" aria-labelledby="available-items-title">
+            <header class="available-items-header">
+                <span class="available-items-kicker">W68 INVENTORY NOTICE</span>
+                <h2 id="available-items-title">Available Items Notification</h2>
+                <p>Summary of available items and stock quantities across brands.</p>
+            </header>
+
+            <div class="available-items-table-wrapper">
+                <table class="available-items-table">
+                    <thead>
+                        <tr>
+                            <th class="th-desc">item description</th>
+                            <th class="th-brand">ERW</th>
+                            <th class="th-brand">YSL</th>
+                            <th class="th-brand">ERISTIC</th>
+                            <th class="th-all">ALL</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach(($availableItemsRows ?? []) as $row)
+                            <tr>
+                                <td class="td-desc">{{ $row['description'] ?? '' }}</td>
+                                <td class="td-qty">{{ $row['erw'] ?? 0 }}</td>
+                                <td class="td-qty">{{ $row['ysl'] ?? 0 }}</td>
+                                <td class="td-qty">{{ $row['eristic'] ?? 0 }}</td>
+                                <td class="td-all"><strong>{{ $row['all'] ?? 0 }}</strong></td>
+                            </tr>
+                        @endforeach
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="available-items-actions">
+                <button type="button" class="available-items-btn" data-available-items-got-it>
+                    GOT IT
+                </button>
             </div>
         </section>
     </div>

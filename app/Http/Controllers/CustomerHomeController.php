@@ -113,6 +113,17 @@ class CustomerHomeController extends Controller
             $profileName = (string) ($account->User_ID ?? 'W68 Customer');
         }
 
+        // W68_AVAILABLE_ITEMS_MODAL_20261103
+        // Pops up upon login or registration.
+        // Can also be previewed with ?items_modal=1 or ?tutorial=preview.
+        $showAvailableItemsModal = (bool) $request->session()->pull(
+            'w68_show_available_items_modal',
+            false
+        ) || in_array($request->query('items_modal'), ['1', 'preview'], true)
+          || $request->query('tutorial') === 'preview';
+
+        $availableItemsRows = $this->availableItemsSummary();
+
         return view('home', [
             'account' => $account,
             'profileName' => $profileName,
@@ -127,6 +138,8 @@ class CustomerHomeController extends Controller
             'cartStorageReady' => $cartStorageReady,
             'showFirstLoginTutorial' => $showFirstLoginTutorial,
             'tutorialLoginNumber' => $tutorialLoginNumber,
+            'showAvailableItemsModal' => $showAvailableItemsModal,
+            'availableItemsRows' => $availableItemsRows,
         ]);
     }
 
@@ -1891,4 +1904,106 @@ SVG;
         ]);
     }
 
+    /**
+     * W68_AVAILABLE_ITEMS_MODAL_20261103
+     * Available items list summary by brand (ERW, YSL, ERISTIC, ALL).
+     */
+    private function availableItemsSummary(): array
+    {
+        $defaultRows = [
+            [
+                'description' => 'Spiral  Cable Clock springs',
+                'erw' => 15,
+                'ysl' => 100,
+                'eristic' => 50,
+                'all' => 165,
+            ],
+            [
+                'description' => 'Power Relay',
+                'erw' => 15,
+                'ysl' => 100,
+                'eristic' => 50,
+                'all' => 165,
+            ],
+            [
+                'description' => 'Spring Bushing',
+                'erw' => 10,
+                'ysl' => 120,
+                'eristic' => 60,
+                'all' => 190,
+            ],
+        ];
+
+        try {
+            if (Schema::connection('masterlist')->hasTable('products')) {
+                $counts = DB::connection('masterlist')
+                    ->table('products')
+                    ->where('is_selected_for_report', 1)
+                    ->whereNotNull('description')
+                    ->where('description', '!=', '')
+                    ->select([
+                        'description',
+                        'category as brand',
+                        DB::raw('COUNT(*) as total_qty'),
+                    ])
+                    ->groupBy('description', 'category')
+                    ->get();
+
+                if ($counts->isNotEmpty()) {
+                    $grouped = [];
+                    foreach ($counts as $item) {
+                        $desc = trim((string) ($item->description ?? ''));
+                        $brand = strtoupper(trim((string) ($item->brand ?? '')));
+                        $qty = (int) ($item->total_qty ?? 0);
+                        if ($desc === '') {
+                            continue;
+                        }
+
+                        if (!isset($grouped[$desc])) {
+                            $grouped[$desc] = ['ERW' => 0, 'YSL' => 0, 'ERISTIC' => 0, 'ALL' => 0];
+                        }
+                        if (isset($grouped[$desc][$brand])) {
+                            $grouped[$desc][$brand] += $qty;
+                        }
+                        $grouped[$desc]['ALL'] += $qty;
+                    }
+
+                    $dynamicRows = [];
+                    foreach ($defaultRows as $default) {
+                        $descKey = null;
+                        foreach (array_keys($grouped) as $candidate) {
+                            if (
+                                strcasecmp($candidate, $default['description']) === 0
+                                || (stripos($candidate, 'spiral') !== false && stripos($candidate, 'clock') !== false)
+                                || strcasecmp($candidate, 'power relay') === 0
+                                || strcasecmp($candidate, 'spring bushing') === 0
+                            ) {
+                                $descKey = $candidate;
+                                break;
+                            }
+                        }
+
+                        if ($descKey !== null && isset($grouped[$descKey])) {
+                            $g = $grouped[$descKey];
+                            $dynamicRows[] = [
+                                'description' => $default['description'],
+                                'erw' => $g['ERW'] ?: $default['erw'],
+                                'ysl' => $g['YSL'] ?: $default['ysl'],
+                                'eristic' => $g['ERISTIC'] ?: $default['eristic'],
+                                'all' => $g['ALL'] ?: $default['all'],
+                            ];
+                        } else {
+                            $dynamicRows[] = $default;
+                        }
+                    }
+
+                    return $dynamicRows;
+                }
+            }
+        } catch (Throwable $e) {
+            report($e);
+        }
+
+        return $defaultRows;
+    }
 }

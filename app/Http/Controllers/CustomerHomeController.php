@@ -2155,12 +2155,8 @@ SVG;
                         // Only include items that have at least 1 available product
                         $rows = array_values(array_filter($rows, static fn ($r): bool => ($r['all'] ?? 0) > 0));
 
-                        // Sort by total available items descending, then by description alphabetically
+                        // Sort by description alphabetically A-Z
                         usort($rows, function (array $a, array $b): int {
-                            $diff = ($b['all'] ?? 0) <=> ($a['all'] ?? 0);
-                            if ($diff !== 0) {
-                                return $diff;
-                            }
                             return strcasecmp((string) ($a['description'] ?? ''), (string) ($b['description'] ?? ''));
                         });
 

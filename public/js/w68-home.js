@@ -2757,12 +2757,8 @@
         const isExplicitPreview = window.location.search.indexOf('items_modal=') !== -1
             || window.location.search.indexOf('tutorial=preview') !== -1;
 
-        const alreadyDismissed = sessionStorage.getItem('w68_available_items_dismissed') === '1';
-
-        const shouldShow = (
-            (String(body?.dataset.showAvailableItemsModal || '0') === '1' && !alreadyDismissed)
-            || isExplicitPreview
-        );
+        const shouldShow = (String(body?.dataset.showAvailableItemsModal || '0') === '1')
+            || isExplicitPreview;
 
         if (!shouldShow) {
             modal.hidden = true;
@@ -2778,7 +2774,6 @@
 
         const closeAvailableItems = () => {
             if (!availableItemsModalOpen) return;
-            sessionStorage.setItem('w68_available_items_dismissed', '1');
             availableItemsModalOpen = false;
             modal.hidden = true;
             modal.setAttribute('aria-hidden', 'true');
@@ -2863,9 +2858,10 @@
 
     const initFirstLoginTutorial = () => {
         const isTutorialPreview = window.location.search.indexOf('tutorial=preview') !== -1;
-        const tutorialDismissed = sessionStorage.getItem('w68_tutorial_session_dismissed') === '1';
+        const shouldShow = (String(body?.dataset.firstLoginTutorial || '0') === '1')
+            || isTutorialPreview;
 
-        if (String(body?.dataset.firstLoginTutorial || '0') !== '1' || (tutorialDismissed && !isTutorialPreview)) return;
+        if (!shouldShow) return;
 
         const overlay = document.querySelector('[data-w68-tutorial]');
         const spotlight = document.querySelector('[data-w68-tutorial-spotlight]');
@@ -3046,7 +3042,6 @@
         };
 
         const finishTutorial = () => {
-            sessionStorage.setItem('w68_tutorial_session_dismissed', '1');
             clearStepTimer();
             window.clearTimeout(messageTimer);
             if (cartMessage) {

@@ -7693,7 +7693,7 @@ body > .w68-tutorial-card.is-quantity-stage + * {
 .available-items-card {
     position: relative;
     width: 100%;
-    max-width: 740px;
+    max-width: min(860px, 94vw);
     max-height: min(88vh, 88dvh);
     background: linear-gradient(145deg, #063e2e 0%, #03251c 100%);
     border: 1.5px solid rgba(255, 227, 88, 0.35);
@@ -7804,10 +7804,11 @@ body > .w68-tutorial-card.is-quantity-stage + * {
 }
 
 .available-items-table {
-    width: 100%;
+    width: max-content;
+    min-width: 100%;
     border-collapse: collapse;
     font-size: 13.5px;
-    min-width: 480px;
+    table-layout: auto;
 }
 
 .available-items-table thead th {
@@ -7822,17 +7823,24 @@ body > .w68-tutorial-card.is-quantity-stage + * {
     text-transform: uppercase;
     padding: 12px 14px;
     border-bottom: 1.5px solid rgba(255, 227, 88, 0.25);
-    white-space: nowrap;
+    white-space: nowrap !important;
+    word-break: keep-all !important;
 }
 
 .available-items-table thead .th-desc {
     text-align: left;
     padding-left: 18px;
+    min-width: 200px;
+    white-space: nowrap !important;
+    word-break: keep-all !important;
 }
 
 .available-items-table thead .th-brand,
 .available-items-table thead .th-all {
     text-align: center;
+    min-width: 85px;
+    white-space: nowrap !important;
+    word-break: keep-all !important;
 }
 
 .available-items-table thead .th-all {
@@ -7843,6 +7851,8 @@ body > .w68-tutorial-card.is-quantity-stage + * {
     padding: 13px 14px;
     border-bottom: 1px solid rgba(255, 255, 255, 0.07);
     color: #f1f5f9;
+    white-space: nowrap !important;
+    word-break: keep-all !important;
 }
 
 .available-items-table tbody tr:last-child td {
@@ -7858,6 +7868,9 @@ body > .w68-tutorial-card.is-quantity-stage + * {
     padding-left: 18px;
     font-weight: 600;
     color: #ffffff;
+    min-width: 200px;
+    white-space: nowrap !important;
+    word-break: keep-all !important;
 }
 
 .available-items-table tbody .td-qty {
@@ -7865,6 +7878,9 @@ body > .w68-tutorial-card.is-quantity-stage + * {
     font-variant-numeric: tabular-nums;
     font-weight: 700;
     color: #e2e8f0;
+    min-width: 85px;
+    white-space: nowrap !important;
+    word-break: keep-all !important;
 }
 
 .available-items-table tbody .td-all {
@@ -7873,6 +7889,9 @@ body > .w68-tutorial-card.is-quantity-stage + * {
     font-weight: 800;
     color: #ffe358;
     background: rgba(255, 227, 88, 0.07);
+    min-width: 85px;
+    white-space: nowrap !important;
+    word-break: keep-all !important;
 }
 
 .available-items-actions {
@@ -7935,7 +7954,7 @@ body > .w68-tutorial-card.is-quantity-stage + * {
 
 .available-item-desc {
     flex: 1 1 auto;
-    min-width: 0;
+    min-width: 120px;
     text-align: left;
     font-size: 13.5px;
     font-weight: 700;
@@ -7944,15 +7963,22 @@ body > .w68-tutorial-card.is-quantity-stage + * {
     letter-spacing: 0.3px;
     line-height: 1.35;
     padding-bottom: 2px;
-    word-break: break-word;
+    word-break: keep-all !important;
+    overflow-wrap: normal !important;
+    white-space: normal;
 }
 
 .available-item-brands-grid {
     display: flex;
+    flex-direction: row;
     align-items: flex-end;
     justify-content: flex-end;
     gap: 14px;
     flex-shrink: 0;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+    max-width: 70%;
 }
 
 .available-brand-col {
@@ -7960,7 +7986,9 @@ body > .w68-tutorial-card.is-quantity-stage + * {
     flex-direction: column;
     align-items: center;
     justify-content: flex-end;
-    min-width: 48px;
+    flex: 0 0 auto !important;
+    min-width: max-content !important;
+    padding: 0 6px;
     text-align: center;
 }
 
@@ -7968,10 +7996,14 @@ body > .w68-tutorial-card.is-quantity-stage + * {
     font-size: 11px;
     font-weight: 800;
     color: #ffe358;
-    letter-spacing: 0.7px;
+    letter-spacing: 0.6px;
     text-transform: uppercase;
     margin-bottom: 4px;
-    white-space: nowrap;
+    white-space: nowrap !important;
+    word-break: keep-all !important;
+    writing-mode: horizontal-tb !important;
+    display: block !important;
+    text-align: center;
     line-height: 1.1;
 }
 
@@ -7981,11 +8013,34 @@ body > .w68-tutorial-card.is-quantity-stage + * {
     color: #ffffff;
     font-variant-numeric: tabular-nums;
     line-height: 1;
+    white-space: nowrap !important;
 }
 
 .available-brand-none {
     font-size: 13px;
     color: rgba(255, 255, 255, 0.4);
+    white-space: nowrap !important;
+}
+
+@media (max-width: 620px) {
+    .available-item-row.is-multi-brand {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 8px;
+    }
+
+    .available-item-row.is-multi-brand .available-item-desc {
+        width: 100%;
+        min-width: 0;
+    }
+
+    .available-item-row.is-multi-brand .available-item-brands-grid {
+        width: 100%;
+        max-width: 100%;
+        justify-content: flex-end;
+        overflow-x: auto;
+        padding-bottom: 2px;
+    }
 }
 
 .available-item-empty {

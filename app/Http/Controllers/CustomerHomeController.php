@@ -88,10 +88,29 @@ class CustomerHomeController extends Controller
         // W68_TUTORIAL_PREVIEW_20261026: authenticated testing can use
         // /home?tutorial=preview without changing the real login counter.
         $tutorialPreview = $request->query('tutorial') === 'preview';
+        $itemsModalPreview = in_array($request->query('items_modal'), ['1', 'preview'], true);
+
+        // Detect if the current request is an in-catalog interaction (search, filter, pagination)
+        $isSearchOrFilter = $request->hasAny([
+            'product_code',
+            'part_number',
+            'description',
+            'brand',
+            'application',
+            'position',
+            'page',
+            'q',
+        ]);
+
+        $tutorialAlreadyDispatched = (bool) $request->session()->get('w68_session_tutorial_dispatched', false);
 
         if ($tutorialPreview) {
             $showFirstLoginTutorial = true;
             $tutorialLoginNumber = 1;
+        } elseif ($isSearchOrFilter) {
+            // NEVER trigger tutorial during catalog searches or pagination
+            $showFirstLoginTutorial = false;
+            $tutorialLoginNumber = 0;
         } else {
             $showFirstLoginTutorial = (bool) $request->session()->pull(
                 'w68_show_first_login_tutorial',
@@ -102,9 +121,8 @@ class CustomerHomeController extends Controller
                 0
             );
 
-            // Resilient DB fallback: if session was dropped (e.g. iPad Safari cookie redirect),
-            // inspect customer_portal_accounts to see if this account has tutorial remaining (login 1..3).
-            if (!$showFirstLoginTutorial && $portalLoginId) {
+            // Resilient DB fallback: ONLY IF not already dispatched in this session and not a search
+            if (!$showFirstLoginTutorial && !$tutorialAlreadyDispatched && $portalLoginId) {
                 try {
                     if (
                         Schema::connection('system')->hasTable('customer_portal_accounts')
@@ -129,6 +147,10 @@ class CustomerHomeController extends Controller
             }
         }
 
+        if ($showFirstLoginTutorial) {
+            $request->session()->put('w68_session_tutorial_dispatched', true);
+        }
+
         $profileName = trim(
             (string) ($account->User_First_Name ?? '')
             . ' '
@@ -143,12 +165,21 @@ class CustomerHomeController extends Controller
         // Pops up upon login or registration before any tutorial.
         // Also shown for users with no tutorial left.
         // Can also be previewed with ?items_modal=1 or ?tutorial=preview.
-        $showAvailableItemsModal = (bool) $request->session()->pull(
-            'w68_show_available_items_modal',
-            false
-        ) || in_array($request->query('items_modal'), ['1', 'preview'], true)
-          || $request->query('tutorial') === 'preview'
-          || $showFirstLoginTutorial;
+        if ($itemsModalPreview || $tutorialPreview) {
+            $showAvailableItemsModal = true;
+        } elseif ($isSearchOrFilter) {
+            // NEVER trigger available items modal during searches or pagination
+            $showAvailableItemsModal = false;
+        } else {
+            $showAvailableItemsModal = (bool) $request->session()->pull(
+                'w68_show_available_items_modal',
+                false
+            ) || $showFirstLoginTutorial;
+        }
+
+        if ($showAvailableItemsModal) {
+            $request->session()->put('w68_session_items_modal_dispatched', true);
+        }
 
         $availableSummary = $this->availableItemsSummary();
         $availableItemsBrands = $availableSummary['brands'] ?? ['ERW', 'YSL', 'ERISTIC'];
@@ -402,13 +433,30 @@ class CustomerHomeController extends Controller
             ->filter()
             ->values();
 
+        if ($field === 'description') {
+            $values = $values
+                ->map(fn ($val) => $this->canonicalDescription((string) $val))
+                ->unique()
+                ->values();
+        }
+
         $items = collect();
 
         foreach ($values as $value) {
-            $representative = DB::connection('masterlist')
+            $repQuery = DB::connection('masterlist')
                 ->table('products as p')
-                ->where('p.is_selected_for_report', 1)
-                ->whereRaw("TRIM({$targetColumn}) = ?", [$value])
+                ->where('p.is_selected_for_report', 1);
+
+            if ($field === 'description' && mb_strtoupper($value) === 'DRIVESHAFT ASSEMBLY') {
+                $repQuery->where(function ($sub) {
+                    $sub->whereRaw("TRIM(p.description) = 'DRIVESHAFT ASSEMBLY'")
+                        ->orWhereRaw("TRIM(p.description) = 'DRIVESHAFT'");
+                });
+            } else {
+                $repQuery->whereRaw("TRIM({$targetColumn}) = ?", [$value]);
+            }
+
+            $representative = $repQuery
                 ->select([
                     'p.id',
                     'p.product_code',
@@ -1185,6 +1233,18 @@ class CustomerHomeController extends Controller
                 continue;
             }
 
+            if ($filter === 'description') {
+                $descVal = trim((string) $filters['description']);
+                $descUpper = mb_strtoupper($descVal);
+                if ($descUpper === 'DRIVESHAFT' || $descUpper === 'DRIVESHAFT ASSEMBLY') {
+                    $query->where(function ($sub) {
+                        $sub->where('p.description', 'like', '%DRIVESHAFT%')
+                            ->orWhere('p.description', 'like', '%DRIVESHAFT ASSEMBLY%');
+                    });
+                    continue;
+                }
+            }
+
             $query->where(
                 $column,
                 'like',
@@ -1936,6 +1996,22 @@ SVG;
     }
 
     /**
+     * Standardize description variants (e.g. legacy "DRIVESHAFT" -> "DRIVESHAFT ASSEMBLY")
+     * so search suggestions, catalog filtering, and available item summaries consolidate cleanly.
+     */
+    private function canonicalDescription(string $description): string
+    {
+        $clean = trim($description);
+        $upper = mb_strtoupper($clean);
+
+        if ($upper === 'DRIVESHAFT') {
+            return 'DRIVESHAFT ASSEMBLY';
+        }
+
+        return $clean;
+    }
+
+    /**
      * W68_AVAILABLE_ITEMS_MODAL_20261103
      * Available items list summary by real database brands (category) and descriptions.
      * Dynamic columns: item description, [Brand 1], [Brand 2], ..., ALL
@@ -2013,7 +2089,8 @@ SVG;
                     $grouped = [];
 
                     foreach ($counts as $item) {
-                        $desc = trim((string) ($item->item_desc ?? ''));
+                        $rawDesc = trim((string) ($item->item_desc ?? ''));
+                        $desc = $this->canonicalDescription($rawDesc);
                         $brandRaw = trim((string) ($item->brand_name ?? ''));
                         $qty = (int) ($item->total_qty ?? 0);
 

@@ -347,23 +347,71 @@
     initializeLoaderPaths();
     startLoaderAnimation();
 
-    window.addEventListener('load', () => {
-        window.setTimeout(hideLoader, 220);
+    let loaderHideTimer = null;
+    const scheduleHideLoader = (delay = 200) => {
+        if (loaderHideTimer) window.clearTimeout(loaderHideTimer);
+        loaderHideTimer = window.setTimeout(hideLoader, delay);
+    };
+
+    if (document.readyState === 'complete' || document.readyState === 'interactive') {
+        scheduleHideLoader(120);
+    } else {
+        window.addEventListener('DOMContentLoaded', () => scheduleHideLoader(120));
+        window.addEventListener('load', () => scheduleHideLoader(200));
+    }
+
+    window.addEventListener('pageshow', () => {
+        hideLoader();
     });
 
+    // Universal safety fallback: loader must never stay up forever on page load
+    window.setTimeout(hideLoader, 2500);
+
     document.querySelectorAll('[data-loading-form]').forEach((form) => {
-        form.addEventListener('submit', showLoader);
+        form.addEventListener('submit', () => {
+            // Check if GET form is submitting identical search to current URL
+            if (String(form.method || 'GET').toUpperCase() === 'GET') {
+                try {
+                    const formAction = form.getAttribute('action') || window.location.pathname;
+                    const formUrl = new URL(formAction, window.location.href);
+                    const formData = new FormData(form);
+                    for (const [key, val] of formData.entries()) {
+                        formUrl.searchParams.set(key, val);
+                    }
+                    const currentUrl = new URL(window.location.href);
+
+                    if (formUrl.pathname === currentUrl.pathname && formUrl.search === currentUrl.search) {
+                        showLoader();
+                        // Re-submitting the exact same search: anchor navigation may not trigger full reload,
+                        // so guarantee loader unfreezes quickly.
+                        window.setTimeout(hideLoader, 500);
+                        return;
+                    }
+                } catch (_) {}
+            }
+
+            showLoader();
+
+            // Safety timeout: if page navigation stalls or fails, hide loader
+            window.setTimeout(() => {
+                if (document.visibilityState === 'visible') {
+                    hideLoader();
+                }
+            }, 5000);
+        });
     });
 
     document.querySelectorAll('[data-loading-link]').forEach((link) => {
         link.addEventListener('click', () => {
-            const target = new URL(link.href, window.location.href);
-            const current = new URL(window.location.href);
+            try {
+                const target = new URL(link.href, window.location.href);
+                const current = new URL(window.location.href);
 
-            if (target.pathname === current.pathname && target.search === current.search) {
-                hideLoader();
-                return;
-            }
+                if (target.pathname === current.pathname && target.search === current.search) {
+                    hideLoader();
+                    return;
+                }
+            } catch (_) {}
 
             showLoader();
 
@@ -371,7 +419,7 @@
                 if (document.visibilityState === 'visible') {
                     hideLoader();
                 }
-            }, 8000);
+            }, 5000);
         });
     });
 
@@ -2706,8 +2754,15 @@
         const modal = document.querySelector('[data-available-items-modal]');
         if (!modal) return;
 
-        const shouldShow = String(body?.dataset.showAvailableItemsModal || '0') === '1'
-            || window.location.search.indexOf('items_modal=') !== -1;
+        const isExplicitPreview = window.location.search.indexOf('items_modal=') !== -1
+            || window.location.search.indexOf('tutorial=preview') !== -1;
+
+        const alreadyDismissed = sessionStorage.getItem('w68_available_items_dismissed') === '1';
+
+        const shouldShow = (
+            (String(body?.dataset.showAvailableItemsModal || '0') === '1' && !alreadyDismissed)
+            || isExplicitPreview
+        );
 
         if (!shouldShow) {
             modal.hidden = true;
@@ -2723,6 +2778,7 @@
 
         const closeAvailableItems = () => {
             if (!availableItemsModalOpen) return;
+            sessionStorage.setItem('w68_available_items_dismissed', '1');
             availableItemsModalOpen = false;
             modal.hidden = true;
             modal.setAttribute('aria-hidden', 'true');
@@ -2790,7 +2846,10 @@
     };
 
     const initFirstLoginTutorial = () => {
-        if (String(body?.dataset.firstLoginTutorial || '0') !== '1') return;
+        const isTutorialPreview = window.location.search.indexOf('tutorial=preview') !== -1;
+        const tutorialDismissed = sessionStorage.getItem('w68_tutorial_session_dismissed') === '1';
+
+        if (String(body?.dataset.firstLoginTutorial || '0') !== '1' || (tutorialDismissed && !isTutorialPreview)) return;
 
         const overlay = document.querySelector('[data-w68-tutorial]');
         const spotlight = document.querySelector('[data-w68-tutorial-spotlight]');
@@ -2971,6 +3030,7 @@
         };
 
         const finishTutorial = () => {
+            sessionStorage.setItem('w68_tutorial_session_dismissed', '1');
             clearStepTimer();
             window.clearTimeout(messageTimer);
             if (cartMessage) {

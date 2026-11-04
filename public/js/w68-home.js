@@ -2770,6 +2770,18 @@
             btn.addEventListener('pointerup', handleGotIt);
         });
 
+        const searchInput = modal.querySelector('[data-available-items-search]');
+        if (searchInput) {
+            searchInput.addEventListener('input', () => {
+                const query = String(searchInput.value || '').toLowerCase().trim();
+                const rows = modal.querySelectorAll('.available-items-table tbody tr[data-available-row]');
+                rows.forEach((row) => {
+                    const text = (row.querySelector('.td-desc')?.textContent || '').toLowerCase();
+                    row.hidden = query !== '' && !text.includes(query);
+                });
+            });
+        }
+
         document.addEventListener('keydown', (e) => {
             if (e.key === 'Escape' && availableItemsModalOpen) {
                 closeAvailableItems();

@@ -150,7 +150,9 @@ class CustomerHomeController extends Controller
           || $request->query('tutorial') === 'preview'
           || $showFirstLoginTutorial;
 
-        $availableItemsRows = $this->availableItemsSummary();
+        $availableSummary = $this->availableItemsSummary();
+        $availableItemsBrands = $availableSummary['brands'] ?? ['ERW', 'YSL', 'ERISTIC'];
+        $availableItemsRows = $availableSummary['rows'] ?? [];
 
         return view('home', [
             'account' => $account,
@@ -167,6 +169,7 @@ class CustomerHomeController extends Controller
             'showFirstLoginTutorial' => $showFirstLoginTutorial,
             'tutorialLoginNumber' => $tutorialLoginNumber,
             'showAvailableItemsModal' => $showAvailableItemsModal,
+            'availableItemsBrands' => $availableItemsBrands,
             'availableItemsRows' => $availableItemsRows,
         ]);
     }
@@ -1934,104 +1937,162 @@ SVG;
 
     /**
      * W68_AVAILABLE_ITEMS_MODAL_20261103
-     * Available items list summary by brand (ERW, YSL, ERISTIC, ALL).
+     * Available items list summary by real database brands (category) and descriptions.
+     * Dynamic columns: item description, [Brand 1], [Brand 2], ..., ALL
      */
     private function availableItemsSummary(): array
     {
+        $defaultBrands = ['ERW', 'YSL', 'ERISTIC'];
         $defaultRows = [
             [
-                'description' => 'Spiral  Cable Clock springs',
-                'erw' => 15,
-                'ysl' => 100,
-                'eristic' => 50,
+                'description' => 'Spiral Cable Clock springs',
+                'brand_counts' => ['ERW' => 15, 'YSL' => 100, 'ERISTIC' => 50],
                 'all' => 165,
             ],
             [
                 'description' => 'Power Relay',
-                'erw' => 15,
-                'ysl' => 100,
-                'eristic' => 50,
+                'brand_counts' => ['ERW' => 15, 'YSL' => 100, 'ERISTIC' => 50],
                 'all' => 165,
             ],
             [
                 'description' => 'Spring Bushing',
-                'erw' => 10,
-                'ysl' => 120,
-                'eristic' => 60,
+                'brand_counts' => ['ERW' => 10, 'YSL' => 120, 'ERISTIC' => 60],
                 'all' => 190,
             ],
         ];
 
         try {
             if (Schema::connection('masterlist')->hasTable('products')) {
-                $counts = DB::connection('masterlist')
+                $baseQuery = DB::connection('masterlist')
                     ->table('products')
-                    ->where('is_selected_for_report', 1)
                     ->whereNotNull('description')
-                    ->where('description', '!=', '')
+                    ->whereRaw("TRIM(description) <> ''");
+
+                if (Schema::connection('masterlist')->hasColumn('products', 'is_selected_for_report')) {
+                    $hasReport = DB::connection('masterlist')
+                        ->table('products')
+                        ->where('is_selected_for_report', 1)
+                        ->exists();
+
+                    if ($hasReport) {
+                        $baseQuery->where('is_selected_for_report', 1);
+                    }
+                }
+
+                // Query all real distinct categories/brands present in products
+                $realBrands = (clone $baseQuery)
+                    ->whereNotNull('category')
+                    ->whereRaw("TRIM(category) <> ''")
+                    ->selectRaw('TRIM(category) as brand')
+                    ->distinct()
+                    ->orderBy('brand')
+                    ->pluck('brand')
+                    ->filter(static fn ($b): bool => trim((string) $b) !== '')
+                    ->values()
+                    ->all();
+
+                $activeBrands = !empty($realBrands) ? $realBrands : $defaultBrands;
+
+                // Query grouped count per description and category (brand)
+                $counts = (clone $baseQuery)
                     ->select([
-                        'description',
-                        'category as brand',
+                        DB::raw('TRIM(description) as item_desc'),
+                        DB::raw('TRIM(COALESCE(category, "")) as brand_name'),
                         DB::raw('COUNT(*) as total_qty'),
                     ])
-                    ->groupBy('description', 'category')
+                    ->groupBy('item_desc', 'brand_name')
                     ->get();
 
                 if ($counts->isNotEmpty()) {
+                    // Build case-insensitive brand lookup
+                    $brandMap = [];
+                    foreach ($activeBrands as $b) {
+                        $brandMap[mb_strtoupper(trim($b))] = trim($b);
+                    }
+
                     $grouped = [];
+
                     foreach ($counts as $item) {
-                        $desc = trim((string) ($item->description ?? ''));
-                        $brand = strtoupper(trim((string) ($item->brand ?? '')));
+                        $desc = trim((string) ($item->item_desc ?? ''));
+                        $brandRaw = trim((string) ($item->brand_name ?? ''));
                         $qty = (int) ($item->total_qty ?? 0);
-                        if ($desc === '') {
+
+                        if ($desc === '' || $qty <= 0) {
                             continue;
                         }
 
-                        if (!isset($grouped[$desc])) {
-                            $grouped[$desc] = ['ERW' => 0, 'YSL' => 0, 'ERISTIC' => 0, 'ALL' => 0];
-                        }
-                        if (isset($grouped[$desc][$brand])) {
-                            $grouped[$desc][$brand] += $qty;
-                        }
-                        $grouped[$desc]['ALL'] += $qty;
-                    }
+                        $descKey = mb_strtoupper($desc);
 
-                    $dynamicRows = [];
-                    foreach ($defaultRows as $default) {
-                        $descKey = null;
-                        foreach (array_keys($grouped) as $candidate) {
-                            if (
-                                strcasecmp($candidate, $default['description']) === 0
-                                || (stripos($candidate, 'spiral') !== false && stripos($candidate, 'clock') !== false)
-                                || strcasecmp($candidate, 'power relay') === 0
-                                || strcasecmp($candidate, 'spring bushing') === 0
-                            ) {
-                                $descKey = $candidate;
-                                break;
+                        if (!isset($grouped[$descKey])) {
+                            $initialCounts = [];
+                            foreach ($activeBrands as $b) {
+                                $initialCounts[$b] = 0;
+                            }
+
+                            $grouped[$descKey] = [
+                                'description' => ucwords(mb_strtolower($desc)),
+                                'brand_counts' => $initialCounts,
+                                'all' => 0,
+                            ];
+                        }
+
+                        $brandUpper = mb_strtoupper($brandRaw);
+                        $matchedBrand = null;
+
+                        if (isset($brandMap[$brandUpper])) {
+                            $matchedBrand = $brandMap[$brandUpper];
+                        } else {
+                            foreach ($brandMap as $k => $canonical) {
+                                if (str_contains($brandUpper, $k) || str_contains($k, $brandUpper)) {
+                                    $matchedBrand = $canonical;
+                                    break;
+                                }
                             }
                         }
 
-                        if ($descKey !== null && isset($grouped[$descKey])) {
-                            $g = $grouped[$descKey];
-                            $dynamicRows[] = [
-                                'description' => $default['description'],
-                                'erw' => $g['ERW'] ?: $default['erw'],
-                                'ysl' => $g['YSL'] ?: $default['ysl'],
-                                'eristic' => $g['ERISTIC'] ?: $default['eristic'],
-                                'all' => $g['ALL'] ?: $default['all'],
-                            ];
-                        } else {
-                            $dynamicRows[] = $default;
+                        if ($matchedBrand !== null) {
+                            $grouped[$descKey]['brand_counts'][$matchedBrand] = ($grouped[$descKey]['brand_counts'][$matchedBrand] ?? 0) + $qty;
+                        } elseif ($brandRaw !== '') {
+                            $activeBrands[] = $brandRaw;
+                            $brandMap[$brandUpper] = $brandRaw;
+                            foreach ($grouped as &$gRow) {
+                                if (!isset($gRow['brand_counts'][$brandRaw])) {
+                                    $gRow['brand_counts'][$brandRaw] = 0;
+                                }
+                            }
+                            unset($gRow);
+                            $grouped[$descKey]['brand_counts'][$brandRaw] = $qty;
                         }
+
+                        $grouped[$descKey]['all'] += $qty;
                     }
 
-                    return $dynamicRows;
+                    if (!empty($grouped)) {
+                        $rows = array_values($grouped);
+
+                        // Sort by total available items descending, then by description alphabetically
+                        usort($rows, function (array $a, array $b): int {
+                            $diff = ($b['all'] ?? 0) <=> ($a['all'] ?? 0);
+                            if ($diff !== 0) {
+                                return $diff;
+                            }
+                            return strcasecmp((string) ($a['description'] ?? ''), (string) ($b['description'] ?? ''));
+                        });
+
+                        return [
+                            'brands' => array_values($activeBrands),
+                            'rows' => $rows,
+                        ];
+                    }
                 }
             }
         } catch (Throwable $e) {
             report($e);
         }
 
-        return $defaultRows;
+        return [
+            'brands' => $defaultBrands,
+            'rows' => $defaultRows,
+        ];
     }
 }

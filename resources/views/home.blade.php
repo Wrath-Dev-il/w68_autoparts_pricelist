@@ -7,9 +7,9 @@
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>W68 Autoparts & Service Center | Home</title>
     <link rel="icon" href="{{ asset('images/sidebar_logo.png') }}">
-    <link rel="stylesheet" href="{{ asset('css/w68-home.css') }}?v=20261104-v195-ipad-touch">
+    <link rel="stylesheet" href="{{ asset('css/w68-home.css') }}?v=20261104-v196-dynamic-brands">
     <link rel="stylesheet" href="{{ asset('css/w68-notifications.css') }}?v=20261028-v148">
-    <script src="{{ asset('js/w68-home.js') }}?v=20261104-v195-ipad-touch" defer></script>
+    <script src="{{ asset('js/w68-home.js') }}?v=20261104-v196-dynamic-brands" defer></script>
     <script src="{{ asset('js/w68-notifications.js') }}?v=20261028-v148" defer></script>
 </head>
 @php
@@ -879,27 +879,36 @@
                 <p>Summary of available items and stock quantities across brands.</p>
             </header>
 
+            <div class="available-items-toolbar">
+                <span class="available-items-count-badge">{{ count($availableItemsRows ?? []) }} item descriptions</span>
+                <input type="search" class="available-items-search-input" placeholder="Search item description..." data-available-items-search aria-label="Search available item description">
+            </div>
+
             <div class="available-items-table-wrapper">
                 <table class="available-items-table">
                     <thead>
                         <tr>
                             <th class="th-desc">item description</th>
-                            <th class="th-brand">ERW</th>
-                            <th class="th-brand">YSL</th>
-                            <th class="th-brand">ERISTIC</th>
+                            @foreach(($availableItemsBrands ?? []) as $brandName)
+                                <th class="th-brand">{{ $brandName }}</th>
+                            @endforeach
                             <th class="th-all">ALL</th>
                         </tr>
                     </thead>
                     <tbody>
-                        @foreach(($availableItemsRows ?? []) as $row)
-                            <tr>
+                        @forelse(($availableItemsRows ?? []) as $row)
+                            <tr data-available-row>
                                 <td class="td-desc">{{ $row['description'] ?? '' }}</td>
-                                <td class="td-qty">{{ $row['erw'] ?? 0 }}</td>
-                                <td class="td-qty">{{ $row['ysl'] ?? 0 }}</td>
-                                <td class="td-qty">{{ $row['eristic'] ?? 0 }}</td>
+                                @foreach(($availableItemsBrands ?? []) as $brandName)
+                                    <td class="td-qty">{{ $row['brand_counts'][$brandName] ?? $row[strtolower($brandName)] ?? 0 }}</td>
+                                @endforeach
                                 <td class="td-all"><strong>{{ $row['all'] ?? 0 }}</strong></td>
                             </tr>
-                        @endforeach
+                        @empty
+                            <tr>
+                                <td colspan="{{ count($availableItemsBrands ?? []) + 2 }}" style="text-align:center;padding:22px;color:rgba(255,255,255,0.7);">No available inventory items found.</td>
+                            </tr>
+                        @endforelse
                     </tbody>
                 </table>
             </div>

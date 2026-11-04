@@ -7881,6 +7881,120 @@ body > .w68-tutorial-card.is-quantity-stage + * {
     align-items: center;
 }
 
+.available-items-table-desktop {
+    display: block;
+    width: 100%;
+}
+
+.available-items-mobile-list {
+    display: none;
+    width: 100%;
+    flex-direction: column;
+}
+
+/* On iPad, tablet, cellphone, or touch screens: switch to user-requested layout */
+@media (max-width: 1024px) {
+    .available-items-table-desktop {
+        display: none !important;
+    }
+    .available-items-mobile-list {
+        display: flex !important;
+    }
+}
+
+.w68-apple-touch .available-items-table-desktop {
+    display: none !important;
+}
+
+.w68-apple-touch .available-items-mobile-list {
+    display: flex !important;
+}
+
+.available-item-row {
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 16px;
+    padding: 13px 14px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+    transition: background 0.15s ease;
+}
+
+.available-item-row:last-child {
+    border-bottom: none;
+}
+
+.available-item-row:hover,
+.available-item-row:active {
+    background: rgba(255, 255, 255, 0.04);
+}
+
+.available-item-row[hidden] {
+    display: none !important;
+}
+
+.available-item-desc {
+    flex: 1 1 auto;
+    min-width: 0;
+    text-align: left;
+    font-size: 13.5px;
+    font-weight: 700;
+    color: #ffffff;
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+    line-height: 1.35;
+    padding-bottom: 2px;
+    word-break: break-word;
+}
+
+.available-item-brands-grid {
+    display: flex;
+    align-items: flex-end;
+    justify-content: flex-end;
+    gap: 14px;
+    flex-shrink: 0;
+}
+
+.available-brand-col {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: flex-end;
+    min-width: 48px;
+    text-align: center;
+}
+
+.available-brand-name {
+    font-size: 11px;
+    font-weight: 800;
+    color: #ffe358;
+    letter-spacing: 0.7px;
+    text-transform: uppercase;
+    margin-bottom: 4px;
+    white-space: nowrap;
+    line-height: 1.1;
+}
+
+.available-brand-qty {
+    font-size: 16px;
+    font-weight: 800;
+    color: #ffffff;
+    font-variant-numeric: tabular-nums;
+    line-height: 1;
+}
+
+.available-brand-none {
+    font-size: 13px;
+    color: rgba(255, 255, 255, 0.4);
+}
+
+.available-item-empty {
+    padding: 24px 16px;
+    text-align: center;
+    color: rgba(255, 255, 255, 0.7);
+    font-size: 13px;
+}
+
 .available-items-btn {
     appearance: none;
     -webkit-appearance: none;
@@ -7931,6 +8045,27 @@ body > .w68-tutorial-card.is-quantity-stage + * {
     .available-items-table thead th,
     .available-items-table tbody td {
         padding: 10px 10px;
+    }
+
+    .available-item-row {
+        padding: 11px 8px;
+        gap: 10px;
+    }
+
+    .available-item-desc {
+        font-size: 12.5px;
+    }
+
+    .available-brand-col {
+        min-width: 40px;
+    }
+
+    .available-brand-name {
+        font-size: 10px;
+    }
+
+    .available-brand-qty {
+        font-size: 14.5px;
     }
 
     .available-items-btn {

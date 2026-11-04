@@ -2827,14 +2827,30 @@
         });
 
         const searchInput = modal.querySelector('[data-available-items-search]');
+        const countBadge = modal.querySelector('.available-items-count-badge');
+        const initialBadgeText = countBadge ? countBadge.textContent : '';
+
         if (searchInput) {
             searchInput.addEventListener('input', () => {
                 const query = String(searchInput.value || '').toLowerCase().trim();
-                const rows = modal.querySelectorAll('.available-items-table tbody tr[data-available-row]');
+                const rows = modal.querySelectorAll('[data-available-row]');
+                let matchCount = 0;
                 rows.forEach((row) => {
                     const text = (row.querySelector('.td-desc')?.textContent || '').toLowerCase();
-                    row.hidden = query !== '' && !text.includes(query);
+                    const matches = query === '' || text.includes(query);
+                    row.hidden = !matches;
+                    if (matches && row.classList.contains('available-item-row')) {
+                        matchCount++;
+                    }
                 });
+
+                if (countBadge) {
+                    if (query !== '') {
+                        countBadge.textContent = `${matchCount} found`;
+                    } else {
+                        countBadge.textContent = initialBadgeText;
+                    }
+                }
             });
         }
 

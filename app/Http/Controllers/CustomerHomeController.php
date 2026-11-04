@@ -2023,16 +2023,31 @@ SVG;
             [
                 'description' => 'Spiral Cable Clock springs',
                 'brand_counts' => ['ERW' => 15, 'YSL' => 100, 'ERISTIC' => 50],
+                'available_brands' => [
+                    ['brand' => 'ERW', 'qty' => 15],
+                    ['brand' => 'YSL', 'qty' => 100],
+                    ['brand' => 'ERISTIC', 'qty' => 50],
+                ],
                 'all' => 165,
             ],
             [
                 'description' => 'Power Relay',
                 'brand_counts' => ['ERW' => 15, 'YSL' => 100, 'ERISTIC' => 50],
+                'available_brands' => [
+                    ['brand' => 'ERW', 'qty' => 15],
+                    ['brand' => 'YSL', 'qty' => 100],
+                    ['brand' => 'ERISTIC', 'qty' => 50],
+                ],
                 'all' => 165,
             ],
             [
                 'description' => 'Spring Bushing',
                 'brand_counts' => ['ERW' => 10, 'YSL' => 120, 'ERISTIC' => 60],
+                'available_brands' => [
+                    ['brand' => 'ERW', 'qty' => 10],
+                    ['brand' => 'YSL', 'qty' => 120],
+                    ['brand' => 'ERISTIC', 'qty' => 60],
+                ],
                 'all' => 190,
             ],
         ];
@@ -2042,7 +2057,7 @@ SVG;
                 $baseQuery = DB::connection('masterlist')
                     ->table('products')
                     ->whereNotNull('description')
-                    ->whereRaw("TRIM(description) <> ''");
+                    ->whereRaw("TRIM(description) != ''");
 
                 if (Schema::connection('masterlist')->hasColumn('products', 'is_selected_for_report')) {
                     $hasReport = DB::connection('masterlist')
@@ -2055,36 +2070,35 @@ SVG;
                     }
                 }
 
-                // Query all real distinct categories/brands present in products
-                $realBrands = (clone $baseQuery)
-                    ->whereNotNull('category')
-                    ->whereRaw("TRIM(category) <> ''")
-                    ->selectRaw('TRIM(category) as brand')
-                    ->distinct()
-                    ->orderBy('brand')
-                    ->pluck('brand')
-                    ->filter(static fn ($b): bool => trim((string) $b) !== '')
-                    ->values()
-                    ->all();
-
-                $activeBrands = !empty($realBrands) ? $realBrands : $defaultBrands;
-
-                // Query grouped count per description and category (brand)
+                // Query grouped counts per description and brand (category).
+                // Only consider products that have an actual brand and description.
                 $counts = (clone $baseQuery)
+                    ->whereNotNull('category')
+                    ->whereRaw("TRIM(category) != ''")
                     ->select([
                         DB::raw('TRIM(description) as item_desc'),
-                        DB::raw('TRIM(COALESCE(category, "")) as brand_name'),
+                        DB::raw('TRIM(category) as brand_name'),
                         DB::raw('COUNT(*) as total_qty'),
                     ])
                     ->groupBy('item_desc', 'brand_name')
                     ->get();
 
                 if ($counts->isNotEmpty()) {
-                    // Build case-insensitive brand lookup
-                    $brandMap = [];
-                    foreach ($activeBrands as $b) {
-                        $brandMap[mb_strtoupper(trim($b))] = trim($b);
+                    // Collect ONLY brands that actually exist and have stock (> 0) in the system
+                    $systemBrandsMap = [];
+                    foreach ($counts as $item) {
+                        $bName = trim((string) ($item->brand_name ?? ''));
+                        $qty = (int) ($item->total_qty ?? 0);
+                        if ($bName !== '' && $qty > 0) {
+                            $upper = mb_strtoupper($bName);
+                            if (!isset($systemBrandsMap[$upper])) {
+                                $systemBrandsMap[$upper] = $bName;
+                            }
+                        }
                     }
+
+                    $activeBrands = array_values($systemBrandsMap);
+                    usort($activeBrands, 'strcasecmp');
 
                     $grouped = [];
 
@@ -2094,7 +2108,7 @@ SVG;
                         $brandRaw = trim((string) ($item->brand_name ?? ''));
                         $qty = (int) ($item->total_qty ?? 0);
 
-                        if ($desc === '' || $qty <= 0) {
+                        if ($desc === '' || $qty <= 0 || $brandRaw === '') {
                             continue;
                         }
 
@@ -2114,38 +2128,32 @@ SVG;
                         }
 
                         $brandUpper = mb_strtoupper($brandRaw);
-                        $matchedBrand = null;
+                        $matchedBrand = $systemBrandsMap[$brandUpper] ?? $brandRaw;
 
-                        if (isset($brandMap[$brandUpper])) {
-                            $matchedBrand = $brandMap[$brandUpper];
-                        } else {
-                            foreach ($brandMap as $k => $canonical) {
-                                if (str_contains($brandUpper, $k) || str_contains($k, $brandUpper)) {
-                                    $matchedBrand = $canonical;
-                                    break;
-                                }
-                            }
-                        }
-
-                        if ($matchedBrand !== null) {
-                            $grouped[$descKey]['brand_counts'][$matchedBrand] = ($grouped[$descKey]['brand_counts'][$matchedBrand] ?? 0) + $qty;
-                        } elseif ($brandRaw !== '') {
-                            $activeBrands[] = $brandRaw;
-                            $brandMap[$brandUpper] = $brandRaw;
-                            foreach ($grouped as &$gRow) {
-                                if (!isset($gRow['brand_counts'][$brandRaw])) {
-                                    $gRow['brand_counts'][$brandRaw] = 0;
-                                }
-                            }
-                            unset($gRow);
-                            $grouped[$descKey]['brand_counts'][$brandRaw] = $qty;
-                        }
-
+                        $grouped[$descKey]['brand_counts'][$matchedBrand] = ($grouped[$descKey]['brand_counts'][$matchedBrand] ?? 0) + $qty;
                         $grouped[$descKey]['all'] += $qty;
                     }
 
+                    // Build 'available_brands' for each item: strictly brands that have qty > 0 for THIS item!
+                    foreach ($grouped as &$gRow) {
+                        $avail = [];
+                        foreach ($gRow['brand_counts'] as $bName => $bQty) {
+                            if ($bQty > 0) {
+                                $avail[] = [
+                                    'brand' => $bName,
+                                    'qty' => $bQty,
+                                ];
+                            }
+                        }
+                        $gRow['available_brands'] = $avail;
+                    }
+                    unset($gRow);
+
                     if (!empty($grouped)) {
                         $rows = array_values($grouped);
+
+                        // Only include items that have at least 1 available product
+                        $rows = array_values(array_filter($rows, static fn ($r): bool => ($r['all'] ?? 0) > 0));
 
                         // Sort by total available items descending, then by description alphabetically
                         usort($rows, function (array $a, array $b): int {
@@ -2157,7 +2165,7 @@ SVG;
                         });
 
                         return [
-                            'brands' => array_values($activeBrands),
+                            'brands' => $activeBrands,
                             'rows' => $rows,
                         ];
                     }

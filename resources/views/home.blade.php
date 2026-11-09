@@ -9,7 +9,7 @@
     <link rel="icon" href="{{ asset('images/sidebar_logo.png') }}">
     <link rel="stylesheet" href="{{ asset('css/w68-home.css') }}?v=20261104-v199-universal-multibrand-fix">
     <link rel="stylesheet" href="{{ asset('css/w68-notifications.css') }}?v=20261028-v148">
-    <script src="{{ asset('js/w68-home.js') }}?v=20261104-v199-universal-multibrand-fix" defer></script>
+    <script src="{{ asset('js/w68-home.js') }}?v=20261109-v200-discount-hierarchy" defer></script>
     <script src="{{ asset('js/w68-notifications.js') }}?v=20261028-v148" defer></script>
 </head>
 @php
@@ -29,6 +29,7 @@
     data-search-suggestion-url="{{ rtrim(request()->getSchemeAndHttpHost(), '/') }}{{ preg_replace('#/index\.php$#i', '', rtrim(str_replace('\\', '/', (string) request()->getBaseUrl()), '/')) }}/home/search-suggestions"
     data-fallback-image="{{ asset('images/sidebar_logo.png') }}"
     data-brand-discounts="{{ e(json_encode($brandDiscounts ?? [], JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP | JSON_HEX_QUOT)) }}"
+    data-all-discounts="{{ e(json_encode($allDiscounts ?? [], JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP | JSON_HEX_QUOT)) }}"
     data-cart-account-key="{{ $cartAccountKey ?? 'unknown' }}"
     data-cart-storage-ready="{{ !empty($cartStorageReady) ? '1' : '0' }}"
     data-show-available-items-modal="{{ !empty($showAvailableItemsModal) ? '1' : '0' }}"

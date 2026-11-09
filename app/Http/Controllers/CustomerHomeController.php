@@ -18,7 +18,7 @@ class CustomerHomeController extends Controller
     {
         $account = Auth::user();
 
-        if (!$account || (int) ($account->account_type ?? 0) !== 5) {
+        if (! $account || (int) ($account->account_type ?? 0) !== 5) {
             Auth::logout();
 
             $request->session()->invalidate();
@@ -43,11 +43,11 @@ class CustomerHomeController extends Controller
         $products = collect();
         $newItems = collect();
         $customerId = $this->resolveCustomerId($account, $request);
-        $brandDiscounts = $this->customerBrandDiscounts($customerId);
+        $discounts = $this->customerAllDiscounts($customerId);
         $portalLoginId = $this->resolvePortalLoginId($account);
         $cartStorageReady = $this->cartTableAvailable();
         $serverCart = $cartStorageReady
-            ? $this->customerCartItems($portalLoginId, $customerId, $brandDiscounts)
+            ? $this->customerCartItems($portalLoginId, $customerId, $discounts)
             : [];
 
         try {
@@ -62,7 +62,7 @@ class CustomerHomeController extends Controller
                 ->withQueryString();
 
             $products->getCollection()->transform(
-                fn ($product) => $this->applyBrandDiscount($product, $brandDiscounts)
+                fn ($product) => $this->applyDiscount($product, $discounts)
             );
 
             // W68_NEW_ARRIVAL_FROM_PURCHASE_20261024
@@ -71,7 +71,7 @@ class CustomerHomeController extends Controller
             // remains a New Arrival for exactly 3 months from its latest
             // purchase_order_items.created_at value.
             try {
-                $newItems = $this->newArrivalProducts($brandDiscounts);
+                $newItems = $this->newArrivalProducts($discounts);
             } catch (Throwable $newArrivalException) {
                 // Purchase DB downtime must never hide the normal product catalog.
                 report($newArrivalException);
@@ -122,7 +122,7 @@ class CustomerHomeController extends Controller
             );
 
             // Resilient DB fallback: ONLY IF not already dispatched in this session and not a search
-            if (!$showFirstLoginTutorial && !$tutorialAlreadyDispatched && $portalLoginId) {
+            if (! $showFirstLoginTutorial && ! $tutorialAlreadyDispatched && $portalLoginId) {
                 try {
                     if (
                         Schema::connection('system')->hasTable('customer_portal_accounts')
@@ -153,8 +153,8 @@ class CustomerHomeController extends Controller
 
         $profileName = trim(
             (string) ($account->User_First_Name ?? '')
-            . ' '
-            . (string) ($account->User_Last_Name ?? '')
+            .' '
+            .(string) ($account->User_Last_Name ?? '')
         );
 
         if ($profileName === '') {
@@ -191,11 +191,16 @@ class CustomerHomeController extends Controller
             'products' => $products,
             'newItems' => $newItems,
             'filters' => $filters,
-            'brandDiscounts' => $brandDiscounts,
-            'hasCustomerDiscounts' => collect($brandDiscounts)
-                ->contains(static fn ($discount): bool => (float) $discount > 0),
+            'allDiscounts' => $discounts,
+            'brandDiscounts' => $discounts['brands'] ?? [],
+            'hasCustomerDiscounts' => collect($discounts['brands'] ?? [])
+                ->contains(static fn ($discount): bool => (float) $discount > 0)
+                || collect($discounts['descriptions'] ?? [])
+                    ->contains(static fn ($discount): bool => (float) $discount > 0)
+                || collect($discounts['productCodes'] ?? [])
+                    ->contains(static fn ($discount): bool => (float) $discount > 0),
             'serverCart' => $serverCart,
-            'cartAccountKey' => $portalLoginId ? 'login-' . $portalLoginId : 'customer-' . ($customerId ?? 'unknown'),
+            'cartAccountKey' => $portalLoginId ? 'login-'.$portalLoginId : 'customer-'.($customerId ?? 'unknown'),
             'cartStorageReady' => $cartStorageReady,
             'showFirstLoginTutorial' => $showFirstLoginTutorial,
             'tutorialLoginNumber' => $tutorialLoginNumber,
@@ -213,7 +218,7 @@ class CustomerHomeController extends Controller
     {
         $account = Auth::user();
 
-        if (!$account || (int) ($account->account_type ?? 0) !== 5) {
+        if (! $account || (int) ($account->account_type ?? 0) !== 5) {
             Auth::logout();
 
             $request->session()->invalidate();
@@ -227,8 +232,8 @@ class CustomerHomeController extends Controller
         }
 
         $customerId = $this->resolveCustomerId($account, $request);
-        $brandDiscounts = $this->customerBrandDiscounts($customerId);
-        $positiveDiscounts = collect($brandDiscounts)
+        $discounts = $this->customerAllDiscounts($customerId);
+        $positiveDiscounts = collect($discounts['brands'] ?? [])
             ->filter(static fn ($discount): bool => (float) $discount > 0);
 
         if ($positiveDiscounts->isEmpty()) {
@@ -249,9 +254,9 @@ class CustomerHomeController extends Controller
                 ->distinct()
                 ->orderBy('brand')
                 ->get()
-                ->map(function ($row) use ($brandDiscounts): array {
+                ->map(function ($row) use ($discounts): array {
                     $brand = trim((string) ($row->brand ?? ''));
-                    $discount = (float) ($brandDiscounts[$this->normalizeBrand($brand)] ?? 0);
+                    $discount = (float) (($discounts['brands'] ?? [])[$this->normalizeBrand($brand)] ?? 0);
 
                     return [
                         'brand' => $brand,
@@ -266,8 +271,8 @@ class CustomerHomeController extends Controller
 
         $profileName = trim(
             (string) ($account->User_First_Name ?? '')
-            . ' '
-            . (string) ($account->User_Last_Name ?? '')
+            .' '
+            .(string) ($account->User_Last_Name ?? '')
         );
 
         if ($profileName === '') {
@@ -277,7 +282,7 @@ class CustomerHomeController extends Controller
         $portalLoginId = $this->resolvePortalLoginId($account);
         $cartStorageReady = $this->cartTableAvailable();
         $serverCart = $cartStorageReady
-            ? $this->customerCartItems($portalLoginId, $customerId, $brandDiscounts)
+            ? $this->customerCartItems($portalLoginId, $customerId, $discounts)
             : [];
 
         return view('discounts', [
@@ -310,14 +315,14 @@ class CustomerHomeController extends Controller
             'position' => 'p.Position',
         ];
 
-        if (mb_strlen($term) < 1 || !isset($fieldMap[$field])) {
+        if (mb_strlen($term) < 1 || ! isset($fieldMap[$field])) {
             return response()->json(['items' => []]);
         }
 
         $targetColumn = $fieldMap[$field];
         $escaped = $this->escapeLike($term);
-        $contains = '%' . $escaped . '%';
-        $starts = $escaped . '%';
+        $contains = '%'.$escaped.'%';
+        $starts = $escaped.'%';
 
         $applyRelatedSearch = static function ($query) use ($contains): void {
             $query->where(function ($nested) use ($contains) {
@@ -470,7 +475,7 @@ class CustomerHomeController extends Controller
                 ->inRandomOrder()
                 ->first();
 
-            if (!$representative) {
+            if (! $representative) {
                 continue;
             }
 
@@ -568,8 +573,8 @@ class CustomerHomeController extends Controller
         [, $loginId, $customerId] = $this->cartIdentity($request);
         $this->ensureCartTable();
 
-        $brandDiscounts = $this->customerBrandDiscounts($customerId);
-        $items = $this->customerCartItems($loginId, $customerId, $brandDiscounts);
+        $discounts = $this->customerAllDiscounts($customerId);
+        $items = $this->customerCartItems($loginId, $customerId, $discounts);
 
         return response()->json([
             'ok' => true,
@@ -592,13 +597,13 @@ class CustomerHomeController extends Controller
         $this->ensureCartTable();
 
         $mode = strtolower(trim((string) $request->query('mode', 'all')));
-        if (!in_array($mode, ['all', 'selected'], true)) {
+        if (! in_array($mode, ['all', 'selected'], true)) {
             $mode = 'all';
         }
 
-        $brandDiscounts = $this->customerBrandDiscounts($customerId);
+        $discounts = $this->customerAllDiscounts($customerId);
         $allItems = collect(
-            $this->customerCartItems($loginId, $customerId, $brandDiscounts)
+            $this->customerCartItems($loginId, $customerId, $discounts)
         )->values();
 
         if ($allItems->isEmpty()) {
@@ -608,7 +613,7 @@ class CustomerHomeController extends Controller
         }
 
         $selectedItems = $allItems
-            ->filter(fn (array $item): bool => !empty($item['selected']))
+            ->filter(fn (array $item): bool => ! empty($item['selected']))
             ->values();
 
         if ($mode === 'selected' && $selectedItems->isEmpty()) {
@@ -681,12 +686,12 @@ class CustomerHomeController extends Controller
         abort_unless(in_array($mode, ['all', 'selected'], true), 422, 'Invalid cart print mode.');
         $defaultCopies = max(1, min(20, (int) $request->query('copies', 1)));
 
-        $brandDiscounts = $this->customerBrandDiscounts($customerId);
-        $cartItems = collect($this->customerCartItems($loginId, $customerId, $brandDiscounts));
+        $discounts = $this->customerAllDiscounts($customerId);
+        $cartItems = collect($this->customerCartItems($loginId, $customerId, $discounts));
 
         if ($mode === 'selected') {
             $cartItems = $cartItems
-                ->filter(fn (array $item): bool => !empty($item['selected']))
+                ->filter(fn (array $item): bool => ! empty($item['selected']))
                 ->values();
         }
 
@@ -733,8 +738,8 @@ class CustomerHomeController extends Controller
         $totalAmount = round((float) $items->sum('net_total'), 2);
         $accountName = trim(
             (string) ($account->User_First_Name ?? '')
-            . ' '
-            . (string) ($account->User_Last_Name ?? '')
+            .' '
+            .(string) ($account->User_Last_Name ?? '')
         );
 
         if ($accountName === '') {
@@ -803,7 +808,7 @@ class CustomerHomeController extends Controller
             ]);
 
         $jobUrl = route('printer-bridge.job', ['token' => $rawToken]);
-        $deepLink = 'w68print://job?url=' . rawurlencode($jobUrl);
+        $deepLink = 'w68print://job?url='.rawurlencode($jobUrl);
 
         return view('printer-bridge-launch', [
             'deepLink' => $deepLink,
@@ -905,7 +910,6 @@ class CustomerHomeController extends Controller
         return response()->json(['ok' => true]);
     }
 
-
     /**
      * Persist the exact cart currently visible to the logged-in W68 account.
      *
@@ -935,9 +939,9 @@ class CustomerHomeController extends Controller
                 'product_id' => (int) $item['product_id'],
                 'cart_id' => isset($item['cart_id']) ? (int) $item['cart_id'] : null,
                 'quantity' => max(1, min(9999, (int) $item['quantity'])),
-                'selected' => !empty($item['selected']),
+                'selected' => ! empty($item['selected']),
             ])
-            ->filter(fn (array $item) => !$item['cart_id'] || !$processedLookup->has($item['cart_id']))
+            ->filter(fn (array $item) => ! $item['cart_id'] || ! $processedLookup->has($item['cart_id']))
             ->unique('product_id')
             ->values();
 
@@ -993,6 +997,7 @@ class CustomerHomeController extends Controller
                             'is_selected' => $item['selected'] ? 1 : 0,
                             'updated_at' => $now,
                         ]);
+
                     continue;
                 }
 
@@ -1008,8 +1013,8 @@ class CustomerHomeController extends Controller
             }
         });
 
-        $brandDiscounts = $this->customerBrandDiscounts($customerId);
-        $serverItems = $this->customerCartItems($loginId, $customerId, $brandDiscounts);
+        $discounts = $this->customerAllDiscounts($customerId);
+        $serverItems = $this->customerCartItems($loginId, $customerId, $discounts);
 
         return response()->json([
             'ok' => true,
@@ -1071,10 +1076,10 @@ class CustomerHomeController extends Controller
         // unversioned URL. The image response itself is no-store so future
         // Product Master replacements are fetched on the next page load.
         return rtrim(request()->getSchemeAndHttpHost(), '/')
-            . $baseUrl
-            . '/home/product-image/'
-            . $productId
-            . '?v=w68-20261024-nocache';
+            .$baseUrl
+            .'/home/product-image/'
+            .$productId
+            .'?v=w68-20261024-nocache';
     }
 
     /**
@@ -1094,7 +1099,7 @@ class CustomerHomeController extends Controller
                 ->value('Product_Picture');
 
             return $this->imageResponse($picture);
-        } catch (\Throwable $exception) {
+        } catch (Throwable $exception) {
             report($exception);
 
             /*
@@ -1140,7 +1145,7 @@ class CustomerHomeController extends Controller
                  */
                 return $this->imageResponse($picture);
             }
-        } catch (\Throwable $exception) {
+        } catch (Throwable $exception) {
             report($exception);
         }
 
@@ -1153,9 +1158,9 @@ class CustomerHomeController extends Controller
      * Cross-database joins are intentionally avoided because core4_purchase
      * may be hosted on a different HostForge MariaDB service from Masterlist.
      */
-    private function newArrivalProducts(array $brandDiscounts)
+    private function newArrivalProducts(array $discounts)
     {
-        if (!Schema::connection('purchase')->hasTable('purchase_order_items')) {
+        if (! Schema::connection('purchase')->hasTable('purchase_order_items')) {
             return collect();
         }
 
@@ -1190,7 +1195,7 @@ class CustomerHomeController extends Controller
             })
             ->take(12)
             ->values()
-            ->map(fn ($product) => $this->applyBrandDiscount($product, $brandDiscounts));
+            ->map(fn ($product) => $this->applyDiscount($product, $discounts));
     }
 
     private function catalogQuery(): Builder
@@ -1241,6 +1246,7 @@ class CustomerHomeController extends Controller
                         $sub->where('p.description', 'like', '%DRIVESHAFT%')
                             ->orWhere('p.description', 'like', '%DRIVESHAFT ASSEMBLY%');
                     });
+
                     continue;
                 }
             }
@@ -1248,7 +1254,7 @@ class CustomerHomeController extends Controller
             $query->where(
                 $column,
                 'like',
-                '%' . $this->escapeLike((string) $filters[$filter]) . '%'
+                '%'.$this->escapeLike((string) $filters[$filter]).'%'
             );
         }
     }
@@ -1307,14 +1313,14 @@ class CustomerHomeController extends Controller
         );
     }
 
-    private function customerCartItems(?int $loginId, ?int $customerId, array $brandDiscounts): array
+    private function customerCartItems(?int $loginId, ?int $customerId, array $discounts): array
     {
-        if (!$loginId || !$customerId) {
+        if (! $loginId || ! $customerId) {
             return [];
         }
 
         try {
-            if (!$this->cartTableAvailable()) {
+            if (! $this->cartTableAvailable()) {
                 return [];
             }
 
@@ -1356,15 +1362,15 @@ class CustomerHomeController extends Controller
                 ->keyBy('id');
 
             return $cartRows
-                ->map(function ($cartRow) use ($products, $brandDiscounts) {
+                ->map(function ($cartRow) use ($products, $discounts) {
                     $product = $products->get($cartRow->product_id);
 
-                    if (!$product) {
+                    if (! $product) {
                         return null;
                     }
 
                     $product->display_price = (float) ($product->selling_price ?? 0);
-                    $product = $this->applyBrandDiscount($product, $brandDiscounts);
+                    $product = $this->applyDiscount($product, $discounts);
 
                     return [
                         'id' => (string) $product->id,
@@ -1398,9 +1404,9 @@ class CustomerHomeController extends Controller
     {
         try {
             if (
-                !Schema::connection('sales_order')->hasTable('w68_portal_orders')
-                || !Schema::connection('sales_order')->hasTable('w68_portal_order_items')
-                || !Schema::connection('sales_order')->hasColumn('w68_portal_order_items', 'cart_id')
+                ! Schema::connection('sales_order')->hasTable('w68_portal_orders')
+                || ! Schema::connection('sales_order')->hasTable('w68_portal_order_items')
+                || ! Schema::connection('sales_order')->hasColumn('w68_portal_order_items', 'cart_id')
             ) {
                 return collect();
             }
@@ -1490,16 +1496,16 @@ class CustomerHomeController extends Controller
 
     private function customerBrandDiscounts(?int $customerId): array
     {
-        if (!$customerId) {
+        if (! $customerId) {
             return [];
         }
 
         try {
             if (
-                !Schema::connection('masterlist')->hasTable('customer_brand_discounts')
-                || !Schema::connection('masterlist')->hasColumn('customer_brand_discounts', 'customer_id')
-                || !Schema::connection('masterlist')->hasColumn('customer_brand_discounts', 'brand')
-                || !Schema::connection('masterlist')->hasColumn('customer_brand_discounts', 'discount_percentage')
+                ! Schema::connection('masterlist')->hasTable('customer_brand_discounts')
+                || ! Schema::connection('masterlist')->hasColumn('customer_brand_discounts', 'customer_id')
+                || ! Schema::connection('masterlist')->hasColumn('customer_brand_discounts', 'brand')
+                || ! Schema::connection('masterlist')->hasColumn('customer_brand_discounts', 'discount_percentage')
             ) {
                 return [];
             }
@@ -1534,10 +1540,15 @@ class CustomerHomeController extends Controller
         }
     }
 
-    private function applyBrandDiscount($product, array $brandDiscounts)
+    /**
+     * W68_DISCOUNT_HIERARCHY_20261109
+     * Apply the highest-priority discount to a product object.
+     * Accepts the full discounts array from customerAllDiscounts().
+     */
+    private function applyDiscount($product, array $discounts)
     {
         $price = (float) ($product->display_price ?? $product->selling_price ?? 0);
-        $discountPercent = $brandDiscounts[$this->normalizeBrand((string) ($product->brand ?? ''))] ?? 0;
+        $discountPercent = $this->resolveDiscountPercent($product, $discounts);
         $hasDiscount = $price > 0 && $discountPercent > 0;
 
         $product->discount_percent = $hasDiscount ? $discountPercent : 0;
@@ -1570,7 +1581,7 @@ class CustomerHomeController extends Controller
                 $table->timestamps();
             });
         } catch (Throwable $exception) {
-            if (!Schema::connection('sales_order')->hasTable('w68_printer_bridge_jobs')) {
+            if (! Schema::connection('sales_order')->hasTable('w68_printer_bridge_jobs')) {
                 throw $exception;
             }
         }
@@ -1579,6 +1590,151 @@ class CustomerHomeController extends Controller
     private function normalizeBrand(string $brand): string
     {
         return mb_strtolower(trim(preg_replace('/\s+/', ' ', $brand) ?? ''));
+    }
+
+    private function normalizeDescription(string $description): string
+    {
+        return mb_strtolower(trim(preg_replace('/\s+/', ' ', $description) ?? ''));
+    }
+
+    private function normalizeProductCode(string $code): string
+    {
+        return mb_strtolower(trim(preg_replace('/\s+/', ' ', $code) ?? ''));
+    }
+
+    /**
+     * W68_DISCOUNT_HIERARCHY_20261109
+     * Fetch ALL discount types for a customer.
+     * Returns ['brands' => [...], 'descriptions' => [...], 'product_codes' => [...], 'product_ids' => [...]].
+     */
+    private function customerAllDiscounts(?int $customerId): array
+    {
+        $brands = $this->customerBrandDiscounts($customerId);
+
+        $descriptions = [];
+        $productCodes = [];
+        $productIds = [];
+
+        if (! $customerId) {
+            return compact('brands', 'descriptions', 'productCodes', 'productIds');
+        }
+
+        try {
+            if (
+                Schema::connection('masterlist')->hasTable('customer_description_discount')
+                && Schema::connection('masterlist')->hasColumn('customer_description_discount', 'customer_id')
+                && Schema::connection('masterlist')->hasColumn('customer_description_discount', 'description')
+                && Schema::connection('masterlist')->hasColumn('customer_description_discount', 'discount_percentage')
+            ) {
+                $descriptions = DB::connection('masterlist')
+                    ->table('customer_description_discount')
+                    ->where('customer_id', $customerId)
+                    ->whereNotNull('description')
+                    ->whereRaw("TRIM(description) <> ''")
+                    ->select(['description', 'discount_percentage'])
+                    ->get()
+                    ->reduce(function (array $map, $row): array {
+                        $desc = $this->normalizeDescription((string) ($row->description ?? ''));
+                        if ($desc === '') {
+                            return $map;
+                        }
+                        $discount = max(0, min(100, (float) ($row->discount_percentage ?? 0)));
+                        $map[$desc] = max($map[$desc] ?? 0, $discount);
+
+                        return $map;
+                    }, []);
+            }
+        } catch (Throwable $e) {
+            report($e);
+        }
+
+        try {
+            if (
+                Schema::connection('masterlist')->hasTable('customer_product_discount')
+                && Schema::connection('masterlist')->hasColumn('customer_product_discount', 'customer_id')
+                && Schema::connection('masterlist')->hasColumn('customer_product_discount', 'product_code')
+                && Schema::connection('masterlist')->hasColumn('customer_product_discount', 'discount_percentage')
+            ) {
+                $rows = DB::connection('masterlist')
+                    ->table('customer_product_discount')
+                    ->where('customer_id', $customerId)
+                    ->whereNotNull('product_code')
+                    ->whereRaw("TRIM(product_code) <> ''")
+                    ->select(['product_id', 'product_code', 'discount_percentage'])
+                    ->get();
+
+                foreach ($rows as $row) {
+                    $code = $this->normalizeProductCode((string) ($row->product_code ?? ''));
+                    $discount = max(0, min(100, (float) ($row->discount_percentage ?? 0)));
+
+                    if ($code !== '') {
+                        $productCodes[$code] = max($productCodes[$code] ?? 0, $discount);
+                    }
+
+                    $pid = (int) ($row->product_id ?? 0);
+                    if ($pid > 0) {
+                        $productIds[$pid] = max($productIds[$pid] ?? 0, $discount);
+                    }
+                }
+            }
+        } catch (Throwable $e) {
+            report($e);
+        }
+
+        return compact('brands', 'descriptions', 'productCodes', 'productIds');
+    }
+
+    /**
+     * W68_DISCOUNT_HIERARCHY_20261109
+     * Resolve the effective discount percentage for a product using the hierarchy:
+     *   1. Product code  2. Description  3. Brand
+     */
+    private function resolveDiscountPercent($product, array $discounts): float
+    {
+        // Priority 1: Product code / product ID
+        $productId = (int) ($product->id ?? 0);
+        if ($productId > 0 && isset($discounts['productIds'][$productId])) {
+            $d = (float) $discounts['productIds'][$productId];
+            if ($d > 0) {
+                return $d;
+            }
+        }
+
+        $productCode = $this->normalizeProductCode((string) ($product->product_code ?? ''));
+        if ($productCode !== '' && isset($discounts['productCodes'][$productCode])) {
+            $d = (float) $discounts['productCodes'][$productCode];
+            if ($d > 0) {
+                return $d;
+            }
+        }
+
+        $productCode2 = $this->normalizeProductCode((string) ($product->product_code2 ?? ''));
+        if ($productCode2 !== '' && isset($discounts['productCodes'][$productCode2])) {
+            $d = (float) $discounts['productCodes'][$productCode2];
+            if ($d > 0) {
+                return $d;
+            }
+        }
+
+        // Priority 2: Description
+        $description = $this->normalizeDescription((string) ($product->description ?? ''));
+        if ($description !== '' && isset($discounts['descriptions'][$description])) {
+            $d = (float) $discounts['descriptions'][$description];
+            if ($d > 0) {
+                return $d;
+            }
+        }
+
+        // Priority 3: Brand
+        $brand = $this->normalizeBrand((string) ($product->brand ?? ''));
+        if ($brand !== '' && isset($discounts['brands'][$brand])) {
+            $d = (float) $discounts['brands'][$brand];
+            if ($d > 0) {
+                return $d;
+            }
+        }
+
+        return 0.0;
     }
 
     private function ensureAccountTypeFive()
@@ -1623,7 +1779,7 @@ class CustomerHomeController extends Controller
                     : $this->fallbackLogoResponse();
             }
 
-            if (!is_string($value)) {
+            if (! is_string($value)) {
                 if ($value instanceof \Stringable) {
                     $value = (string) $value;
                 } else {
@@ -1642,8 +1798,8 @@ class CustomerHomeController extends Controller
                 return response($value, 200, [
                     'Content-Type' => $this->detectImageMime($value),
                     'Cache-Control' => 'private, no-store, no-cache, must-revalidate, max-age=0',
-                        'Pragma' => 'no-cache',
-                        'Expires' => '0',
+                    'Pragma' => 'no-cache',
+                    'Expires' => '0',
                     'X-Content-Type-Options' => 'nosniff',
                 ]);
             }
@@ -1745,10 +1901,10 @@ class CustomerHomeController extends Controller
                  */
                 if (in_array($host, ['localhost', '127.0.0.1'], true)) {
                     $url = request()->getSchemeAndHttpHost()
-                        . (string) ($parts['path'] ?? '');
+                        .(string) ($parts['path'] ?? '');
 
-                    if (!empty($parts['query'])) {
-                        $url .= '?' . $parts['query'];
+                    if (! empty($parts['query'])) {
+                        $url .= '?'.$parts['query'];
                     }
                 }
 
@@ -1757,7 +1913,7 @@ class CustomerHomeController extends Controller
                 $cacheVersion = trim((string) request()->query('v', ''));
                 if ($cacheVersion !== '') {
                     $separator = str_contains($url, '?') ? '&' : '?';
-                    $url .= $separator . '_w68v=' . rawurlencode($cacheVersion);
+                    $url .= $separator.'_w68v='.rawurlencode($cacheVersion);
                 }
 
                 return redirect()->away($url)
@@ -1776,8 +1932,8 @@ class CustomerHomeController extends Controller
 
             if (
                 $relative !== ''
-                && !str_contains($relative, '../')
-                && !str_contains($relative, '..\\')
+                && ! str_contains($relative, '../')
+                && ! str_contains($relative, '..\\')
             ) {
                 $localPath = public_path($relative);
 
@@ -1816,7 +1972,7 @@ class CustomerHomeController extends Controller
                     ]);
                 }
             }
-        } catch (\Throwable $exception) {
+        } catch (Throwable $exception) {
             report($exception);
         }
 
@@ -1829,7 +1985,7 @@ class CustomerHomeController extends Controller
             return $decoded;
         }
 
-        if (!is_array($decoded)) {
+        if (! is_array($decoded)) {
             return null;
         }
 
@@ -1843,7 +1999,7 @@ class CustomerHomeController extends Controller
                     ['url', 'src', 'image', 'image_url', 'path'] as $key
                 ) {
                     if (
-                        !empty($value[$key])
+                        ! empty($value[$key])
                         && is_string($value[$key])
                     ) {
                         return $value[$key];
@@ -1942,7 +2098,7 @@ class CustomerHomeController extends Controller
                 ) {
                     return $mime;
                 }
-            } catch (\Throwable $exception) {
+            } catch (Throwable $exception) {
                 report($exception);
             }
         }
@@ -1965,8 +2121,8 @@ class CustomerHomeController extends Controller
             if (is_file($path)) {
                 return response()->file($path, [
                     'Cache-Control' => 'private, no-store, no-cache, must-revalidate, max-age=0',
-                        'Pragma' => 'no-cache',
-                        'Expires' => '0',
+                    'Pragma' => 'no-cache',
+                    'Expires' => '0',
                     'X-Content-Type-Options' => 'nosniff',
                 ]);
             }
@@ -2091,7 +2247,7 @@ SVG;
                         $qty = (int) ($item->total_qty ?? 0);
                         if ($bName !== '' && $qty > 0) {
                             $upper = mb_strtoupper($bName);
-                            if (!isset($systemBrandsMap[$upper])) {
+                            if (! isset($systemBrandsMap[$upper])) {
                                 $systemBrandsMap[$upper] = $bName;
                             }
                         }
@@ -2114,7 +2270,7 @@ SVG;
 
                         $descKey = mb_strtoupper($desc);
 
-                        if (!isset($grouped[$descKey])) {
+                        if (! isset($grouped[$descKey])) {
                             $initialCounts = [];
                             foreach ($activeBrands as $b) {
                                 $initialCounts[$b] = 0;
@@ -2149,7 +2305,7 @@ SVG;
                     }
                     unset($gRow);
 
-                    if (!empty($grouped)) {
+                    if (! empty($grouped)) {
                         $rows = array_values($grouped);
 
                         // Only include items that have at least 1 available product

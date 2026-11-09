@@ -69,6 +69,16 @@
             return {};
         }
     })();
+    const allDiscounts = (() => {
+        try {
+            const parsed = JSON.parse(document.body?.dataset.allDiscounts || '{}');
+            return parsed && typeof parsed === 'object' && !Array.isArray(parsed)
+                ? parsed
+                : {};
+        } catch (_) {
+            return {};
+        }
+    })();
 
     const productModal = document.querySelector('[data-product-modal]');
     const cartItemModal = document.querySelector('[data-cart-item-modal]');
@@ -441,6 +451,59 @@
         .replace(/\s+/g, ' ')
         .toLowerCase();
 
+    const normalizeDescription = (desc) => String(desc || '')
+        .trim()
+        .replace(/\s+/g, ' ')
+        .toLowerCase();
+
+    const normalizeProductCode = (code) => String(code || '')
+        .trim()
+        .replace(/\s+/g, ' ')
+        .toLowerCase();
+
+    // W68_DISCOUNT_HIERARCHY_20261109
+    // Priority: 1. Product code  2. Description  3. Brand
+    const resolveDiscountHierarchy = (item) => {
+        // Priority 1: Product code / Product ID
+        const pId = Number(item.id || item.product_id || 0);
+        if (pId > 0 && allDiscounts?.productIds && Object.prototype.hasOwnProperty.call(allDiscounts.productIds, pId)) {
+            const d = Number(allDiscounts.productIds[pId] || 0);
+            if (d > 0) return Math.min(d, 100);
+        }
+
+        const pCode = normalizeProductCode(item.productCode || item.product_code || '');
+        if (pCode && allDiscounts?.productCodes && Object.prototype.hasOwnProperty.call(allDiscounts.productCodes, pCode)) {
+            const d = Number(allDiscounts.productCodes[pCode] || 0);
+            if (d > 0) return Math.min(d, 100);
+        }
+
+        // Priority 2: Description
+        const desc = normalizeDescription(item.description || '');
+        if (desc && allDiscounts?.descriptions && Object.prototype.hasOwnProperty.call(allDiscounts.descriptions, desc)) {
+            const d = Number(allDiscounts.descriptions[desc] || 0);
+            if (d > 0) return Math.min(d, 100);
+        }
+
+        // Priority 3: Brand
+        const brand = normalizeBrand(item.brand || '');
+        if (brand && allDiscounts?.brands && Object.prototype.hasOwnProperty.call(allDiscounts.brands, brand)) {
+            const d = Number(allDiscounts.brands[brand] || 0);
+            if (d > 0) return Math.min(d, 100);
+        }
+
+        if (brand && Object.prototype.hasOwnProperty.call(brandDiscounts, brand)) {
+            const d = Number(brandDiscounts[brand] || 0);
+            if (d > 0) return Math.min(d, 100);
+        }
+
+        const storedDiscount = Number(item.discountPercent || 0);
+        if (Number.isFinite(storedDiscount) && storedDiscount > 0) {
+            return Math.max(0, Math.min(storedDiscount, 100));
+        }
+
+        return 0;
+    };
+
     const discountForBrand = (brand) => {
         const normalized = normalizeBrand(brand);
 
@@ -474,22 +537,9 @@
             const value = JSON.parse(localStorage.getItem(storageKey) || '[]');
             if (!Array.isArray(value)) return [];
 
-            const hasBrandDiscountMap = Object.keys(brandDiscounts).length > 0;
-
             return value.map((item) => {
                 const price = Number(item.price || 0);
-                const mappedDiscount = discountForBrand(item.brand);
-                const storedDiscount = Number(item.discountPercent || 0);
-
-                // Current customer-brand discounts remain authoritative. If the
-                // discount map cannot be read for any reason, keep the valid
-                // discount already supplied by the server/product card instead
-                // of making the discounted price disappear from the cart.
-                const discountPercent = mappedDiscount > 0
-                    ? mappedDiscount
-                    : (!hasBrandDiscountMap && Number.isFinite(storedDiscount)
-                        ? Math.max(0, Math.min(storedDiscount, 100))
-                        : 0);
+                const discountPercent = resolveDiscountHierarchy(item);
 
                 const calculatedDiscountedPrice = discountedPrice(price, discountPercent);
                 const storedDiscountedPrice = Number(item.discountedPrice ?? calculatedDiscountedPrice);

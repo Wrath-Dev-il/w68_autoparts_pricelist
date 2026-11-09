@@ -1207,6 +1207,9 @@ class CustomerHomeController extends Controller
             ->select([
                 'p.id',
                 'p.product_code',
+                'p.product_code2',
+                'p.pricelist_code',
+                'p.pricelist_code2',
                 'p.part_number',
                 'p.description',
                 'p.category as brand',
@@ -1350,6 +1353,9 @@ class CustomerHomeController extends Controller
                 ->select([
                     'p.id',
                     'p.product_code',
+                    'p.product_code2',
+                    'p.pricelist_code',
+                    'p.pricelist_code2',
                     'p.part_number',
                     'p.description',
                     'p.category as brand',
@@ -1587,6 +1593,11 @@ class CustomerHomeController extends Controller
         }
     }
 
+    private function stripAlphanumeric(string $value): string
+    {
+        return mb_strtolower(preg_replace('/[^A-Za-z0-9]/', '', $value) ?? '');
+    }
+
     private function normalizeBrand(string $brand): string
     {
         return mb_strtolower(trim(preg_replace('/\s+/', ' ', $brand) ?? ''));
@@ -1605,7 +1616,8 @@ class CustomerHomeController extends Controller
     /**
      * W68_DISCOUNT_HIERARCHY_20261109
      * Fetch ALL discount types for a customer.
-     * Returns ['brands' => [...], 'descriptions' => [...], 'product_codes' => [...], 'product_ids' => [...]].
+     * Supports both singular & plural table names, and column name variations.
+     * Returns ['brands' => [...], 'descriptions' => [...], 'productCodes' => [...], 'productIds' => [...]].
      */
     private function customerAllDiscounts(?int $customerId): array
     {
@@ -1619,66 +1631,82 @@ class CustomerHomeController extends Controller
             return compact('brands', 'descriptions', 'productCodes', 'productIds');
         }
 
-        try {
-            if (
-                Schema::connection('masterlist')->hasTable('customer_description_discount')
-                && Schema::connection('masterlist')->hasColumn('customer_description_discount', 'customer_id')
-                && Schema::connection('masterlist')->hasColumn('customer_description_discount', 'description')
-                && Schema::connection('masterlist')->hasColumn('customer_description_discount', 'discount_percentage')
-            ) {
-                $descriptions = DB::connection('masterlist')
-                    ->table('customer_description_discount')
-                    ->where('customer_id', $customerId)
-                    ->whereNotNull('description')
-                    ->whereRaw("TRIM(description) <> ''")
-                    ->select(['description', 'discount_percentage'])
-                    ->get()
-                    ->reduce(function (array $map, $row): array {
-                        $desc = $this->normalizeDescription((string) ($row->description ?? ''));
-                        if ($desc === '') {
-                            return $map;
-                        }
-                        $discount = max(0, min(100, (float) ($row->discount_percentage ?? 0)));
-                        $map[$desc] = max($map[$desc] ?? 0, $discount);
-
-                        return $map;
-                    }, []);
-            }
-        } catch (Throwable $e) {
-            report($e);
-        }
-
-        try {
-            if (
-                Schema::connection('masterlist')->hasTable('customer_product_discount')
-                && Schema::connection('masterlist')->hasColumn('customer_product_discount', 'customer_id')
-                && Schema::connection('masterlist')->hasColumn('customer_product_discount', 'product_code')
-                && Schema::connection('masterlist')->hasColumn('customer_product_discount', 'discount_percentage')
-            ) {
+        // 1. Description Discounts (tolerant to singular and plural table names)
+        $descTables = ['customer_description_discount', 'customer_description_discounts'];
+        foreach ($descTables as $tableName) {
+            try {
                 $rows = DB::connection('masterlist')
-                    ->table('customer_product_discount')
+                    ->table($tableName)
                     ->where('customer_id', $customerId)
-                    ->whereNotNull('product_code')
-                    ->whereRaw("TRIM(product_code) <> ''")
-                    ->select(['product_id', 'product_code', 'discount_percentage'])
                     ->get();
 
-                foreach ($rows as $row) {
-                    $code = $this->normalizeProductCode((string) ($row->product_code ?? ''));
-                    $discount = max(0, min(100, (float) ($row->discount_percentage ?? 0)));
+                if ($rows->isNotEmpty()) {
+                    foreach ($rows as $row) {
+                        $desc = (string) ($row->description ?? $row->Description ?? '');
+                        $discount = (float) ($row->discount_percentage ?? $row->discount_percent ?? $row->discount ?? 0);
+                        $discount = max(0, min(100, $discount));
 
-                    if ($code !== '') {
-                        $productCodes[$code] = max($productCodes[$code] ?? 0, $discount);
-                    }
+                        if ($discount <= 0 || trim($desc) === '') {
+                            continue;
+                        }
 
-                    $pid = (int) ($row->product_id ?? 0);
-                    if ($pid > 0) {
-                        $productIds[$pid] = max($productIds[$pid] ?? 0, $discount);
+                        $norm = $this->normalizeDescription($desc);
+                        if ($norm !== '') {
+                            $descriptions[$norm] = max($descriptions[$norm] ?? 0, $discount);
+                        }
+
+                        $stripped = $this->stripAlphanumeric($desc);
+                        if ($stripped !== '') {
+                            $descriptions[$stripped] = max($descriptions[$stripped] ?? 0, $discount);
+                        }
                     }
+                    break;
                 }
+            } catch (Throwable $e) {
+                // Ignore and try next table candidate
             }
-        } catch (Throwable $e) {
-            report($e);
+        }
+
+        // 2. Product Discounts (tolerant to singular and plural table names, and code/id variations)
+        $prodTables = ['customer_product_discount', 'customer_product_discounts'];
+        foreach ($prodTables as $tableName) {
+            try {
+                $rows = DB::connection('masterlist')
+                    ->table($tableName)
+                    ->where('customer_id', $customerId)
+                    ->get();
+
+                if ($rows->isNotEmpty()) {
+                    foreach ($rows as $row) {
+                        $discount = (float) ($row->discount_percentage ?? $row->discount_percent ?? $row->discount ?? 0);
+                        $discount = max(0, min(100, $discount));
+
+                        if ($discount <= 0) {
+                            continue;
+                        }
+
+                        $rawCode = (string) ($row->product_code ?? $row->product_code2 ?? $row->part_number ?? $row->code ?? '');
+                        if (trim($rawCode) !== '') {
+                            $norm = $this->normalizeProductCode($rawCode);
+                            if ($norm !== '') {
+                                $productCodes[$norm] = max($productCodes[$norm] ?? 0, $discount);
+                            }
+                            $stripped = $this->stripAlphanumeric($rawCode);
+                            if ($stripped !== '') {
+                                $productCodes[$stripped] = max($productCodes[$stripped] ?? 0, $discount);
+                            }
+                        }
+
+                        $pid = (int) ($row->product_id ?? $row->product_ID ?? $row->id_product ?? 0);
+                        if ($pid > 0) {
+                            $productIds[$pid] = max($productIds[$pid] ?? 0, $discount);
+                        }
+                    }
+                    break;
+                }
+            } catch (Throwable $e) {
+                // Ignore and try next table candidate
+            }
         }
 
         return compact('brands', 'descriptions', 'productCodes', 'productIds');
@@ -1686,12 +1714,16 @@ class CustomerHomeController extends Controller
 
     /**
      * W68_DISCOUNT_HIERARCHY_20261109
-     * Resolve the effective discount percentage for a product using the hierarchy:
-     *   1. Product code  2. Description  3. Brand
+     * Resolve the effective discount percentage for a product using strict hierarchy:
+     *   1. Product code / product ID (highest priority)
+     *   2. Description (second priority)
+     *   3. Brand (third priority)
      */
     private function resolveDiscountPercent($product, array $discounts): float
     {
-        // Priority 1: Product code / product ID
+        // -------------------------------------------------------------
+        // PRIORITY 1: Product code / product ID (Top priority)
+        // -------------------------------------------------------------
         $productId = (int) ($product->id ?? 0);
         if ($productId > 0 && isset($discounts['productIds'][$productId])) {
             $d = (float) $discounts['productIds'][$productId];
@@ -1700,35 +1732,74 @@ class CustomerHomeController extends Controller
             }
         }
 
-        $productCode = $this->normalizeProductCode((string) ($product->product_code ?? ''));
-        if ($productCode !== '' && isset($discounts['productCodes'][$productCode])) {
-            $d = (float) $discounts['productCodes'][$productCode];
-            if ($d > 0) {
-                return $d;
+        $codesToCheck = [
+            (string) ($product->product_code ?? ''),
+            (string) ($product->part_number ?? ''),
+            (string) ($product->product_code2 ?? ''),
+            (string) ($product->pricelist_code ?? ''),
+        ];
+
+        foreach ($codesToCheck as $rawCode) {
+            if (trim($rawCode) === '') {
+                continue;
+            }
+
+            $norm = $this->normalizeProductCode($rawCode);
+            if ($norm !== '' && isset($discounts['productCodes'][$norm])) {
+                $d = (float) $discounts['productCodes'][$norm];
+                if ($d > 0) {
+                    return $d;
+                }
+            }
+
+            $stripped = $this->stripAlphanumeric($rawCode);
+            if ($stripped !== '' && isset($discounts['productCodes'][$stripped])) {
+                $d = (float) $discounts['productCodes'][$stripped];
+                if ($d > 0) {
+                    return $d;
+                }
             }
         }
 
-        $productCode2 = $this->normalizeProductCode((string) ($product->product_code2 ?? ''));
-        if ($productCode2 !== '' && isset($discounts['productCodes'][$productCode2])) {
-            $d = (float) $discounts['productCodes'][$productCode2];
-            if ($d > 0) {
-                return $d;
+        // -------------------------------------------------------------
+        // PRIORITY 2: Description (Second priority)
+        // -------------------------------------------------------------
+        $rawDesc = (string) ($product->description ?? '');
+        if (trim($rawDesc) !== '') {
+            $normDesc = $this->normalizeDescription($rawDesc);
+            if ($normDesc !== '' && isset($discounts['descriptions'][$normDesc])) {
+                $d = (float) $discounts['descriptions'][$normDesc];
+                if ($d > 0) {
+                    return $d;
+                }
+            }
+
+            $strippedDesc = $this->stripAlphanumeric($rawDesc);
+            if ($strippedDesc !== '' && isset($discounts['descriptions'][$strippedDesc])) {
+                $d = (float) $discounts['descriptions'][$strippedDesc];
+                if ($d > 0) {
+                    return $d;
+                }
+            }
+
+            if (! empty($discounts['descriptions'])) {
+                foreach ($discounts['descriptions'] as $discountDescKey => $discountVal) {
+                    if ($discountVal > 0 && mb_strlen($discountDescKey) >= 3) {
+                        if (str_contains($normDesc, $discountDescKey)) {
+                            return (float) $discountVal;
+                        }
+                    }
+                }
             }
         }
 
-        // Priority 2: Description
-        $description = $this->normalizeDescription((string) ($product->description ?? ''));
-        if ($description !== '' && isset($discounts['descriptions'][$description])) {
-            $d = (float) $discounts['descriptions'][$description];
-            if ($d > 0) {
-                return $d;
-            }
-        }
-
-        // Priority 3: Brand
-        $brand = $this->normalizeBrand((string) ($product->brand ?? ''));
-        if ($brand !== '' && isset($discounts['brands'][$brand])) {
-            $d = (float) $discounts['brands'][$brand];
+        // -------------------------------------------------------------
+        // PRIORITY 3: Brand (Third priority)
+        // -------------------------------------------------------------
+        $brand = (string) ($product->brand ?? $product->category ?? '');
+        $normBrand = $this->normalizeBrand($brand);
+        if ($normBrand !== '' && isset($discounts['brands'][$normBrand])) {
+            $d = (float) $discounts['brands'][$normBrand];
             if ($d > 0) {
                 return $d;
             }

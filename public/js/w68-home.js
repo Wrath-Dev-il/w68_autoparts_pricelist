@@ -461,6 +461,10 @@
         .replace(/\s+/g, ' ')
         .toLowerCase();
 
+    const stripAlphanumeric = (str) => String(str || '')
+        .toLowerCase()
+        .replace(/[^a-z0-9]/g, '');
+
     // W68_DISCOUNT_HIERARCHY_20261109
     // Priority: 1. Product code  2. Description  3. Brand
     const resolveDiscountHierarchy = (item) => {
@@ -471,17 +475,49 @@
             if (d > 0) return Math.min(d, 100);
         }
 
-        const pCode = normalizeProductCode(item.productCode || item.product_code || '');
-        if (pCode && allDiscounts?.productCodes && Object.prototype.hasOwnProperty.call(allDiscounts.productCodes, pCode)) {
-            const d = Number(allDiscounts.productCodes[pCode] || 0);
-            if (d > 0) return Math.min(d, 100);
+        const codesToCheck = [
+            item.productCode,
+            item.product_code,
+            item.partNumber,
+            item.part_number,
+        ];
+
+        for (const rawCode of codesToCheck) {
+            if (!rawCode) continue;
+            const norm = normalizeProductCode(rawCode);
+            if (norm && allDiscounts?.productCodes && Object.prototype.hasOwnProperty.call(allDiscounts.productCodes, norm)) {
+                const d = Number(allDiscounts.productCodes[norm] || 0);
+                if (d > 0) return Math.min(d, 100);
+            }
+            const stripped = stripAlphanumeric(rawCode);
+            if (stripped && allDiscounts?.productCodes && Object.prototype.hasOwnProperty.call(allDiscounts.productCodes, stripped)) {
+                const d = Number(allDiscounts.productCodes[stripped] || 0);
+                if (d > 0) return Math.min(d, 100);
+            }
         }
 
         // Priority 2: Description
-        const desc = normalizeDescription(item.description || '');
-        if (desc && allDiscounts?.descriptions && Object.prototype.hasOwnProperty.call(allDiscounts.descriptions, desc)) {
-            const d = Number(allDiscounts.descriptions[desc] || 0);
-            if (d > 0) return Math.min(d, 100);
+        const rawDesc = String(item.description || '');
+        if (rawDesc) {
+            const normDesc = normalizeDescription(rawDesc);
+            if (normDesc && allDiscounts?.descriptions && Object.prototype.hasOwnProperty.call(allDiscounts.descriptions, normDesc)) {
+                const d = Number(allDiscounts.descriptions[normDesc] || 0);
+                if (d > 0) return Math.min(d, 100);
+            }
+
+            const strippedDesc = stripAlphanumeric(rawDesc);
+            if (strippedDesc && allDiscounts?.descriptions && Object.prototype.hasOwnProperty.call(allDiscounts.descriptions, strippedDesc)) {
+                const d = Number(allDiscounts.descriptions[strippedDesc] || 0);
+                if (d > 0) return Math.min(d, 100);
+            }
+
+            if (allDiscounts?.descriptions) {
+                for (const [descKey, discountVal] of Object.entries(allDiscounts.descriptions)) {
+                    if (Number(discountVal) > 0 && descKey.length >= 3 && normDesc.includes(descKey)) {
+                        return Math.min(Number(discountVal), 100);
+                    }
+                }
+            }
         }
 
         // Priority 3: Brand

@@ -9,7 +9,7 @@
     <link rel="icon" href="{{ asset('images/sidebar_logo.png') }}">
     <link rel="stylesheet" href="{{ asset('css/w68-home.css') }}?v=20261104-v199-universal-multibrand-fix">
     <link rel="stylesheet" href="{{ asset('css/w68-notifications.css') }}?v=20261028-v148">
-    <script src="{{ asset('js/w68-home.js') }}?v=20261109-v200-discount-hierarchy" defer></script>
+    <script src="{{ asset('js/w68-home.js') }}?v=20261109-v201-discount-priority-fix" defer></script>
     <script src="{{ asset('js/w68-notifications.js') }}?v=20261028-v148" defer></script>
 </head>
 @php

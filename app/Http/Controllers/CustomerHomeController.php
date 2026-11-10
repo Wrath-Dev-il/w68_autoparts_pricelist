@@ -188,6 +188,7 @@ class CustomerHomeController extends Controller
         return view('home', [
             'account' => $account,
             'profileName' => $profileName,
+            'customerId' => $customerId,
             'products' => $products,
             'newItems' => $newItems,
             'filters' => $filters,

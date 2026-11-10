@@ -8197,7 +8197,7 @@ body.is-screenshot-shielded [data-product-modal] {
     letter-spacing: 0.5px;
 }
 
-/* Prevent text selection and image drag across catalog items */
+/* Prevent text selection, image drag, and iOS tap-and-hold menus across catalog items */
 .new-items-section,
 .products-section,
 .product-view-modal,
@@ -8207,6 +8207,7 @@ body.is-screenshot-shielded [data-product-modal] {
     -moz-user-select: none;
     -ms-user-select: none;
     user-select: none;
+    -webkit-touch-callout: none !important;
 }
 
 .new-item-card img,
@@ -8215,6 +8216,17 @@ body.is-screenshot-shielded [data-product-modal] {
     -webkit-user-drag: none;
     user-drag: none;
     pointer-events: none;
+    -webkit-touch-callout: none !important;
+}
+
+/* W68 Anti-Screenshot Dynamic Security Watermark across iPad/Desktop */
+.w68-catalog-watermark {
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    z-index: 70;
+    opacity: 0.95;
+    background-repeat: repeat;
 }
 
 /* Block unauthorized printing of products */

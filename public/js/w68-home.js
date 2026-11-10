@@ -3942,14 +3942,40 @@
             deactivateShield();
         });
 
-        document.addEventListener('visibilitychange', () => {
-            if (document.visibilityState === 'hidden') {
+        // iOS / iPadOS Safari Page Lifecycle events
+        window.addEventListener('pagehide', () => {
+            if (!document.body.classList.contains('w68-cart-printing')) {
                 activateShield(0);
                 wipeClipboard();
-            } else if (document.visibilityState === 'visible') {
-                deactivateShield();
             }
         });
+
+        document.addEventListener('freeze', () => {
+            if (!document.body.classList.contains('w68-cart-printing')) {
+                activateShield(0);
+                wipeClipboard();
+            }
+        });
+
+        const handleVisibility = () => {
+            if (document.visibilityState === 'hidden' || document.hidden) {
+                activateShield(0);
+                wipeClipboard();
+            } else if (document.visibilityState === 'visible' && !document.hidden) {
+                deactivateShield();
+            }
+        };
+
+        document.addEventListener('visibilitychange', handleVisibility);
+        document.addEventListener('webkitvisibilitychange', handleVisibility);
+
+        // iPad / Mobile multi-finger gesture screenshot defense
+        window.addEventListener('touchstart', (e) => {
+            if (e.touches && e.touches.length >= 3) {
+                activateShield(1400);
+                wipeClipboard();
+            }
+        }, { passive: true });
 
         // 3. Disable context menu (right click) on items, images, and catalog
         const catalogSelectors = [

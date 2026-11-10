@@ -53,15 +53,8 @@
 >
     @php
         $logo = asset('images/sidebar_logo.png');
-        $watermarkCustomerId = $customerId ?: ($account->User_ID ?? 'W68');
-        $watermarkCustomerName = trim($profileName ?: 'W68 Customer');
-        $watermarkDate = now()->format('Y-m-d');
-        $watermarkText = htmlspecialchars("{$watermarkCustomerName} • ID: {$watermarkCustomerId} • W68 AUTOPARTS CONFIDENTIAL • {$watermarkDate}", ENT_QUOTES, 'UTF-8');
-        $watermarkSvg = rawurlencode("<svg xmlns='http://www.w3.org/2000/svg' width='500' height='260' viewBox='0 0 500 260'><text x='20' y='140' transform='rotate(-22 250 130)' fill='%23064e3b' opacity='0.12' font-family='sans-serif' font-size='12' font-weight='800' letter-spacing='1.2'>{$watermarkText}</text></svg>");
     @endphp
 
-    <!-- W68_CATALOG_WATERMARK_20261110 -->
-    <div class="w68-catalog-watermark" style="background-image: url('data:image/svg+xml;utf8,{!! $watermarkSvg !!}');" aria-hidden="true"></div>
     @php
         /*
          * W68 runs from /w68_Pricelist/public under XAMPP.

@@ -8219,16 +8219,6 @@ body.is-screenshot-shielded [data-product-modal] {
     -webkit-touch-callout: none !important;
 }
 
-/* W68 Anti-Screenshot Dynamic Security Watermark across iPad/Desktop */
-.w68-catalog-watermark {
-    position: fixed;
-    inset: 0;
-    pointer-events: none;
-    z-index: 70;
-    opacity: 0.95;
-    background-repeat: repeat;
-}
-
 /* Block unauthorized printing of products */
 @media print {
     body:not(.w68-cart-printing) #products,

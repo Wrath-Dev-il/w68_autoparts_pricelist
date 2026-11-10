@@ -62,6 +62,7 @@
 
     <!-- W68_CATALOG_WATERMARK_20261110 -->
     <div class="w68-catalog-watermark" style="background-image: url('data:image/svg+xml;utf8,{!! $watermarkSvg !!}');" aria-hidden="true"></div>
+    @php
         /*
          * W68 runs from /w68_Pricelist/public under XAMPP.
          * Build Home URLs from the CURRENT browser host so an iPad uses

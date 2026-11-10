@@ -3829,47 +3829,10 @@
     };
 
     // =========================================================================
-    // W68_ANTI_SCREENSHOT_PROTECTION_20261110
-    // Disable screenshots, Snipping Tool, image dragging, right-click, and print
+    // W68 Content Protection (Clipboard wipe on PrintScreen, Right-Click, Drag, Print)
     // =========================================================================
     const initAntiScreenshot = () => {
-        const shield = document.getElementById('w68-anti-screenshot-shield');
-        let shieldTimer = null;
-
-        const activateShield = (duration = 0) => {
-            if (document.body.classList.contains('w68-cart-printing')) {
-                return;
-            }
-
-            document.body.classList.add('is-screenshot-shielded');
-            if (shield) {
-                shield.setAttribute('aria-hidden', 'false');
-            }
-
-            if (shieldTimer) {
-                clearTimeout(shieldTimer);
-                shieldTimer = null;
-            }
-
-            if (duration > 0) {
-                shieldTimer = setTimeout(() => {
-                    deactivateShield();
-                }, duration);
-            }
-        };
-
-        const deactivateShield = () => {
-            if (shieldTimer) {
-                clearTimeout(shieldTimer);
-                shieldTimer = null;
-            }
-            document.body.classList.remove('is-screenshot-shielded');
-            if (shield) {
-                shield.setAttribute('aria-hidden', 'true');
-            }
-        };
-
-        // Attempt to wipe any clipboard contents that may have been captured by PrintScreen
+        // Attempt to wipe any clipboard contents captured by PrintScreen
         const wipeClipboard = () => {
             try {
                 if (navigator.clipboard && navigator.clipboard.writeText) {
@@ -3878,10 +3841,9 @@
             } catch (_) {}
         };
 
-        // 1. Intercept PrintScreen keydown & keyup
+        // 1. Desktop Keyboard Shortcuts
         window.addEventListener('keyup', (e) => {
             if (e.key === 'PrintScreen' || e.code === 'PrintScreen' || e.keyCode === 44) {
-                activateShield(1600);
                 wipeClipboard();
             }
         });
@@ -3891,13 +3853,11 @@
 
             // PrintScreen pressed
             if (e.key === 'PrintScreen' || e.code === 'PrintScreen' || e.keyCode === 44) {
-                activateShield(1600);
                 wipeClipboard();
             }
 
             // Windows Key / Shift / Meta + PrintScreen
             if ((isCtrlOrMeta || e.shiftKey) && (e.key === 'PrintScreen' || e.code === 'PrintScreen')) {
-                activateShield(1800);
                 wipeClipboard();
             }
 
@@ -3905,7 +3865,6 @@
             if (isCtrlOrMeta && (e.key === 'p' || e.key === 'P' || e.keyCode === 80)) {
                 if (!document.body.classList.contains('w68-cart-printing')) {
                     e.preventDefault();
-                    activateShield(1500);
                 }
             }
 
@@ -3930,54 +3889,7 @@
             }
         });
 
-        // 2. Snipping Tool / OS Screen Capture: window loses focus when capture overlay triggers
-        window.addEventListener('blur', () => {
-            if (!document.body.classList.contains('w68-cart-printing')) {
-                activateShield(0);
-                wipeClipboard();
-            }
-        });
-
-        window.addEventListener('focus', () => {
-            deactivateShield();
-        });
-
-        // iOS / iPadOS Safari Page Lifecycle events
-        window.addEventListener('pagehide', () => {
-            if (!document.body.classList.contains('w68-cart-printing')) {
-                activateShield(0);
-                wipeClipboard();
-            }
-        });
-
-        document.addEventListener('freeze', () => {
-            if (!document.body.classList.contains('w68-cart-printing')) {
-                activateShield(0);
-                wipeClipboard();
-            }
-        });
-
-        const handleVisibility = () => {
-            if (document.visibilityState === 'hidden' || document.hidden) {
-                activateShield(0);
-                wipeClipboard();
-            } else if (document.visibilityState === 'visible' && !document.hidden) {
-                deactivateShield();
-            }
-        };
-
-        document.addEventListener('visibilitychange', handleVisibility);
-        document.addEventListener('webkitvisibilitychange', handleVisibility);
-
-        // iPad / Mobile multi-finger gesture screenshot defense
-        window.addEventListener('touchstart', (e) => {
-            if (e.touches && e.touches.length >= 3) {
-                activateShield(1400);
-                wipeClipboard();
-            }
-        }, { passive: true });
-
-        // 3. Disable context menu (right click) on items, images, and catalog
+        // 2. Disable context menu (right click) on items, images, and catalog
         const catalogSelectors = [
             '#products',
             '#new-items',
@@ -3997,7 +3909,7 @@
             }
         });
 
-        // 4. Disable dragging images or product cards to desktop / other tab
+        // 3. Disable dragging images or product cards to desktop / other tab
         document.addEventListener('dragstart', (e) => {
             const target = e.target;
             if (target && (target.tagName === 'IMG' || target.closest(catalogSelectors.join(',')))) {

@@ -7,9 +7,9 @@
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>W68 Autoparts & Service Center | Home</title>
     <link rel="icon" href="{{ asset('images/sidebar_logo.png') }}">
-    <link rel="stylesheet" href="{{ asset('css/w68-home.css') }}?v=20261110-v203-anti-screenshot-ipad">
+    <link rel="stylesheet" href="{{ asset('css/w68-home.css') }}?v=20261110-v204-fix-shield">
     <link rel="stylesheet" href="{{ asset('css/w68-notifications.css') }}?v=20261028-v148">
-    <script src="{{ asset('js/w68-home.js') }}?v=20261110-v203-anti-screenshot-ipad" defer></script>
+    <script src="{{ asset('js/w68-home.js') }}?v=20261110-v204-fix-shield" defer></script>
     <script src="{{ asset('js/w68-notifications.js') }}?v=20261028-v148" defer></script>
 </head>
 @php
@@ -947,17 +947,6 @@
                 </button>
             </div>
         </section>
-    </div>
-
-    <!-- W68_ANTI_SCREENSHOT_SHIELD_20261110 -->
-    <div id="w68-anti-screenshot-shield" class="w68-anti-screenshot-shield" aria-hidden="true">
-        <div class="w68-anti-screenshot-badge">
-            <svg viewBox="0 0 24 24" width="40" height="40" fill="currentColor" aria-hidden="true">
-                <path d="M18 8h-1V6c0-2.76-2.24-5-5-5S7 3.24 7 6v2H6c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V10c0-1.1-.9-2-2-2zm-6 9c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2zm3.1-9H8.9V6c0-1.71 1.39-3.1 3.1-3.1 1.71 0 3.1 1.39 3.1 3.1v2z"/>
-            </svg>
-            <strong>SCREENSHOT DISABLED</strong>
-            <span>W68 Autoparts &bull; Protected Customer Catalog</span>
-        </div>
     </div>
 
     @include('partials.notification-modal')

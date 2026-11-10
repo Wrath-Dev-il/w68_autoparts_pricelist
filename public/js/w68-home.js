@@ -3829,9 +3829,57 @@
     };
 
     // =========================================================================
-    // W68 Content Protection (Clipboard wipe on PrintScreen, Right-Click, Drag, Print)
+    // W68 Content & Anti-Screenshot Protection
     // =========================================================================
     const initAntiScreenshot = () => {
+        let blurTimeout = null;
+
+        // Apply blur to catalog for screen capture / snip protection
+        const applyBlur = (duration = 0) => {
+            if (document.body.classList.contains('w68-cart-printing')) {
+                return;
+            }
+            document.body.classList.add('w68-blur-catalog');
+            if (blurTimeout) {
+                clearTimeout(blurTimeout);
+                blurTimeout = null;
+            }
+            if (duration > 0) {
+                blurTimeout = setTimeout(() => {
+                    clearBlur();
+                }, duration);
+            }
+        };
+
+        // Remove blur immediately
+        const clearBlur = () => {
+            if (blurTimeout) {
+                clearTimeout(blurTimeout);
+                blurTimeout = null;
+            }
+            if (document.body.classList.contains('w68-blur-catalog')) {
+                document.body.classList.remove('w68-blur-catalog');
+            }
+        };
+
+        // Show non-blocking, self-dismissing toast notice
+        const showScreenshotNotice = () => {
+            const existing = document.getElementById('w68-screenshot-notice');
+            if (existing) {
+                existing.remove();
+            }
+            const notice = document.createElement('div');
+            notice.id = 'w68-screenshot-notice';
+            notice.className = 'w68-screenshot-notice';
+            notice.innerHTML = '<svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M18 8h-1V6c0-2.76-2.24-5-5-5S7 3.24 7 6v2H6c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V10c0-1.1-.9-2-2-2zm-6 9c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2zm3.1-9H8.9V6c0-1.71 1.39-3.1 3.1-3.1 1.71 0 3.1 1.39 3.1 3.1v2z"/></svg><span>Screenshot Disabled &bull; Confidential Catalog</span>';
+            document.body.appendChild(notice);
+            setTimeout(() => {
+                if (notice.parentNode) {
+                    notice.remove();
+                }
+            }, 2200);
+        };
+
         // Attempt to wipe any clipboard contents captured by PrintScreen
         const wipeClipboard = () => {
             try {
@@ -3844,7 +3892,9 @@
         // 1. Desktop Keyboard Shortcuts
         window.addEventListener('keyup', (e) => {
             if (e.key === 'PrintScreen' || e.code === 'PrintScreen' || e.keyCode === 44) {
+                applyBlur(1400);
                 wipeClipboard();
+                showScreenshotNotice();
             }
         });
 
@@ -3853,18 +3903,24 @@
 
             // PrintScreen pressed
             if (e.key === 'PrintScreen' || e.code === 'PrintScreen' || e.keyCode === 44) {
+                applyBlur(1600);
                 wipeClipboard();
+                showScreenshotNotice();
             }
 
             // Windows Key / Shift / Meta + PrintScreen
             if ((isCtrlOrMeta || e.shiftKey) && (e.key === 'PrintScreen' || e.code === 'PrintScreen')) {
+                applyBlur(1800);
                 wipeClipboard();
+                showScreenshotNotice();
             }
 
             // Block Ctrl+P / Cmd+P (Print to PDF / Paper) unless in cart print mode
             if (isCtrlOrMeta && (e.key === 'p' || e.key === 'P' || e.keyCode === 80)) {
                 if (!document.body.classList.contains('w68-cart-printing')) {
                     e.preventDefault();
+                    applyBlur(1200);
+                    showScreenshotNotice();
                 }
             }
 
@@ -3889,7 +3945,25 @@
             }
         });
 
-        // 2. Disable context menu (right click) on items, images, and catalog
+        // 2. Windows Snipping Tool (Win+Shift+S) / Screen Capture detection:
+        // When snipping tool opens, browser window loses focus (blur).
+        // We blur the catalog so Snipping Tool captures only obscured products.
+        window.addEventListener('blur', () => {
+            if (!document.body.classList.contains('w68-cart-printing')) {
+                applyBlur(0);
+                wipeClipboard();
+            }
+        });
+
+        // Instant clear on ANY user interaction so normal browsing is never blocked:
+        window.addEventListener('focus', clearBlur);
+        window.addEventListener('mousemove', clearBlur, { passive: true });
+        window.addEventListener('mousedown', clearBlur, { passive: true });
+        window.addEventListener('touchstart', clearBlur, { passive: true });
+        window.addEventListener('scroll', clearBlur, { passive: true });
+        window.addEventListener('keydown', clearBlur, { passive: true });
+
+        // 3. Disable context menu (right click) on items, images, and catalog
         const catalogSelectors = [
             '#products',
             '#new-items',
@@ -3909,7 +3983,7 @@
             }
         });
 
-        // 3. Disable dragging images or product cards to desktop / other tab
+        // 4. Disable dragging images or product cards to desktop / other tab
         document.addEventListener('dragstart', (e) => {
             const target = e.target;
             if (target && (target.tagName === 'IMG' || target.closest(catalogSelectors.join(',')))) {

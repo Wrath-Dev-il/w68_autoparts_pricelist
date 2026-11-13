@@ -3023,6 +3023,14 @@
         // Keep all cart steps tied to the exact product selected in Step 1.
         let tutorialProductId = null;
 
+        // W68_TUTORIAL_CART_CLEANUP_20261113
+        // The walkthrough adds a real cart line so the customer can see the
+        // complete checkout flow. Remember the line's state before the
+        // tutorial touches it so finishing or skipping the guide can remove
+        // only the demo item (or restore a pre-existing line).
+        let tutorialCartSnapshot = null;
+        let tutorialCartItemAdded = false;
+
         const getTutorialCartRow = () => {
             if (tutorialProductId !== null && tutorialProductId !== '') {
                 const specific = document.querySelector(
@@ -3041,6 +3049,52 @@
             return row.querySelector(
                 '.cart-item-check input[type="checkbox"], input[type="checkbox"]'
             );
+        };
+
+        const captureTutorialCartSnapshot = (productId) => {
+            const id = String(productId || '');
+            if (id === '') return;
+
+            const existing = readCart().find((item) => String(item.id) === id);
+            tutorialCartSnapshot = {
+                id,
+                qty: existing ? safeQty(existing.qty) : 0,
+                selected: existing ? Boolean(existing.selected) : false,
+            };
+        };
+
+        const clearTutorialCartItem = () => {
+            if (!tutorialCartItemAdded || !tutorialCartSnapshot) {
+                tutorialCartSnapshot = null;
+                tutorialCartItemAdded = false;
+                return;
+            }
+
+            const snapshot = tutorialCartSnapshot;
+            tutorialCartSnapshot = null;
+            tutorialCartItemAdded = false;
+
+            const current = readCart().find(
+                (item) => String(item.id) === String(snapshot.id)
+            );
+            if (!current) return;
+
+            if (snapshot.qty <= 0) {
+                // The tutorial created this cart line. Delete it completely so
+                // it can never be selected or submitted by accident.
+                removeCartItem(snapshot.id);
+                return;
+            }
+
+            // The product was already in the cart before the tutorial. Put
+            // back the original quantity and checkbox state instead of
+            // deleting the customer's own line.
+            if (safeQty(current.qty) !== snapshot.qty) {
+                setCartQty(snapshot.id, snapshot.qty);
+            }
+            if (Boolean(current.selected) !== snapshot.selected) {
+                setCartSelected(snapshot.id, snapshot.selected);
+            }
         };
 
         const steps = [
@@ -3153,6 +3207,11 @@
             // Restore PRINT CART LIST after the walkthrough ends.
             document.documentElement.classList.remove('w68-tutorial-active');
             document.body?.classList.remove('w68-tutorial-active');
+
+            // W68_TUTORIAL_CART_CLEANUP_20261113
+            // Never leave the walkthrough's demo item in the cart where it
+            // could be selected and submitted by accident.
+            clearTutorialCartItem();
 
             if (repositionTimer !== null) {
                 window.clearTimeout(repositionTimer);
@@ -3679,6 +3738,7 @@
                     const product = productCard ? getProductData(productCard) : null;
                     if (product) {
                         tutorialProductId = String(product.id || '');
+                        captureTutorialCartSnapshot(tutorialProductId);
                         openQuantityModal(product);
                     }
                     renderStep(2);
@@ -3698,6 +3758,7 @@
                     closeQuantityModal();
                     if (product) {
                         commitAddToCart(product, qty);
+                        tutorialCartItemAdded = true;
                     }
                     renderStep(4);
                     break;
@@ -3799,6 +3860,13 @@
                 return;
             }
             active = true;
+
+            // W68_TUTORIAL_CART_CLEANUP_20261113
+            // A fresh walkthrough must never reuse the previous run's demo
+            // product or snapshot.
+            tutorialProductId = null;
+            tutorialCartSnapshot = null;
+            tutorialCartItemAdded = false;
 
             closeProductModal();
             closeCartItemModal();

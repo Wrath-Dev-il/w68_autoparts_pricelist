@@ -1265,9 +1265,6 @@
 
         window.clearTimeout(messageTimer);
 
-        // W68_TUTORIAL_ADDED_MESSAGE_DURATION_20261027
-        // Normal customers keep the 2-second confirmation. During the guided
-        // tutorial, leave it visible long enough for the robot to explain it.
         const cartMessageDuration = 1800;
 
         messageTimer = window.setTimeout(() => {
@@ -1415,19 +1412,7 @@
         syncBodyLock();
     };
 
-    const isTutorialCartLocked = () => {
-        if (
-            document.body?.classList.contains('w68-tutorial-active')
-            || document.documentElement.classList.contains('w68-tutorial-active')
-        ) {
-            return true;
-        }
-        const overlay = document.querySelector('[data-w68-tutorial]');
-        return Boolean(overlay && !overlay.hidden && overlay.getAttribute('aria-hidden') !== 'true');
-    };
-
-    const closeCart = (force = false) => {
-        if (!force && isTutorialCartLocked()) return;
+    const closeCart = () => {
         cartDrawer?.classList.remove('open');
         cartDrawer?.setAttribute('aria-hidden', 'true');
         syncBodyLock();
@@ -1628,7 +1613,7 @@
        Product full-view modal
        ===================================================== */
     const openProductModal = (product) => {
-        if (!productModal || isTutorialCartLocked()) return;
+        if (!productModal) return;
 
         const fields = {
             '[data-product-modal-description]': product.description || '\u2014',
@@ -1700,7 +1685,7 @@
        Cart item full-view modal
        ===================================================== */
     const openCartItemModal = (item) => {
-        if (!cartItemModal || isTutorialCartLocked()) return;
+        if (!cartItemModal) return;
 
         const fields = {
             '[data-cart-item-modal-description]': item.description || '\u2014',
@@ -1938,12 +1923,10 @@
             row.append(selectWrap, image, copy);
 
             row.addEventListener('click', () => {
-                if (isTutorialCartLocked()) return;
                 openCartItemModal(item);
             });
             row.addEventListener('keydown', (event) => {
                 if (event.key === 'Enter' || event.key === ' ') {
-                    if (isTutorialCartLocked()) return;
                     event.preventDefault();
                     openCartItemModal(item);
                 }
@@ -2443,10 +2426,7 @@
             // Quantity/selection writes are queued. Finish them first so the
             // review page reads the exact same selected database cart rows.
             await cartMutationQueue.catch(() => null);
-            const hasPendingTutorial = sessionStorage.getItem('w68_process_order_tutorial_pending') === '1';
-            sessionStorage.removeItem('w68_process_order_tutorial_pending');
-            const targetUrl = orderApi.review + (hasPendingTutorial ? (orderApi.review.includes('?') ? '&tutorial=1' : '?tutorial=1') : '');
-            window.location.href = targetUrl;
+            window.location.href = orderApi.review;
         } finally {
             window.setTimeout(() => {
                 const hasSelection = readCart().some((item) => item.selected);
@@ -2464,13 +2444,11 @@
         const product = getProductData(card);
 
         card.addEventListener('click', (event) => {
-            if (isTutorialCartLocked()) return;
             if (event.target.closest('button, input, select, a, label')) return;
             openProductModal(product);
         });
 
         card.addEventListener('keydown', (event) => {
-            if (isTutorialCartLocked()) return;
             if (event.key !== 'Enter' && event.key !== ' ') return;
             if (event.target.closest('button, input, select, a, label')) return;
             event.preventDefault();
@@ -2527,7 +2505,6 @@
         }
 
         if (event.target.closest('[data-cart-close]')) {
-            if (isTutorialCartLocked()) return;
             closeCart();
             return;
         }
@@ -2560,7 +2537,6 @@
     // immediately close the drawer on the same tap that opened it.
     const closeCartFromOutside = (event) => {
         if (!cartDrawer?.classList.contains('open')) return;
-        if (isTutorialCartLocked()) return;
         const target = event.target;
         if (target?.closest?.('.cart-panel')) return;
         if (target?.closest?.('[data-cart-open]')) return;
@@ -2590,7 +2566,6 @@
             return;
         }
         if (cartDrawer?.classList.contains('open')) {
-            if (isTutorialCartLocked()) return;
             closeCart();
         }
     });
@@ -2750,98 +2725,18 @@
         start();
     };
 
-    /* =====================================================
-       W68_FIRST_LOGIN_TUTORIAL_20261024
-       W68_TUTORIAL_EXACT_ACTION_FLOW_20261027
-       Server-controlled walkthrough for account login #1, #2 and #3.
-       Step 1 deliberately skips zero-price / already-carted products.
-       ===================================================== */
-    const isTutorialTargetUsable = (node) => {
-        if (!(node instanceof Element) || node.hidden) return false;
-        if (node.getAttribute('aria-hidden') === 'true') return false;
-
-        const style = window.getComputedStyle(node);
-        if (
-            style.display === 'none'
-            || style.visibility === 'hidden'
-            || Number(style.opacity || 1) === 0
-        ) {
-            return false;
-        }
-
-        const rect = node.getBoundingClientRect();
-        return rect.width > 0 && rect.height > 0;
-    };
-
-    const getFirstVisibleTutorialTarget = (selector) => (
-        Array.from(document.querySelectorAll(selector))
-            .find((node) => isTutorialTargetUsable(node))
-        || null
-    );
-
-    // W68_TUTORIAL_PURCHASABLE_ITEM_TARGET_20261026
-    // Never teach Add to Cart using a zero-price product. Search all rendered
-    // product cards, use the effective customer price, and skip cards whose
-    // ADD TO CART button is already hidden because the item is in the cart.
-    // W68_TUTORIAL_PRODUCTS_GRID_ONLY_20261026
-    // Teach Add to Cart from the main PRODUCTS section only. NEW ARRIVAL cards
-    // are intentionally excluded even though they also use data-product-card.
-    const getTutorialPurchasableAddButton = () => {
-        let cards = Array.from(
-            document.querySelectorAll('#products .product-grid [data-product-card]')
-        );
-        if (!cards.length) {
-            cards = Array.from(document.querySelectorAll('[data-product-card]'));
-        }
-
-        for (const card of cards) {
-            if (!(card instanceof Element)) continue;
-
-            const originalPrice = Number(card.dataset.productPrice || 0);
-            const discountedPrice = Number(card.dataset.productDiscountedPrice || 0);
-            const discountPercent = Number(card.dataset.productDiscountPercent || 0);
-            const effective = (
-                discountPercent > 0
-                && discountedPrice > 0
-                && (originalPrice <= 0 || discountedPrice < originalPrice)
-            )
-                ? discountedPrice
-                : originalPrice;
-
-            if (!Number.isFinite(effective) || effective <= 0) continue;
-
-            const addButton = card.querySelector('[data-add-cart]');
-            if (!isTutorialTargetUsable(addButton)) continue;
-
-            return addButton;
-        }
-
-        return getFirstVisibleTutorialTarget('[data-add-cart]');
-    };
-
     /* =========================================================
        W68_AVAILABLE_ITEMS_MODAL_20261103
        Pop-up modal for list of available items across brands.
        Triggered upon login or registration.
-       If user has tutorial left, this modal appears first; clicking
-       "GOT IT" closes the modal and starts the tutorial.
-       Also applies to users who have no tutorial left.
        ========================================================= */
     let availableItemsModalOpen = false;
-    let pendingTutorialStarter = null;
-
-    const isAvailableItemsModalActive = () => availableItemsModalOpen;
-
-    const deferTutorialLaunch = (fn) => {
-        pendingTutorialStarter = fn;
-    };
 
     const initAvailableItemsModal = () => {
         const modal = document.querySelector('[data-available-items-modal]');
         if (!modal) return;
 
-        const isExplicitPreview = window.location.search.indexOf('items_modal=') !== -1
-            || window.location.search.indexOf('tutorial=preview') !== -1;
+        const isExplicitPreview = window.location.search.indexOf('items_modal=') !== -1;
 
         const shouldShow = (String(body?.dataset.showAvailableItemsModal || '0') === '1')
             || isExplicitPreview;
@@ -2864,17 +2759,6 @@
             modal.hidden = true;
             modal.setAttribute('aria-hidden', 'true');
             document.body?.classList.remove('available-items-modal-open');
-
-            // If the user has a deferred tutorial waiting, launch it now!
-            if (typeof pendingTutorialStarter === 'function') {
-                const starter = pendingTutorialStarter;
-                pendingTutorialStarter = null;
-                window.setTimeout(starter, 350);
-            } else if (String(body?.dataset.firstLoginTutorial || '0') === '1') {
-                if (typeof window.W68StartFirstLoginTutorial === 'function') {
-                    window.setTimeout(window.W68StartFirstLoginTutorial, 350);
-                }
-            }
         };
 
         let lastGotItAt = 0;
@@ -2938,973 +2822,6 @@
         document.addEventListener('keydown', (e) => {
             if (e.key === 'Escape' && availableItemsModalOpen) {
                 closeAvailableItems();
-            }
-        });
-    };
-
-    const initFirstLoginTutorial = () => {
-        const isTutorialPreview = window.location.search.indexOf('tutorial=preview') !== -1;
-        const shouldShow = (String(body?.dataset.firstLoginTutorial || '0') === '1')
-            || isTutorialPreview;
-
-        if (!shouldShow) return;
-
-        const overlay = document.querySelector('[data-w68-tutorial]');
-        const spotlight = document.querySelector('[data-w68-tutorial-spotlight]');
-        const arrow = document.querySelector('[data-w68-tutorial-arrow]');
-        const robot = document.querySelector('[data-w68-tutorial-robot]');
-        const kickerNode = document.querySelector('[data-w68-tutorial-kicker]');
-        const titleNode = document.querySelector('[data-w68-tutorial-title]');
-        const bodyNode = document.querySelector('[data-w68-tutorial-body]');
-        const nextButton = document.querySelector('[data-w68-tutorial-next]');
-        const doneButton = document.querySelector('[data-w68-tutorial-done]');
-        const skipButton = document.querySelector('[data-w68-tutorial-skip]');
-
-        if (
-            !overlay
-            || !spotlight
-            || !arrow
-            || !robot
-            || !titleNode
-            || !bodyNode
-            || !nextButton
-            || !doneButton
-            || !skipButton
-        ) {
-            return;
-        }
-
-        // W68_TUTORIAL_POINTER_TOP_LAYER_20261026
-        // Quantity modal/cart drawer live at z-index 30000-33000. Keeping the
-        // pointer inside the tutorial overlay (z-index 15000) traps it behind
-        // those commerce overlays. Promote only the non-interactive spotlight
-        // and hand cursor to direct body children so they can render above the
-        // modal without blocking the real controls.
-        if (spotlight.parentElement !== document.body) {
-            document.body.appendChild(spotlight);
-        }
-        if (arrow.parentElement !== document.body) {
-            document.body.appendChild(arrow);
-        }
-
-        // W68_TUTORIAL_DIALOG_TOP_LAYER_20261026
-        // Keep the robot and instruction card above the quantity modal and
-        // cart drawer while leaving the real highlighted control clickable.
-        const tutorialCard = document.querySelector('[data-w68-tutorial-card]');
-        if (robot.parentElement !== document.body) {
-            document.body.appendChild(robot);
-        }
-        if (tutorialCard && tutorialCard.parentElement !== document.body) {
-            document.body.appendChild(tutorialCard);
-        }
-
-        robot.hidden = true;
-        if (tutorialCard) tutorialCard.hidden = true;
-
-        const loginNumber = Math.max(
-            1,
-            Math.min(3, Number.parseInt(String(body?.dataset.tutorialLoginNumber || '1'), 10) || 1)
-        );
-
-        if (kickerNode) {
-            kickerNode.textContent = `W68 FIRST TIME GUIDE • LOGIN ${loginNumber} OF 3`;
-        }
-
-        const robotImage = robot.querySelector('img');
-        const robotGif = String(body?.dataset.tutorialRobotGif || '');
-        if (robotImage && robotGif) {
-            robotImage.src = robotGif;
-        }
-
-        // W68_TUTORIAL_GUIDED_ACTION_SEQUENCE_20261026
-        // Every actionable step advances only after the customer clicks the
-        // exact control being taught. PROCESS ORDER remains informational.
-        // W68_TUTORIAL_FLOW_REFINEMENT_20261027
-        // Keep all cart steps tied to the exact product selected in Step 1.
-        let tutorialProductId = null;
-
-        // W68_TUTORIAL_CART_CLEANUP_20261113
-        // The walkthrough adds a real cart line so the customer can see the
-        // complete checkout flow. Remember the line's state before the
-        // tutorial touches it so finishing or skipping the guide can remove
-        // only the demo item (or restore a pre-existing line).
-        let tutorialCartSnapshot = null;
-        let tutorialCartItemAdded = false;
-
-        const getTutorialCartRow = () => {
-            if (tutorialProductId !== null && tutorialProductId !== '') {
-                const specific = document.querySelector(
-                    `[data-cart-row-id="${CSS.escape(String(tutorialProductId))}"]`
-                );
-                if (isTutorialTargetUsable(specific)) return specific;
-            }
-
-            return getFirstVisibleTutorialTarget('[data-cart-row-id]');
-        };
-
-        const getTutorialCartCheckbox = () => {
-            const row = getTutorialCartRow();
-            if (!(row instanceof Element)) return null;
-
-            return row.querySelector(
-                '.cart-item-check input[type="checkbox"], input[type="checkbox"]'
-            );
-        };
-
-        const captureTutorialCartSnapshot = (productId) => {
-            const id = String(productId || '');
-            if (id === '') return;
-
-            const existing = readCart().find((item) => String(item.id) === id);
-            tutorialCartSnapshot = {
-                id,
-                qty: existing ? safeQty(existing.qty) : 0,
-                selected: existing ? Boolean(existing.selected) : false,
-            };
-        };
-
-        const clearTutorialCartItem = () => {
-            if (!tutorialCartItemAdded || !tutorialCartSnapshot) {
-                tutorialCartSnapshot = null;
-                tutorialCartItemAdded = false;
-                return;
-            }
-
-            const snapshot = tutorialCartSnapshot;
-            tutorialCartSnapshot = null;
-            tutorialCartItemAdded = false;
-
-            const current = readCart().find(
-                (item) => String(item.id) === String(snapshot.id)
-            );
-            if (!current) return;
-
-            if (snapshot.qty <= 0) {
-                // The tutorial created this cart line. Delete it completely so
-                // it can never be selected or submitted by accident.
-                removeCartItem(snapshot.id);
-                return;
-            }
-
-            // The product was already in the cart before the tutorial. Put
-            // back the original quantity and checkbox state instead of
-            // deleting the customer's own line.
-            if (safeQty(current.qty) !== snapshot.qty) {
-                setCartQty(snapshot.id, snapshot.qty);
-            }
-            if (Boolean(current.selected) !== snapshot.selected) {
-                setCartSelected(snapshot.id, snapshot.selected);
-            }
-        };
-
-        const steps = [
-            {
-                key: 'welcome',
-                title: 'Welcome to W68!',
-                body: 'I will guide you through ordering. Tap anywhere to start.',
-                target: null,
-            },
-            {
-                key: 'add-to-cart',
-                pointerLabel: 'ADD',
-                title: 'Step 1: Add to Cart',
-                body: 'This is the ADD TO CART button. Tap anywhere to add this item.',
-                target: () => getTutorialPurchasableAddButton(),
-            },
-            {
-                key: 'qty-controls',
-                pointerLabel: 'QTY',
-                title: 'Step 2: Quantity Controls',
-                body: 'Use −, input, and + to set your quantity. Tap anywhere to continue.',
-                target: () => getFirstVisibleTutorialTarget('.quantity-stepper'),
-            },
-            {
-                key: 'qty-add-btn',
-                pointerLabel: 'ADD',
-                title: 'Step 3: Add to Cart',
-                body: 'Tap anywhere to confirm your quantity and add this item to cart.',
-                target: () => getFirstVisibleTutorialTarget('[data-quantity-confirm]'),
-            },
-            {
-                key: 'added-success',
-                title: 'Step 4: Added to Cart!',
-                body: 'Your item was added successfully. Tap anywhere to open your cart.',
-                target: () => getFirstVisibleTutorialTarget('[data-cart-message] .cart-message-card'),
-            },
-            {
-                key: 'cart-button',
-                pointerLabel: 'CART',
-                title: 'Step 5: Open Cart',
-                body: 'This is your CART button. Tap anywhere to open it.',
-                target: () => getFirstVisibleTutorialTarget('[data-cart-open]'),
-            },
-            {
-                key: 'carted-item',
-                pointerLabel: 'ITEM',
-                title: 'Step 6: Your Carted Item',
-                body: 'This is the item you added with its checkbox checked. Tap anywhere to continue.',
-                target: () => getTutorialCartRow()
-                    || getFirstVisibleTutorialTarget('[data-cart-items]'),
-            },
-            {
-                key: 'process-order',
-                pointerLabel: 'HERE',
-                title: 'Step 7: Process Order',
-                body: 'This is the PROCESS ORDER button. Tap anywhere to finish the guide.',
-                target: () => getFirstVisibleTutorialTarget('[data-process-order]'),
-            },
-        ];
-
-        let currentStepIndex = 0;
-        let currentTarget = null;
-        let active = false;
-        let repositionTimer = null;
-        let stepAutoTimer = null;
-
-        const clearStepTimer = () => {
-            if (stepAutoTimer !== null) {
-                window.clearTimeout(stepAutoTimer);
-                stepAutoTimer = null;
-            }
-        };
-
-        const clearTarget = () => {
-            if (currentTarget instanceof Element) {
-                currentTarget.classList.remove('w68-tutorial-target');
-                currentTarget.classList.remove('w68-tutorial-no-click');
-            }
-            currentTarget = null;
-        };
-
-        const hidePointer = () => {
-            spotlight.hidden = true;
-            arrow.hidden = true;
-        };
-
-        const finishTutorial = () => {
-            clearStepTimer();
-            window.clearTimeout(messageTimer);
-            if (cartMessage) {
-                cartMessage.hidden = true;
-                cartMessage.setAttribute('aria-hidden', 'true');
-            }
-            active = false;
-            clearTarget();
-            hidePointer();
-            overlay.hidden = true;
-            overlay.setAttribute('aria-hidden', 'true');
-            overlay.classList.remove('is-finishable');
-            overlay.classList.remove('is-welcome-stage');
-            robot.hidden = true;
-            if (tutorialCard) {
-                tutorialCard.hidden = true;
-                tutorialCard.classList.remove('is-welcome-stage');
-            }
-            resetTutorialCardPlacement();
-            resetTutorialRobotPlacement();
-
-            // W68_TUTORIAL_CART_PRINT_LAYER_FIX_20261026
-            // Restore PRINT CART LIST after the walkthrough ends.
-            document.documentElement.classList.remove('w68-tutorial-active');
-            document.body?.classList.remove('w68-tutorial-active');
-
-            // W68_TUTORIAL_CART_CLEANUP_20261113
-            // Never leave the walkthrough's demo item in the cart where it
-            // could be selected and submitted by accident.
-            clearTutorialCartItem();
-
-            if (repositionTimer !== null) {
-                window.clearTimeout(repositionTimer);
-                repositionTimer = null;
-            }
-        };
-
-        const scrollTargetIntoView = (target) => {
-            if (!(target instanceof Element)) return;
-
-            const card = target.closest('[data-product-card]');
-            const scrollTarget = card || target;
-
-            try {
-                scrollTarget.scrollIntoView({
-                    behavior: 'smooth',
-                    block: 'center',
-                    inline: 'center',
-                });
-            } catch (_) {
-                scrollTarget.scrollIntoView();
-            }
-        };
-
-        // W68_TUTORIAL_HAND_CURSOR_20261026
-        // Use a compact hand cursor beside the control instead of drawing a
-        // long arrow/beam from the center robot across the screen.
-        const positionPointer = (target) => {
-            if (!active || !(target instanceof Element)) {
-                hidePointer();
-                return;
-            }
-
-            const rect = target.getBoundingClientRect();
-
-            if (rect.width <= 0 || rect.height <= 0) {
-                hidePointer();
-                return;
-            }
-
-            const viewportWidth = window.visualViewport?.width
-                || window.innerWidth
-                || document.documentElement.clientWidth;
-            const viewportHeight = window.visualViewport?.height
-                || window.innerHeight
-                || document.documentElement.clientHeight;
-
-            const pad = 7;
-            spotlight.hidden = false;
-            spotlight.style.left = `${Math.max(4, rect.left - pad)}px`;
-            spotlight.style.top = `${Math.max(4, rect.top - pad)}px`;
-            spotlight.style.width = `${Math.max(34, rect.width + (pad * 2))}px`;
-            spotlight.style.height = `${Math.max(34, rect.height + (pad * 2))}px`;
-
-            const pointerWidth = 74;
-            const pointerHeight = 48;
-            const gap = 10;
-            let left = rect.right + gap;
-            let top = rect.top + (rect.height / 2) - (pointerHeight / 2);
-            let side = 'right';
-
-            if (left + pointerWidth > viewportWidth - 6) {
-                left = rect.left - pointerWidth - gap;
-                side = 'left';
-            }
-
-            if (left < 6) {
-                left = Math.max(
-                    6,
-                    rect.left + (rect.width / 2) - (pointerWidth / 2)
-                );
-                top = rect.top - pointerHeight - gap;
-                side = 'top';
-            }
-
-            if (top < 6) {
-                top = Math.min(
-                    viewportHeight - pointerHeight - 6,
-                    rect.bottom + gap
-                );
-                side = 'bottom';
-            }
-
-            if (top + pointerHeight > viewportHeight - 6) {
-                top = Math.max(
-                    6,
-                    rect.top - pointerHeight - gap
-                );
-                side = 'top';
-            }
-
-            arrow.hidden = false;
-            arrow.dataset.pointerSide = side;
-            arrow.style.left = `${Math.round(left)}px`;
-            arrow.style.top = `${Math.round(top)}px`;
-            arrow.style.width = `${pointerWidth}px`;
-            arrow.style.height = `${pointerHeight}px`;
-            arrow.style.transform = 'none';
-        };
-
-        const targetForStep = (step) => (
-            typeof step?.target === 'function'
-                ? step.target()
-                : null
-        );
-
-        // W68_TUTORIAL_CART_DIALOG_POSITION_20261026
-        // During cart-related steps, keep the instruction card INSIDE the
-        // visible cart drawer and directly above PROCESS ORDER. This prevents
-        // the card from sitting underneath / outside the right-side cart.
-        const cartStageKeys = new Set([
-            'carted-item',
-            'process-order',
-        ]);
-
-        const quantityStageKeys = new Set([
-            'qty-controls',
-            'qty-add-btn',
-        ]);
-
-        const resetTutorialRobotPlacement = () => {
-            robot.classList.remove('is-added-message', 'is-quantity-guide');
-
-            [
-                'left',
-                'right',
-                'top',
-                'bottom',
-                'width',
-                'transform',
-            ].forEach((property) => {
-                robot.style.removeProperty(property);
-            });
-        };
-
-        const resetTutorialCardPlacement = () => {
-            if (!tutorialCard) return;
-
-            tutorialCard.classList.remove('is-cart-stage', 'is-quantity-stage', 'is-added-success-stage');
-            [
-                'left',
-                'right',
-                'top',
-                'bottom',
-                'width',
-                'transform',
-            ].forEach((property) => {
-                tutorialCard.style.removeProperty(property);
-            });
-        };
-
-        const positionTutorialRobotForStep = (step) => {
-            resetTutorialRobotPlacement();
-
-            const key = String(step?.key || '');
-            const viewportWidth = window.visualViewport?.width
-                || window.innerWidth
-                || document.documentElement.clientWidth;
-            const viewportHeight = window.visualViewport?.height
-                || window.innerHeight
-                || document.documentElement.clientHeight;
-
-            // W68_TUTORIAL_QUANTITY_ROBOT_POSITION_20261027
-            // Keep the robot beside the quantity modal instead of covering
-            // +, -, quantity, total or ADD TO CART.
-            if (quantityStageKeys.has(key)) {
-                const quantityCard = document.querySelector('.quantity-modal-card');
-                if (!(quantityCard instanceof Element)) return;
-
-                const rect = quantityCard.getBoundingClientRect();
-                const robotWidth = viewportWidth <= 520 ? 78 : 112;
-                const gap = viewportWidth <= 520 ? 4 : 12;
-
-                let left = rect.right + gap;
-                let top = rect.top + Math.min(rect.height * .34, 150);
-
-                if (left + robotWidth > viewportWidth - 4) {
-                    left = rect.left - robotWidth - gap;
-                }
-
-                if (left < 4) {
-                    // Very narrow phones: park the robot in the free top-right
-                    // corner instead of over any modal action.
-                    left = Math.max(4, viewportWidth - robotWidth - 8);
-                    top = Math.max(robotWidth * .52, rect.top - 12);
-                }
-
-                top = Math.max(
-                    robotWidth * .54,
-                    Math.min(viewportHeight - (robotWidth * .54), top)
-                );
-
-                robot.classList.add('is-quantity-guide');
-                robot.style.width = `${robotWidth}px`;
-                robot.style.left = `${Math.round(left)}px`;
-                robot.style.top = `${Math.round(top)}px`;
-                robot.style.transform = 'translate(0, -50%)';
-                return;
-            }
-
-            // W68_TUTORIAL_ADDED_MESSAGE_ROBOT_20261027
-            // Put the robot genuinely BESIDE the success card, not on top of it.
-            if (key === 'added-success') {
-                const messageCard = getFirstVisibleTutorialTarget(
-                    '[data-cart-message] .cart-message-card'
-                );
-                if (!(messageCard instanceof Element)) return;
-
-                const rect = messageCard.getBoundingClientRect();
-                const robotWidth = viewportWidth <= 520 ? 88 : 118;
-                const gap = 10;
-
-                let left = rect.left - robotWidth - gap;
-                if (left < 4) {
-                    left = rect.right + gap;
-                }
-                if (left + robotWidth > viewportWidth - 4) {
-                    left = Math.max(4, rect.left + (rect.width / 2) - (robotWidth / 2));
-                }
-
-                let top = rect.top + (rect.height / 2);
-                top = Math.max(
-                    robotWidth * .56,
-                    Math.min(viewportHeight - (robotWidth * .56), top)
-                );
-
-                robot.classList.add('is-added-message');
-                robot.style.width = `${robotWidth}px`;
-                robot.style.left = `${Math.round(left)}px`;
-                robot.style.top = `${Math.round(top)}px`;
-                robot.style.transform = 'translate(0, -50%)';
-            }
-        };
-
-        const positionTutorialCardForStep = (step) => {
-            if (!tutorialCard) return;
-
-            const key = String(step?.key || '');
-            resetTutorialCardPlacement();
-
-            // W68_TUTORIAL_QUANTITY_DIALOG_POSITION_20261027
-            // Put the tutorial instruction OUTSIDE/ABOVE the quantity modal.
-            // This keeps +, -, total and especially ADD TO CART fully visible.
-            if (quantityStageKeys.has(key)) {
-                const quantityCard = document.querySelector('.quantity-modal-card');
-
-                if (!(quantityCard instanceof Element)) return;
-
-                const modalRect = quantityCard.getBoundingClientRect();
-                const viewportWidth = window.visualViewport?.width
-                    || window.innerWidth
-                    || document.documentElement.clientWidth;
-                const viewportHeight = window.visualViewport?.height
-                    || window.innerHeight
-                    || document.documentElement.clientHeight;
-                const horizontalGap = 10;
-
-                tutorialCard.classList.add('is-quantity-stage');
-                tutorialCard.style.width = `${Math.max(
-                    250,
-                    Math.min(modalRect.width, viewportWidth - 16)
-                )}px`;
-                tutorialCard.style.left = `${Math.round(
-                    Math.max(8, Math.min(modalRect.left, viewportWidth - Math.min(modalRect.width, viewportWidth - 16) - 8))
-                )}px`;
-                tutorialCard.style.right = 'auto';
-                tutorialCard.style.bottom = 'auto';
-                tutorialCard.style.transform = 'none';
-
-                window.requestAnimationFrame(() => {
-                    if (!tutorialCard || !quantityStageKeys.has(String(steps[currentStepIndex]?.key || ''))) {
-                        return;
-                    }
-
-                    const cardRect = tutorialCard.getBoundingClientRect();
-                    const gap = 10;
-                    let top = modalRect.top - cardRect.height - gap;
-
-                    // Small phones may not have enough room above the quantity
-                    // modal. Keep the guide at the top of the viewport instead
-                    // of covering the ADD TO CART action at the bottom.
-                    if (top < 8) {
-                        top = 8;
-                    }
-
-                    top = Math.min(
-                        top,
-                        Math.max(8, viewportHeight - cardRect.height - 8)
-                    );
-
-                    tutorialCard.style.top = `${Math.round(top)}px`;
-                });
-
-                return;
-            }
-
-            if (key === 'added-success') {
-                const messageCard = getFirstVisibleTutorialTarget(
-                    '[data-cart-message] .cart-message-card'
-                );
-
-                tutorialCard.classList.add('is-added-success-stage');
-
-                if (messageCard instanceof Element) {
-                    const rect = messageCard.getBoundingClientRect();
-                    const viewportWidth = window.visualViewport?.width
-                        || window.innerWidth
-                        || document.documentElement.clientWidth;
-
-                    tutorialCard.style.width = `${Math.min(430, viewportWidth - 16)}px`;
-                    tutorialCard.style.left = '50%';
-                    tutorialCard.style.right = 'auto';
-                    tutorialCard.style.bottom = 'max(8px, env(safe-area-inset-bottom))';
-                    tutorialCard.style.top = 'auto';
-                    tutorialCard.style.transform = 'translateX(-50%)';
-                }
-
-                return;
-            }
-
-            if (!cartStageKeys.has(key)) {
-                return;
-            }
-
-            const cartPanel = document.querySelector('.cart-panel');
-            const processButton = getFirstVisibleTutorialTarget('[data-process-order]');
-
-            if (!(cartPanel instanceof Element) || !(processButton instanceof Element)) {
-                return;
-            }
-
-            const panelRect = cartPanel.getBoundingClientRect();
-            const buttonRect = processButton.getBoundingClientRect();
-            const viewportHeight = window.visualViewport?.height
-                || window.innerHeight
-                || document.documentElement.clientHeight;
-
-            const horizontalGap = 8;
-            tutorialCard.classList.add('is-cart-stage');
-            tutorialCard.style.left = `${Math.round(panelRect.left + horizontalGap)}px`;
-            tutorialCard.style.right = 'auto';
-            tutorialCard.style.bottom = 'auto';
-            tutorialCard.style.width = `${Math.max(240, Math.round(panelRect.width - (horizontalGap * 2)))}px`;
-            tutorialCard.style.transform = 'none';
-
-            window.requestAnimationFrame(() => {
-                if (!tutorialCard || !cartStageKeys.has(String(steps[currentStepIndex]?.key || ''))) {
-                    return;
-                }
-
-                const cardRect = tutorialCard.getBoundingClientRect();
-                const gapAboveButton = 10;
-                const desiredTop = buttonRect.top - cardRect.height - gapAboveButton;
-                const minimumTop = Math.max(8, panelRect.top + 8);
-                const maximumTop = Math.max(
-                    minimumTop,
-                    viewportHeight - cardRect.height - 8
-                );
-
-                tutorialCard.style.top = `${Math.round(
-                    Math.min(maximumTop, Math.max(minimumTop, desiredTop))
-                )}px`;
-            });
-        };
-
-        const renderStep = (index) => {
-            clearStepTimer();
-            // Reset advance debounce so delayed events from the previous tap
-            // cannot accidentally skip this newly rendered step.
-            lastAdvanceTime = Date.now();
-            const step = steps[index];
-
-            if (!step) {
-                finishTutorial();
-                return;
-            }
-
-            currentStepIndex = index;
-            titleNode.textContent = step.title;
-            bodyNode.textContent = step.body;
-            arrow.dataset.pointerLabel = String(step.pointerLabel || 'CLICK');
-
-            // Hide NEXT/DONE — user taps anywhere to advance.
-            nextButton.hidden = true;
-            nextButton.style.display = 'none';
-            doneButton.hidden = true;
-            doneButton.style.display = 'none';
-
-            // All steps are tap-anywhere; keep scrim clickable.
-            overlay.classList.remove('is-finishable');
-            overlay.classList.add('is-welcome-stage');
-            if (tutorialCard) tutorialCard.classList.add('is-welcome-stage');
-
-            positionTutorialCardForStep(step);
-            positionTutorialRobotForStep(step);
-
-            clearTarget();
-
-            // When entering carted-item step: automatically ensure the item is checked!
-            if (step.key === 'carted-item') {
-                if (tutorialProductId) {
-                    setCartSelected(tutorialProductId, true);
-                }
-                const cb = getTutorialCartCheckbox();
-                if (cb) {
-                    cb.checked = true;
-                }
-            }
-
-            // When entering added-success step: auto-advance to cart-button as soon as message modal disappears!
-            if (step.key === 'added-success') {
-                window.clearTimeout(messageTimer);
-                messageTimer = window.setTimeout(() => {
-                    if (cartMessage) {
-                        cartMessage.hidden = true;
-                        cartMessage.setAttribute('aria-hidden', 'true');
-                    }
-                    if (active && steps[currentStepIndex]?.key === 'added-success') {
-                        advanceTutorial();
-                    }
-                }, 1800);
-            }
-
-            const target = targetForStep(step);
-
-            if (!target) {
-                hidePointer();
-
-                if (step.key === 'add-to-cart') {
-                    titleNode.textContent = 'No available item in Products';
-                    bodyNode.textContent = 'This PRODUCTS page has no available ADD TO CART item with a price greater than 0. Move to another Products page and tap anywhere to continue.';
-                }
-            } else {
-                currentTarget = target;
-                currentTarget.classList.add('w68-tutorial-target');
-
-                if (step.key === 'added-success') {
-                    currentTarget.classList.remove('w68-tutorial-target');
-                    hidePointer();
-                }
-
-                scrollTargetIntoView(target);
-
-                if (repositionTimer !== null) {
-                    window.clearTimeout(repositionTimer);
-                }
-
-                [180, 420, 760].forEach((delay) => {
-                    window.setTimeout(() => {
-                        if (
-                            active
-                            && currentTarget === target
-                            && steps[currentStepIndex]?.key !== 'added-success'
-                        ) {
-                            positionPointer(target);
-                        }
-                    }, delay);
-                });
-            }
-        };
-
-        nextButton.addEventListener('click', (event) => {
-            event.preventDefault();
-            event.stopImmediatePropagation();
-            advanceTutorial();
-        });
-
-        doneButton.addEventListener('click', (event) => {
-            event.preventDefault();
-            event.stopImmediatePropagation();
-            advanceTutorial();
-        });
-        skipButton.addEventListener('click', finishTutorial);
-
-        const reposition = () => {
-            if (!active || !currentTarget) return;
-
-            if (repositionTimer !== null) {
-                window.clearTimeout(repositionTimer);
-            }
-
-            repositionTimer = window.setTimeout(() => {
-                const activeStep = steps[currentStepIndex];
-                positionTutorialCardForStep(activeStep);
-                positionTutorialRobotForStep(activeStep);
-
-                if (activeStep?.key === 'added-success') {
-                    hidePointer();
-                } else {
-                    positionPointer(currentTarget);
-                }
-            }, 45);
-        };
-
-        window.addEventListener('resize', reposition, { passive: true });
-        window.addEventListener('scroll', reposition, { passive: true });
-        window.visualViewport?.addEventListener('resize', reposition, { passive: true });
-        window.visualViewport?.addEventListener('scroll', reposition, { passive: true });
-
-        /* =====================================================
-           W68_TUTORIAL_TAP_ANYWHERE_20261031
-           Unified tap-anywhere-to-advance. Every step auto-
-           performs the required action and moves forward.
-           ===================================================== */
-        let lastAdvanceTime = 0;
-        const advanceTutorial = () => {
-            clearStepTimer();
-            const now = Date.now();
-            if (now - lastAdvanceTime < 260) return;
-            if (!active) return;
-            lastAdvanceTime = now;
-
-            const step = steps[currentStepIndex];
-            if (!step) { finishTutorial(); return; }
-
-            switch (step.key) {
-                case 'welcome':
-                    renderStep(1);
-                    break;
-
-                case 'add-to-cart': {
-                    const addBtn = getTutorialPurchasableAddButton();
-                    const productCard = addBtn?.closest('[data-product-card]');
-                    const product = productCard ? getProductData(productCard) : null;
-                    if (product) {
-                        tutorialProductId = String(product.id || '');
-                        captureTutorialCartSnapshot(tutorialProductId);
-                        openQuantityModal(product);
-                    }
-                    renderStep(2);
-                    break;
-                }
-
-                case 'qty-controls':
-                    renderStep(3);
-                    break;
-
-                case 'qty-add-btn': {
-                    const product = pendingQuantityProduct
-                        || (tutorialProductId ? getProductData(document.querySelector(`[data-product-card][data-product-id="${tutorialProductId}"]`)) : null);
-                    const qtyInput = quantityModal?.querySelector('[data-quantity-input]');
-                    const qty = safeQty(qtyInput?.value || 1);
-
-                    closeQuantityModal();
-                    if (product) {
-                        commitAddToCart(product, qty);
-                        tutorialCartItemAdded = true;
-                    }
-                    renderStep(4);
-                    break;
-                }
-
-                case 'added-success':
-                    if (cartMessage) {
-                        cartMessage.hidden = true;
-                        cartMessage.setAttribute('aria-hidden', 'true');
-                    }
-                    window.clearTimeout(messageTimer);
-                    renderStep(5);
-                    break;
-
-                case 'cart-button':
-                    openCart();
-                    renderStep(6);
-                    break;
-
-                case 'carted-item': {
-                    if (tutorialProductId) {
-                        setCartSelected(tutorialProductId, true);
-                    }
-                    const cb = getTutorialCartCheckbox();
-                    if (cb) {
-                        cb.checked = true;
-                    }
-                    renderStep(7);
-                    break;
-                }
-
-                case 'process-order':
-                    sessionStorage.setItem('w68_process_order_tutorial_pending', '1');
-                    finishTutorial();
-                    break;
-
-                default:
-                    renderStep(currentStepIndex + 1);
-            }
-        };
-
-        let lastAdvanceAt = 0;
-        const blockAndAdvance = (event) => {
-            if (!active) return;
-
-            // W68_TUTORIAL_SYNTHETIC_TAP_GUARD_20261117
-            // Touch taps can produce a delayed synthetic click after the guide
-            // has already advanced. Swallow it instead of returning, otherwise
-            // it reaches the app handlers, hits the newly opened quantity
-            // modal backdrop, and immediately closes the dialog.
-            if (event && event.isTrusted === false) {
-                try {
-                    event.preventDefault();
-                    event.stopPropagation();
-                    event.stopImmediatePropagation();
-                } catch (_) {}
-                return;
-            }
-
-            const now = Date.now();
-            if (now - lastAdvanceAt < 380) {
-                if (event) {
-                    try {
-                        event.preventDefault();
-                        event.stopPropagation();
-                        event.stopImmediatePropagation();
-                    } catch (_) {}
-                }
-                return;
-            }
-            lastAdvanceAt = now;
-
-            if (event) {
-                try {
-                    event.preventDefault();
-                    event.stopPropagation();
-                    event.stopImmediatePropagation();
-                } catch (_) {}
-            }
-
-            if (event && event.target instanceof Element && event.target.closest('[data-w68-tutorial-skip]')) {
-                finishTutorial();
-                return;
-            }
-
-            advanceTutorial();
-        };
-
-        // On iPad / iOS / touch devices, calling preventDefault() on pointerdown
-        // causes WebKit to cancel the gesture and fire pointercancel instead of pointerup/click!
-        // We only prevent pointerdown for mouse events to stop unwanted text selection,
-        // and never suppress touch pointers on touch/Apple devices.
-        document.addEventListener('pointerdown', (event) => {
-            if (!active || !(event.target instanceof Element)) return;
-            if (event.pointerType === 'touch' || isAppleTouchDevice) {
-                return;
-            }
-            event.preventDefault();
-            event.stopImmediatePropagation();
-        }, true);
-
-        // Listen on pointerup, touchend, and click simultaneously with debounce so that
-        // PC, iPad, iPhone, and Android touch devices all advance smoothly on tap!
-        document.addEventListener('pointerup', blockAndAdvance, true);
-        document.addEventListener('touchend', blockAndAdvance, true);
-        document.addEventListener('click', blockAndAdvance, true);
-
-        const openTutorial = () => {
-            if (active) return;
-            if (isAvailableItemsModalActive()) {
-                deferTutorialLaunch(openTutorial);
-                return;
-            }
-            active = true;
-
-            // W68_TUTORIAL_CART_CLEANUP_20261113
-            // A fresh walkthrough must never reuse the previous run's demo
-            // product or snapshot.
-            tutorialProductId = null;
-            tutorialCartSnapshot = null;
-            tutorialCartItemAdded = false;
-
-            closeProductModal();
-            closeCartItemModal();
-
-            // W68_TUTORIAL_CART_PRINT_LAYER_FIX_20261026
-            // The iPad print launcher intentionally uses an extreme z-index.
-            // Hide print controls only while tutorial mode is active so the
-            // tutorial hand/cursor can never be covered by PRINT CART LIST.
-            document.documentElement.classList.add('w68-tutorial-active');
-            document.body?.classList.add('w68-tutorial-active');
-
-            overlay.hidden = false;
-            overlay.setAttribute('aria-hidden', 'false');
-            robot.hidden = false;
-            if (tutorialCard) tutorialCard.hidden = false;
-            renderStep(0);
-        };
-
-        window.W68StartFirstLoginTutorial = openTutorial;
-
-        cartHydrationPromise.finally(() => {
-            if (isAvailableItemsModalActive()) {
-                deferTutorialLaunch(openTutorial);
-            } else {
-                window.setTimeout(openTutorial, 700);
             }
         });
     };
@@ -4076,7 +2993,6 @@
 
     initNewItemsCarousel();
     initAvailableItemsModal();
-    initFirstLoginTutorial();
     initAntiScreenshot();
 
     renderCart();

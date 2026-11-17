@@ -82,12 +82,6 @@ class CustomerHomeController extends Controller
             report($exception);
         }
 
-        // W68_FIRST_THREE_LOGIN_TUTORIAL_20261024
-        // Consume the login-scoped tutorial flag once so refreshing /home does
-        // not restart the walkthrough during the same authenticated login.
-        // W68_TUTORIAL_PREVIEW_20261026: authenticated testing can use
-        // /home?tutorial=preview without changing the real login counter.
-        $tutorialPreview = $request->query('tutorial') === 'preview';
         $itemsModalPreview = in_array($request->query('items_modal'), ['1', 'preview'], true);
 
         // Detect if the current request is an in-catalog interaction (search, filter, pagination)
@@ -102,55 +96,6 @@ class CustomerHomeController extends Controller
             'q',
         ]);
 
-        $tutorialAlreadyDispatched = (bool) $request->session()->get('w68_session_tutorial_dispatched', false);
-
-        if ($tutorialPreview) {
-            $showFirstLoginTutorial = true;
-            $tutorialLoginNumber = 1;
-        } elseif ($isSearchOrFilter) {
-            // NEVER trigger tutorial during catalog searches or pagination
-            $showFirstLoginTutorial = false;
-            $tutorialLoginNumber = 0;
-        } else {
-            $showFirstLoginTutorial = (bool) $request->session()->pull(
-                'w68_show_first_login_tutorial',
-                false
-            );
-            $tutorialLoginNumber = (int) $request->session()->pull(
-                'w68_tutorial_login_number',
-                0
-            );
-
-            // Resilient DB fallback: ONLY IF not already dispatched in this session and not a search
-            if (! $showFirstLoginTutorial && ! $tutorialAlreadyDispatched && $portalLoginId) {
-                try {
-                    if (
-                        Schema::connection('system')->hasTable('customer_portal_accounts')
-                        && Schema::connection('system')->hasColumn('customer_portal_accounts', 'tutorial_login_count')
-                    ) {
-                        $portalRow = DB::connection('system')
-                            ->table('customer_portal_accounts')
-                            ->where('login_id', $portalLoginId)
-                            ->first();
-
-                        if ($portalRow) {
-                            $count = (int) ($portalRow->tutorial_login_count ?? 0);
-                            if ($count >= 1 && $count <= 3) {
-                                $showFirstLoginTutorial = true;
-                                $tutorialLoginNumber = $count;
-                            }
-                        }
-                    }
-                } catch (Throwable $tutorialFallbackException) {
-                    // Ignore DB fallback error
-                }
-            }
-        }
-
-        if ($showFirstLoginTutorial) {
-            $request->session()->put('w68_session_tutorial_dispatched', true);
-        }
-
         $profileName = trim(
             (string) ($account->User_First_Name ?? '')
             .' '
@@ -162,19 +107,18 @@ class CustomerHomeController extends Controller
         }
 
         // W68_AVAILABLE_ITEMS_MODAL_20261103
-        // Pops up upon login or registration before any tutorial.
-        // Also shown for users with no tutorial left.
-        // Can also be previewed with ?items_modal=1 or ?tutorial=preview.
-        if ($itemsModalPreview || $tutorialPreview) {
+        // Pops up upon login or registration. It can also be previewed with
+        // ?items_modal=1 without changing the session flags.
+        if ($itemsModalPreview) {
             $showAvailableItemsModal = true;
         } elseif ($isSearchOrFilter) {
-            // NEVER trigger available items modal during searches or pagination
+            // NEVER trigger the available items modal during searches or pagination
             $showAvailableItemsModal = false;
         } else {
             $showAvailableItemsModal = (bool) $request->session()->pull(
                 'w68_show_available_items_modal',
                 false
-            ) || $showFirstLoginTutorial;
+            );
         }
 
         if ($showAvailableItemsModal) {
@@ -203,8 +147,6 @@ class CustomerHomeController extends Controller
             'serverCart' => $serverCart,
             'cartAccountKey' => $portalLoginId ? 'login-'.$portalLoginId : 'customer-'.($customerId ?? 'unknown'),
             'cartStorageReady' => $cartStorageReady,
-            'showFirstLoginTutorial' => $showFirstLoginTutorial,
-            'tutorialLoginNumber' => $tutorialLoginNumber,
             'showAvailableItemsModal' => $showAvailableItemsModal,
             'availableItemsBrands' => $availableItemsBrands,
             'availableItemsRows' => $availableItemsRows,

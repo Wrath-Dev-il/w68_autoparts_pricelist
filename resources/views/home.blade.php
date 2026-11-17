@@ -7,22 +7,11 @@
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>W68 Autoparts & Service Center | Home</title>
     <link rel="icon" href="{{ asset('images/sidebar_logo.png') }}">
-    <link rel="stylesheet" href="{{ asset('css/w68-home.css') }}?v=20261117-v207-tutorial-qty-modal-guard">
+    <link rel="stylesheet" href="{{ asset('css/w68-home.css') }}?v=20261117-v208-home-tutorial-removed">
     <link rel="stylesheet" href="{{ asset('css/w68-notifications.css') }}?v=20261028-v148">
-    <script src="{{ asset('js/w68-home.js') }}?v=20261117-v207-tutorial-qty-modal-guard" defer></script>
+    <script src="{{ asset('js/w68-home.js') }}?v=20261117-v208-home-tutorial-removed" defer></script>
     <script src="{{ asset('js/w68-notifications.js') }}?v=20261028-v148" defer></script>
 </head>
-@php
-    // W68_TUTORIAL_CACHE_SYNC_20261027
-    // CSS and JS must use the same cache version; mixing old tutorial JS with
-    // new pointer CSS causes the stretched-arrow / stale-flow bug.
-    // W68_TUTORIAL_ROBOT_ASSET_FALLBACK_20261026
-    // Prefer the user's GIF when installed. The animated SVG is always
-    // available from GitHub, so onboarding never breaks when the GIF is absent.
-    $tutorialRobotAsset = is_file(public_path('images/w68_robot_tutorial_mascot.gif'))
-        ? asset('images/w68_robot_tutorial_mascot.gif')
-        : asset('images/w68_robot_tutorial_fallback.svg');
-@endphp
 <body
     data-home-url="{{ route('home') }}"
     data-cart-print-bridge-url="{{ route('home.cart.print-bridge') }}"
@@ -33,10 +22,6 @@
     data-cart-account-key="{{ $cartAccountKey ?? 'unknown' }}"
     data-cart-storage-ready="{{ !empty($cartStorageReady) ? '1' : '0' }}"
     data-show-available-items-modal="{{ !empty($showAvailableItemsModal) ? '1' : '0' }}"
-    data-first-login-tutorial="{{ !empty($showFirstLoginTutorial) ? '1' : '0' }}"
-    data-tutorial-login-number="{{ (int) ($tutorialLoginNumber ?? 0) }}"
-    data-tutorial-robot-gif="{{ $tutorialRobotAsset }}"
-    data-tutorial-robot-fallback="{{ asset('images/w68_robot_tutorial_fallback.svg') }}"
     data-server-cart='{{ json_encode($serverCart ?? [], JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP | JSON_HEX_QUOT) }}'
     data-cart-add-url="{{ rtrim(request()->getSchemeAndHttpHost(), '/') }}{{ preg_replace('#/index\.php$#i', '', rtrim(str_replace('\\', '/', (string) request()->getBaseUrl()), '/')) }}/home/cart/items"
     data-cart-item-base-url="{{ rtrim(request()->getSchemeAndHttpHost(), '/') }}{{ preg_replace('#/index\.php$#i', '', rtrim(str_replace('\\', '/', (string) request()->getBaseUrl()), '/')) }}/home/cart/items"
@@ -836,43 +821,6 @@
             <span data-order-success-text>Your order was registered as an Open Sales Note.</span>
         </div>
     </div>
-    {{-- W68_FIRST_LOGIN_TUTORIAL_20261024 --}}
-    <div class="w68-tutorial-overlay" data-w68-tutorial hidden aria-hidden="true">
-        <div class="w68-tutorial-scrim"></div>
-        <div class="w68-tutorial-spotlight" data-w68-tutorial-spotlight hidden></div>
-        <div class="w68-tutorial-arrow" data-w68-tutorial-arrow hidden><span></span></div>
-
-        <div class="w68-tutorial-robot" data-w68-tutorial-robot>
-            <img
-                src="{{ $tutorialRobotAsset }}"
-                data-w68-tutorial-robot-image
-                data-fallback="{{ asset('images/w68_robot_tutorial_fallback.svg') }}"
-                onerror="if(this.dataset.fallback && this.src !== this.dataset.fallback){this.src=this.dataset.fallback;}"
-                alt="W68 tutorial robot"
-            >
-        </div>
-
-        <section
-            class="w68-tutorial-card"
-            data-w68-tutorial-card
-            role="dialog"
-            aria-modal="true"
-            aria-labelledby="w68-tutorial-title"
-        >
-            <span class="w68-tutorial-kicker" data-w68-tutorial-kicker>W68 FIRST TIME GUIDE</span>
-            <h2 id="w68-tutorial-title" data-w68-tutorial-title>Welcome to W68</h2>
-            <p data-w68-tutorial-body>
-                I will show you how to add an item, open your cart, review the carted item,
-                and continue to Process Order.
-            </p>
-            <div class="w68-tutorial-actions" hidden style="display:none!important">
-                <button type="button" class="w68-tutorial-skip" data-w68-tutorial-skip hidden style="display:none!important">SKIP</button>
-                <button type="button" class="w68-tutorial-next" data-w68-tutorial-next hidden style="display:none!important">NEXT</button>
-                <button type="button" class="w68-tutorial-done" data-w68-tutorial-done hidden style="display:none!important">DONE</button>
-            </div>
-        </section>
-    </div>
-
     {{-- W68_AVAILABLE_ITEMS_MODAL_20261103 --}}
     <div class="available-items-modal" data-available-items-modal {{ empty($showAvailableItemsModal) ? 'hidden aria-hidden=true' : 'aria-hidden=false' }}>
         <div class="available-items-backdrop" data-available-items-got-it></div>

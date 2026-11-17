@@ -19,8 +19,11 @@ use Throwable;
 class LoginController extends Controller
 {
     private const OTP_EXPIRES_MINUTES = 10;
+
     private const OTP_MAX_ATTEMPTS = 5;
+
     private const OTP_RESEND_SECONDS = 60;
+
     private const PASSWORD_RESET_EXPIRES_MINUTES = 15;
 
     public function show(Request $request): View|RedirectResponse
@@ -80,7 +83,7 @@ class LoginController extends Controller
             'password' => ['required', 'string'],
         ]);
 
-        if (!$this->existingAuthStructureIsReady()) {
+        if (! $this->existingAuthStructureIsReady()) {
             return back()
                 ->withInput($request->only('email'))
                 ->withErrors([
@@ -105,7 +108,7 @@ class LoginController extends Controller
                 ]);
         }
 
-        if (!$account || !$this->passwordMatches($validated['password'], (string) $account->Password)) {
+        if (! $account || ! $this->passwordMatches($validated['password'], (string) $account->Password)) {
             return back()
                 ->withInput($request->only('email'))
                 ->withErrors([
@@ -145,7 +148,6 @@ class LoginController extends Controller
          */
         Auth::login($account, false);
         $request->session()->regenerate();
-        $this->markFirstLoginTutorial($request, (int) $account->login_ID);
         $request->session()->put('w68_show_available_items_modal', true);
         $request->session()->save();
 
@@ -160,7 +162,7 @@ class LoginController extends Controller
             'email' => ['required', 'email', 'max:255'],
         ]);
 
-        if (!$this->existingAuthStructureIsReady()) {
+        if (! $this->existingAuthStructureIsReady()) {
             return back()
                 ->withInput($request->only('email'))
                 ->withErrors([
@@ -185,7 +187,7 @@ class LoginController extends Controller
                 ]);
         }
 
-        if (!$account) {
+        if (! $account) {
             return back()
                 ->withInput($request->only('email'))
                 ->withErrors([
@@ -197,7 +199,7 @@ class LoginController extends Controller
             $portal = $this->portalContextForLogin($request, (int) $account->login_ID);
             $currentCustomerId = (int) $request->session()->get('w68_customer_id', 0);
 
-            if (!(bool) ($portal['linked_account'] ?? false)) {
+            if (! (bool) ($portal['linked_account'] ?? false)) {
                 throw new RuntimeException('This account is not yet linked to a W68 customer. Please complete registration first.');
             }
 
@@ -255,7 +257,7 @@ class LoginController extends Controller
             'register_password' => ['required', 'string'],
         ]);
 
-        if (!$this->existingAuthStructureIsReady()) {
+        if (! $this->existingAuthStructureIsReady()) {
             return back()
                 ->withInput($request->except(['register_password']))
                 ->with('auth_mode', 'register')
@@ -309,7 +311,7 @@ class LoginController extends Controller
                 $retryAccount = $sameEmail;
             }
 
-            if ($sameUsername && !$retryAccount) {
+            if ($sameUsername && ! $retryAccount) {
                 return back()
                     ->withInput($request->except(['register_password']))
                     ->with('auth_mode', 'register')
@@ -318,7 +320,7 @@ class LoginController extends Controller
                     ]);
             }
 
-            if ($sameEmail && !$retryAccount) {
+            if ($sameEmail && ! $retryAccount) {
                 return back()
                     ->withInput($request->except(['register_password']))
                     ->with('auth_mode', 'register')
@@ -337,7 +339,7 @@ class LoginController extends Controller
                 $account->OTP_CODE = null;
                 $account->save();
             } else {
-                $account = new LoginAccount();
+                $account = new LoginAccount;
                 $account->account_type = 5;
                 $account->User_ID = $username;
                 $account->Email = $email;
@@ -385,10 +387,7 @@ class LoginController extends Controller
 
         Auth::login($account, false);
         $request->session()->regenerate();
-        $this->markFirstLoginTutorial($request, (int) $account->login_ID);
         $request->session()->put([
-            'w68_show_first_login_tutorial' => true,
-            'w68_tutorial_login_number' => 1,
             'w68_show_process_order_tutorial' => true,
             'w68_show_available_items_modal' => true,
         ]);
@@ -419,7 +418,7 @@ class LoginController extends Controller
 
         $account = LoginAccount::query()->find($accountId);
 
-        if (!$account) {
+        if (! $account) {
             $this->clearPendingAuth($request);
 
             return redirect()
@@ -442,7 +441,7 @@ class LoginController extends Controller
 
             $currentCustomerId = (int) $request->session()->get('w68_customer_id', 0);
 
-            if (!(bool) ($portal['linked_account'] ?? false)) {
+            if (! (bool) ($portal['linked_account'] ?? false)) {
                 throw new RuntimeException('This account is not linked to a W68 customer.');
             }
 
@@ -514,7 +513,7 @@ class LoginController extends Controller
                 ->with('otp_required', true)
                 ->with('otp_purpose', $purpose)
                 ->withErrors([
-                    'otp' => "Please wait {$wait} second" . ($wait === 1 ? '' : 's') . ' before resending.',
+                    'otp' => "Please wait {$wait} second".($wait === 1 ? '' : 's').' before resending.',
                 ]);
         }
 
@@ -522,7 +521,7 @@ class LoginController extends Controller
 
         $account = LoginAccount::query()->find($accountId);
 
-        if (!$account || !$account->Email) {
+        if (! $account || ! $account->Email) {
             $this->clearPendingAuth($request);
 
             return redirect()
@@ -620,7 +619,6 @@ class LoginController extends Controller
 
         Auth::login($account, false);
         $request->session()->regenerate();
-        $this->markFirstLoginTutorial($request, (int) $account->login_ID);
         $request->session()->put('w68_show_available_items_modal', true);
         $request->session()->save();
 
@@ -668,7 +666,7 @@ class LoginController extends Controller
         LoginAccount $account,
         string $purpose
     ): void {
-        if (!$account->Email) {
+        if (! $account->Email) {
             throw new RuntimeException('This account does not have an email address.');
         }
 
@@ -700,8 +698,8 @@ class LoginController extends Controller
                         ->to($account->Email)
                         ->subject(
                             'W68 Autoparts & Service Center - '
-                            . ucfirst($action)
-                            . ' OTP'
+                            .ucfirst($action)
+                            .' OTP'
                         );
                 }
             );
@@ -811,7 +809,7 @@ HTML;
         $expiresAt = (int) $request->session()->get('w68_otp_expires_at', 0);
         $attempts = (int) $request->session()->get('w68_otp_attempts', 0);
 
-        if ($expiresAt === 0 || !$account->OTP_CODE) {
+        if ($expiresAt === 0 || ! $account->OTP_CODE) {
             throw new RuntimeException('No active OTP was found. Please request a new OTP.');
         }
 
@@ -829,7 +827,7 @@ HTML;
             throw new RuntimeException('Too many incorrect OTP attempts. Please request a new OTP.');
         }
 
-        if (!hash_equals((string) $account->OTP_CODE, trim($submittedOtp))) {
+        if (! hash_equals((string) $account->OTP_CODE, trim($submittedOtp))) {
             $attempts++;
 
             $request->session()->put('w68_otp_attempts', $attempts);
@@ -838,8 +836,8 @@ HTML;
 
             throw new RuntimeException(
                 'Incorrect OTP. '
-                . ($remaining > 0
-                    ? "{$remaining} attempt" . ($remaining === 1 ? '' : 's') . ' remaining.'
+                .($remaining > 0
+                    ? "{$remaining} attempt".($remaining === 1 ? '' : 's').' remaining.'
                     : 'Request a new OTP.')
             );
         }
@@ -877,7 +875,7 @@ HTML;
             return 'W68 could not connect to Gmail SMTP. Check internet/firewall access to smtp.gmail.com:587.';
         }
 
-        return 'The ' . $purpose . ' OTP could not be sent through Gmail SMTP. Check storage/logs/laravel.log for the exact mail error.';
+        return 'The '.$purpose.' OTP could not be sent through Gmail SMTP. Check storage/logs/laravel.log for the exact mail error.';
     }
 
     private function portalContextForLogin(Request $request, int $loginId): array
@@ -903,8 +901,9 @@ HTML;
             ->where('login_id', $loginId)
             ->first();
 
-        if (!$link) {
+        if (! $link) {
             $portal['linked_account'] = false;
+
             return $portal;
         }
 
@@ -914,7 +913,7 @@ HTML;
         if ($linkedCustomerId !== $authorizedCustomerId) {
             throw new RuntimeException(
                 'This Pricelist account cannot log in through this authorization link. '
-                . 'Please use a generated authorization link for the customer that owns this account.'
+                .'Please use a generated authorization link for the customer that owns this account.'
             );
         }
 
@@ -923,7 +922,7 @@ HTML;
             ->where('id', $linkedCustomerId)
             ->exists();
 
-        if (!$customerExists) {
+        if (! $customerExists) {
             throw new RuntimeException('The W68 customer linked to this Pricelist account no longer exists.');
         }
 
@@ -941,7 +940,7 @@ HTML;
             throw new RuntimeException('A valid W68 customer authorization link or QR code is required.');
         }
 
-        if (!Schema::connection('masterlist')->hasTable('customer_portal_authorizations')) {
+        if (! Schema::connection('masterlist')->hasTable('customer_portal_authorizations')) {
             throw new RuntimeException('Customer portal authorization is not configured yet.');
         }
 
@@ -951,7 +950,7 @@ HTML;
             ->where('customer_id', $customerId)
             ->first();
 
-        if (!$authorization) {
+        if (! $authorization) {
             throw new RuntimeException('This customer authorization was deleted or is invalid.');
         }
 
@@ -1003,83 +1002,6 @@ HTML;
         }
     }
 
-    /**
-     * W68_FIRST_THREE_LOGIN_TUTORIAL_20261024
-     * Increment the persistent per-account tutorial login counter and tell
-     * the next Home response to show the robot tutorial only for login 1..3.
-     */
-    private function markFirstLoginTutorial(Request $request, int $loginId): void
-    {
-        try {
-            if (Schema::connection('system')->hasTable('customer_portal_accounts')) {
-                if (!Schema::connection('system')->hasColumn('customer_portal_accounts', 'tutorial_login_count')) {
-                    try {
-                        DB::connection('system')->statement(
-                            "ALTER TABLE `customer_portal_accounts` ADD COLUMN `tutorial_login_count` TINYINT UNSIGNED NOT NULL DEFAULT 0 AFTER `authorization_id`"
-                        );
-                    } catch (Throwable $alterException) {
-                        // Ignore concurrent addition or restricted privileges
-                    }
-                }
-            }
-
-            $loginNumber = 1;
-            if (
-                Schema::connection('system')->hasTable('customer_portal_accounts')
-                && Schema::connection('system')->hasColumn('customer_portal_accounts', 'tutorial_login_count')
-            ) {
-                $loginNumber = DB::connection('system')->transaction(function () use ($loginId): int {
-                    $row = DB::connection('system')
-                        ->table('customer_portal_accounts')
-                        ->where('login_id', $loginId)
-                        ->lockForUpdate()
-                        ->first();
-
-                    if (!$row) {
-                        return 1;
-                    }
-
-                    $next = max(0, (int) ($row->tutorial_login_count ?? 0)) + 1;
-
-                    DB::connection('system')
-                        ->table('customer_portal_accounts')
-                        ->where('id', $row->id)
-                        ->update([
-                            'tutorial_login_count' => $next,
-                            'updated_at' => now(),
-                        ]);
-
-                    return $next;
-                });
-            }
-
-            if ($loginNumber >= 1 && $loginNumber <= 3) {
-                $request->session()->put([
-                    'w68_show_first_login_tutorial' => true,
-                    'w68_tutorial_login_number' => $loginNumber,
-                    'w68_show_process_order_tutorial' => true,
-                ]);
-                return;
-            }
-
-            $request->session()->forget([
-                'w68_show_first_login_tutorial',
-                'w68_tutorial_login_number',
-                'w68_show_process_order_tutorial',
-            ]);
-        } catch (Throwable $exception) {
-            // Tutorial tracking must never block a valid customer login.
-            report($exception);
-
-            // Resilient fallback: ensure first login tutorial runs
-            $request->session()->put([
-                'w68_show_first_login_tutorial' => true,
-                'w68_tutorial_login_number' => 1,
-                'w68_show_process_order_tutorial' => true,
-            ]);
-        }
-    }
-
     private function linkPortalAccount(int $loginId, int $customerId, int $authorizationId): void
     {
         $this->assertPortalLinkTableReady();
@@ -1114,6 +1036,7 @@ HTML;
                         'linked_at' => $byLogin->linked_at ?: now(),
                         'updated_at' => now(),
                     ]);
+
                 return;
             }
 
@@ -1132,7 +1055,7 @@ HTML;
 
     private function assertPortalLinkTableReady(): void
     {
-        if (!Schema::connection('system')->hasTable('customer_portal_accounts')) {
+        if (! Schema::connection('system')->hasTable('customer_portal_accounts')) {
             throw new RuntimeException('Customer portal account linking is not configured yet. Run the W68 portal migration.');
         }
     }
@@ -1188,7 +1111,7 @@ HTML;
             ->where('account_type', 5)
             ->find($loginId);
 
-        if (!$account) {
+        if (! $account) {
             throw new RuntimeException('The W68 customer account could not be found.');
         }
 
@@ -1200,7 +1123,7 @@ HTML;
             ->where('customer_id', $customerId)
             ->exists();
 
-        if (!$linked) {
+        if (! $linked) {
             throw new RuntimeException('This account is no longer linked to the authorized W68 customer.');
         }
 

@@ -54,11 +54,11 @@ class CustomerHomeController extends Controller
             $catalog = $this->catalogQuery();
             $this->applyFilters($catalog, $filters);
 
-            // The customer catalog intentionally shows at least 100 products per page.
+            // The customer catalog intentionally loads 200 products per page.
             $products = $catalog
                 ->orderByDesc('p.date_added')
                 ->orderByDesc('p.id')
-                ->paginate(100)
+                ->paginate(200)
                 ->withQueryString();
 
             $products->getCollection()->transform(

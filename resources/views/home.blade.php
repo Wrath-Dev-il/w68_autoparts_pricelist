@@ -453,7 +453,7 @@
                 </div>
 
                 @if (method_exists($products, 'total'))
-                    <p>{{ number_format($products->total()) }} matching products &bull; 100 per page</p>
+                    <p>{{ number_format($products->total()) }} matching products &bull; 200 per page</p>
                 @endif
             </div>
 
@@ -483,7 +483,7 @@
                             data-product-discounted-price="{{ $data['discountedPrice'] }}"
                         >
                             <div class="product-image-wrap">
-                                <img src="{{ $data['image'] }}" alt="{{ $data['description'] ?: $data['productCode'] }}" loading="lazy" onerror="this.onerror=null;this.src='{{ $logo }}'">
+                                <img src="{{ $data['image'] }}" alt="{{ $data['description'] ?: $data['productCode'] }}" loading="lazy" decoding="async" onerror="this.onerror=null;this.src='{{ $logo }}'">
                                 <span class="product-badge">W68</span>
                                 <span class="in-cart-badge">IN CART</span>
                             </div>

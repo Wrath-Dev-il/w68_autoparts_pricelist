@@ -7,6 +7,7 @@ use App\Http\Controllers\CustomerNotificationController;
 use App\Http\Controllers\CustomerOrderController;
 use App\Http\Controllers\CustomerSettingsController;
 use App\Http\Controllers\StorefrontController;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Route;
 
@@ -15,11 +16,11 @@ use Illuminate\Support\Facades\Route;
 | W68 Entry
 |--------------------------------------------------------------------------
 */
-Route::get('/', function () {
+Route::get('/', function (Request $request) {
     $account = Auth::user();
 
     if ($account && (int) ($account->account_type ?? 0) === 5) {
-        return redirect()->route('home');
+        return redirect()->route('home', $request->query());
     }
 
     return redirect()->route('login');
@@ -74,7 +75,6 @@ Route::middleware(['portal.access', 'auth'])->group(function () {
     Route::post('/home/notifications/read-all', [CustomerNotificationController::class, 'markAllRead'])
         ->name('home.notifications.read-all');
 
-
     Route::get('/discounts', [CustomerHomeController::class, 'discounts'])
         ->name('discounts');
 
@@ -89,7 +89,6 @@ Route::middleware(['portal.access', 'auth'])->group(function () {
 
     Route::post('/settings/password/confirm', [CustomerSettingsController::class, 'confirmPasswordChange'])
         ->name('settings.password.confirm');
-
 
     Route::get('/home/cart/state', [CustomerHomeController::class, 'cartState'])
         ->name('home.cart.state');
@@ -119,7 +118,6 @@ Route::middleware(['portal.access', 'auth'])->group(function () {
 
     Route::get('/home/cart/print-bridge', [CustomerHomeController::class, 'launchCartPrinterBridge'])
         ->name('home.cart.print-bridge');
-
 
     Route::get('/process-order', [CustomerOrderController::class, 'processOrderPage'])
         ->name('process-order');

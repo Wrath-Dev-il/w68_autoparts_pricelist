@@ -1098,6 +1098,60 @@ main {
 /* =========================================================
    Pagination
    ========================================================= */
+.home-scroll-sentinel {
+    margin: 28px auto 16px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-height: 48px;
+    width: 100%;
+}
+
+.home-infinite-loader {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 22px;
+    border-radius: 999px;
+    background: #ffffff;
+    border: 1px solid rgba(4, 63, 49, 0.15);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+    color: var(--green, #043f31);
+    font-size: 13px;
+    font-weight: 700;
+    letter-spacing: 0.3px;
+}
+
+.home-infinite-loader[hidden] {
+    display: none !important;
+}
+
+.home-infinite-spinner {
+    width: 18px;
+    height: 18px;
+    border: 2.5px solid rgba(4, 63, 49, 0.2);
+    border-top-color: var(--gold, #d4af37);
+    border-radius: 50%;
+    animation: homeSpinnerRotate 0.75s linear infinite;
+}
+
+@keyframes homeSpinnerRotate {
+    to { transform: rotate(360deg); }
+}
+
+.home-infinite-end {
+    padding: 14px 20px;
+    color: var(--w68-muted, #64748b);
+    font-size: 13px;
+    font-weight: 600;
+    text-align: center;
+}
+
+.home-infinite-end[hidden] {
+    display: none !important;
+}
+
 .home-pagination {
     margin: 26px auto 0;
     display: flex;

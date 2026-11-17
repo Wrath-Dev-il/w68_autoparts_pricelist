@@ -2444,7 +2444,9 @@
     /* =====================================================
        Product card bindings
        ===================================================== */
-    document.querySelectorAll('[data-product-card]').forEach((card) => {
+    const bindProductCard = (card) => {
+        if (!card || card._w68Bound) return;
+        card._w68Bound = true;
         const product = getProductData(card);
 
         card.addEventListener('click', (event) => {
@@ -2490,7 +2492,9 @@
                 openCartToProduct(product.id);
             });
         });
-    });
+    };
+
+    document.querySelectorAll('[data-product-card]').forEach(bindProductCard);
 
     /* =====================================================
        Global modal/cart actions
@@ -3022,9 +3026,116 @@
         });
     };
 
+    /* =========================================================
+       W68 Infinite Scroll for Catalog Products
+       Loads 200 products per batch automatically as user scrolls
+       ========================================================= */
+    const initInfiniteScroll = () => {
+        const grid = document.querySelector('[data-product-grid]');
+        const sentinel = document.querySelector('[data-home-scroll-sentinel]');
+        const loader = document.querySelector('[data-home-infinite-loader]');
+        const endNotice = document.querySelector('[data-home-infinite-end]');
+        const loadedCountNode = document.querySelector('[data-products-loaded-count]');
+        if (!grid || !sentinel) return;
+
+        let currentPage = parseInt(grid.dataset.currentPage || '1', 10) || 1;
+        const lastPage = parseInt(grid.dataset.lastPage || '1', 10) || 1;
+        let hasMore = (grid.dataset.hasMore === '1') && (currentPage < lastPage);
+        let isLoading = false;
+        let totalLoaded = grid.querySelectorAll('[data-product-card]').length;
+
+        const loadNextBatch = () => {
+            if (!hasMore || isLoading) return;
+            isLoading = true;
+            if (loader) loader.hidden = false;
+
+            const nextPage = currentPage + 1;
+            const currentUrl = new URL(window.location.href);
+            currentUrl.searchParams.set('page', String(nextPage));
+            currentUrl.searchParams.set('load_more', '1');
+
+            fetch(currentUrl.toString(), {
+                method: 'GET',
+                headers: {
+                    'Accept': 'application/json',
+                    'X-Requested-With': 'XMLHttpRequest',
+                },
+                credentials: 'same-origin',
+            })
+                .then((res) => {
+                    if (!res.ok) throw new Error('Failed to load products');
+                    return res.json();
+                })
+                .then((data) => {
+                    if (data && data.html) {
+                        const temp = document.createElement('div');
+                        temp.innerHTML = data.html;
+                        const newCards = Array.from(temp.querySelectorAll('[data-product-card]'));
+
+                        newCards.forEach((card) => {
+                            grid.appendChild(card);
+                            bindProductCard(card);
+                        });
+
+                        syncProductCardStates();
+
+                        currentPage = data.current_page || nextPage;
+                        hasMore = Boolean(data.has_more);
+                        grid.dataset.currentPage = String(currentPage);
+                        grid.dataset.hasMore = hasMore ? '1' : '0';
+
+                        totalLoaded += newCards.length;
+                        if (loadedCountNode) {
+                            loadedCountNode.textContent = String(totalLoaded);
+                        }
+                    } else {
+                        hasMore = false;
+                    }
+
+                    if (!hasMore) {
+                        if (observer) observer.disconnect();
+                        if (endNotice) endNotice.hidden = false;
+                    }
+                })
+                .catch((err) => {
+                    console.error('Error loading more products:', err);
+                })
+                .finally(() => {
+                    isLoading = false;
+                    if (loader) loader.hidden = true;
+                });
+        };
+
+        let observer = null;
+        if ('IntersectionObserver' in window) {
+            observer = new IntersectionObserver((entries) => {
+                entries.forEach((entry) => {
+                    if (entry.isIntersecting) {
+                        loadNextBatch();
+                    }
+                });
+            }, {
+                root: null,
+                rootMargin: '600px 0px',
+                threshold: 0,
+            });
+
+            observer.observe(sentinel);
+        } else {
+            window.addEventListener('scroll', () => {
+                if (!hasMore || isLoading) return;
+                const rect = sentinel.getBoundingClientRect();
+                if (rect.top <= window.innerHeight + 600) {
+                    loadNextBatch();
+                }
+            }, { passive: true });
+        }
+    };
+
     initNewItemsCarousel();
     initAvailableItemsModal();
     initAntiScreenshot();
+    initInfiniteScroll();
 
     renderCart();
     syncProductCardStates();

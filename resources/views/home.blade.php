@@ -9,7 +9,7 @@
     <link rel="icon" href="{{ asset('images/sidebar_logo.png') }}">
     <link rel="stylesheet" href="{{ asset('css/w68-home.css') }}?v=20261117-v208-home-tutorial-removed">
     <link rel="stylesheet" href="{{ asset('css/w68-notifications.css') }}?v=20261028-v148">
-    <script src="{{ asset('js/w68-home.js') }}?v=20261117-v208-home-tutorial-removed" defer></script>
+    <script src="{{ asset('js/w68-home.js') }}?v=20261117-v209-fix-gotit-product-modal" defer></script>
     <script src="{{ asset('js/w68-notifications.js') }}?v=20261028-v148" defer></script>
 </head>
 <body

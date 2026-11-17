@@ -91,6 +91,7 @@
     let messageTimer = null;
     let orderSuccessTimer = null;
     let pendingQuantityProduct = null;
+    let suppressProductModalUntil = 0;
 
     /* =====================================================
        W68 v64 — iPad / iOS reliable touch + visual viewport
@@ -1614,6 +1615,9 @@
        ===================================================== */
     const openProductModal = (product) => {
         if (!productModal) return;
+        if (availableItemsModalOpen || Date.now() < suppressProductModalUntil) {
+            return;
+        }
 
         const fields = {
             '[data-product-modal-description]': product.description || '\u2014',
@@ -2444,11 +2448,19 @@
         const product = getProductData(card);
 
         card.addEventListener('click', (event) => {
+            if (availableItemsModalOpen || Date.now() < suppressProductModalUntil) {
+                event.preventDefault();
+                event.stopPropagation();
+                return;
+            }
             if (event.target.closest('button, input, select, a, label')) return;
             openProductModal(product);
         });
 
         card.addEventListener('keydown', (event) => {
+            if (availableItemsModalOpen || Date.now() < suppressProductModalUntil) {
+                return;
+            }
             if (event.key !== 'Enter' && event.key !== ' ') return;
             if (event.target.closest('button, input, select, a, label')) return;
             event.preventDefault();
@@ -2457,6 +2469,11 @@
 
         card.querySelectorAll('[data-add-cart]').forEach((button) => {
             button.addEventListener('click', (event) => {
+                if (availableItemsModalOpen || Date.now() < suppressProductModalUntil) {
+                    event.preventDefault();
+                    event.stopPropagation();
+                    return;
+                }
                 event.stopPropagation();
                 openQuantityModal(product);
             });
@@ -2464,6 +2481,11 @@
 
         card.querySelectorAll('[data-view-cart]').forEach((button) => {
             button.addEventListener('click', (event) => {
+                if (availableItemsModalOpen || Date.now() < suppressProductModalUntil) {
+                    event.preventDefault();
+                    event.stopPropagation();
+                    return;
+                }
                 event.stopPropagation();
                 openCartToProduct(product.id);
             });
@@ -2756,39 +2778,48 @@
         const closeAvailableItems = () => {
             if (!availableItemsModalOpen) return;
             availableItemsModalOpen = false;
+            suppressProductModalUntil = Date.now() + 800;
+            modal.style.pointerEvents = 'none';
             modal.hidden = true;
             modal.setAttribute('aria-hidden', 'true');
+            modal.style.removeProperty('pointer-events');
             document.body?.classList.remove('available-items-modal-open');
         };
 
         let lastGotItAt = 0;
         const handleGotIt = (e) => {
+            if (e) {
+                try {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    if (e.stopImmediatePropagation) {
+                        e.stopImmediatePropagation();
+                    }
+                } catch (_) {}
+            }
+
             const now = Date.now();
-            if (now - lastGotItAt < 400) {
+            if (now - lastGotItAt < 400) return;
+            lastGotItAt = now;
+            suppressProductModalUntil = now + 800;
+
+            window.setTimeout(() => {
+                closeAvailableItems();
+            }, 30);
+        };
+
+        const gotItButtons = modal.querySelectorAll('[data-available-items-got-it]');
+        gotItButtons.forEach((btn) => {
+            btn.addEventListener('click', handleGotIt);
+            btn.addEventListener('touchend', (e) => {
                 if (e) {
                     try {
                         e.preventDefault();
                         e.stopPropagation();
                     } catch (_) {}
                 }
-                return;
-            }
-            lastGotItAt = now;
-
-            if (e) {
-                try {
-                    e.preventDefault();
-                    e.stopPropagation();
-                } catch (_) {}
-            }
-            closeAvailableItems();
-        };
-
-        const gotItButtons = modal.querySelectorAll('[data-available-items-got-it]');
-        gotItButtons.forEach((btn) => {
-            btn.addEventListener('click', handleGotIt);
-            btn.addEventListener('touchend', handleGotIt, { passive: false });
-            btn.addEventListener('pointerup', handleGotIt);
+                handleGotIt(e);
+            }, { passive: false });
         });
 
         const searchInput = modal.querySelector('[data-available-items-search]');

@@ -7,7 +7,6 @@
     $viewOrder = $viewOrder ?? null;
     $orderCode = $viewMode ? (string) ($viewOrder['order_code'] ?? 'Order') : '';
     $backToOrdersUrl = route('orders') . ($returnViewMode ? '#returns' : ($invoiceViewMode ? '#invoiced' : ''));
-    $shipments = collect($shipments ?? []);
 @endphp
 <!DOCTYPE html>
 <html lang="en">
@@ -17,8 +16,8 @@
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>W68 Autoparts | {{ $returnViewMode ? 'View Return' : ($viewMode ? 'View Order' : 'Process Order') }}</title>
     <link rel="icon" href="{{ asset('images/sidebar_logo.png') }}">
-    <link rel="stylesheet" href="{{ asset('css/w68-process-order.css') }}?v=20261117-v190">
-    <script src="{{ asset('js/w68-process-order.js') }}?v=20261117-v190" defer></script>
+    <link rel="stylesheet" href="{{ asset('css/w68-process-order.css') }}?v=20261117-v191">
+    <script src="{{ asset('js/w68-process-order.js') }}?v=20261117-v191" defer></script>
 </head>
 <body
     data-process-url="{{ $viewMode ? '' : route('home.orders.process') }}"
@@ -207,20 +206,20 @@
         </section>
     </main>
 
-    <div class="order-confirm-modal {{ $viewMode ? 'is-print-only' : '' }}" data-order-confirm-modal hidden aria-hidden="true">
+    @if ($viewMode)
+    <div class="order-confirm-modal is-print-only" data-order-confirm-modal hidden aria-hidden="true">
         <button type="button" class="order-modal-backdrop" data-order-confirm-close aria-label="Close print preview"></button>
         <section class="order-confirm-card {{ $invoiceViewMode ? 'has-invoice-receipt' : '' }}" role="dialog" aria-modal="true" aria-labelledby="order-confirm-title">
             <header class="order-confirm-header">
                 <div>
-                    <span class="order-confirm-kicker">{{ $viewMode ? 'PRINT PREVIEW' : 'CONFIRM ORDER' }}</span>
-                    <h2 id="order-confirm-title">{{ $viewMode ? ($orderCode ?: ($returnViewMode ? 'Return' : 'Order')) : 'Order Confirmation' }}</h2>
+                    <span class="order-confirm-kicker">PRINT PREVIEW</span>
+                    <h2 id="order-confirm-title">{{ $orderCode ?: ($returnViewMode ? 'Return' : 'Order') }}</h2>
                 </div>
                 <button type="button" class="order-confirm-x" data-order-confirm-close aria-label="Close">
                     <span aria-hidden="true">&#10005;</span>
                 </button>
             </header>
 
-            @if ($viewMode)
             @if ($invoiceViewMode && $invoiceReceipt)
                 @php
                     $receiptDate = trim((string) ($invoiceReceipt['date'] ?? ''));
@@ -494,157 +493,11 @@
                         <button type="button" class="invoice-receipt-print-button" data-print-invoice-receipt>PRINT RECEIVED ITEMS</button>
                     @endif
                 </footer>
-            @else
-                {{-- Delivery option --}}
-                <div class="order-delivery-zone" data-delivery-zone>
-                    <div class="order-delivery-copy">
-                        <div class="order-delivery-heading-row">
-                            <span class="order-delivery-kicker">DELIVERY OPTION</span>
-                        </div>
-                        <strong data-delivery-summary>NOT SET</strong>
-                        <small data-delivery-detail>Choose a Shipment under RUSH or REGULAR.</small>
-                    </div>
-                    <input type="hidden" data-delivery-selected-id value="">
-                    <input type="hidden" data-delivery-selected-type value="">
-                    <input type="hidden" data-delivery-selected-name value="">
-                    <button
-                        type="button"
-                        class="order-delivery-button"
-                        data-delivery-open
-                        onclick="return window.W68OpenShipmentModal ? window.W68OpenShipmentModal(event) : false;"
-                    >
-                        SET DELIVERY OPTION
-                    </button>
-                </div>
-
-                {{-- Check to confirm order --}}
-                <div class="order-terms-zone" data-terms-zone>
-                    <label class="order-terms-check">
-                        <input type="checkbox" data-terms-checkbox>
-                        <span class="order-terms-box" aria-hidden="true"></span>
-                        <span class="order-terms-label-text">Check to confirm order</span>
-                    </label>
-                </div>
-
-                {{-- Sign-off fields directly inside confirmation modal --}}
-                <div class="order-signoff-zone" data-signoff-fields>
-                    <label class="order-signoff-field">
-                        <span class="order-signoff-label">ORDERED BY</span>
-                        <input
-                            type="text"
-                            data-ordered-by
-                            data-prepared-by
-                            maxlength="191"
-                            autocomplete="off"
-                            autocapitalize="words"
-                            placeholder="Enter ordered by"
-                            required
-                        >
-                    </label>
-
-                    <label class="order-signoff-field">
-                        <span class="order-signoff-label">CONFIRMED BY</span>
-                        <input
-                            type="text"
-                            data-confirmed-by
-                            data-checked-by
-                            maxlength="191"
-                            autocomplete="off"
-                            autocapitalize="words"
-                            placeholder="Enter confirmed by"
-                            required
-                        >
-                    </label>
-                </div>
-
-                <div class="order-confirm-error" data-confirm-error hidden></div>
-
-                <footer class="order-confirm-actions">
-                    <button type="button" class="order-confirm-cancel" data-order-confirm-close>CANCEL</button>
-                    <button type="button" class="order-confirm-process is-inactive" data-confirm-process aria-disabled="true">FINALIZED ORDER</button>
-                </footer>
-            @endif
         </section>
     </div>
+    @endif
 
     @unless($viewMode)
-        {{-- W68_PROCESS_DELIVERY_HIDDEN_UNTIL_CLICK_20261007 --}}
-        <dialog class="shipment-modal" data-shipment-modal hidden aria-hidden="true">
-            <button type="button" class="order-modal-backdrop shipment-backdrop" data-shipment-cancel aria-label="Close Shipment selection" onclick="return window.W68CloseShipmentModal ? window.W68CloseShipmentModal(event) : false;"></button>
-            <section class="shipment-card" role="dialog" aria-modal="true" aria-labelledby="shipment-title">
-                <div class="shipment-card-head">
-                    <div>
-                        <span class="shipment-kicker">DELIVERY OPTION</span>
-                        <h2 id="shipment-title">Choose Shipment</h2>
-                        <p>Choose the forwarder you want to use from the <strong>RUSH</strong> or <strong>REGULAR</strong> group.</p>
-                    </div>
-                    <button type="button" class="shipment-x" data-shipment-cancel aria-label="Close Shipment selection" onclick="return window.W68CloseShipmentModal ? window.W68CloseShipmentModal(event) : false;">
-                        <span aria-hidden="true">&#10005;</span>
-                    </button>
-                </div>
-
-                @php
-                    $rushShipments = $shipments->filter(fn ($shipment) => mb_strtolower(trim((string) ($shipment['type'] ?? ''))) === 'rush')->values();
-                    $regularShipments = $shipments->filter(fn ($shipment) => mb_strtolower(trim((string) ($shipment['type'] ?? ''))) === 'regular')->values();
-                @endphp
-
-                <div class="shipment-picker">
-                    <span class="shipment-picker-label">CHOOSE FORWARDER / SHIPMENT</span>
-                    <div class="shipment-options" data-shipment-options>
-                        @if ($rushShipments->isNotEmpty())
-                            <section class="shipment-group shipment-group-rush" aria-label="Rush shipments">
-                                <h3>RUSH</h3>
-                                <div class="shipment-group-list">
-                                    @foreach ($rushShipments as $shipment)
-                                        <button
-                                            type="button"
-                                            class="shipment-option"
-                                            data-shipment-forwarder
-                                            data-shipment-id="{{ (int) ($shipment['id'] ?? 0) }}"
-                                            data-shipment-name="{{ (string) ($shipment['name'] ?? '') }}"
-                                            data-shipment-forwarder-type="rush"
-                                            onclick="return window.W68ChooseShipment ? window.W68ChooseShipment(event, this) : false;"
-                                        >
-                                            <span>{{ (string) ($shipment['name'] ?? 'Shipment') }}</span>
-                                        </button>
-                                    @endforeach
-                                </div>
-                            </section>
-                        @endif
-
-                        @if ($regularShipments->isNotEmpty())
-                            <section class="shipment-group shipment-group-regular" aria-label="Regular shipments">
-                                <h3>REGULAR</h3>
-                                <div class="shipment-group-list">
-                                    @foreach ($regularShipments as $shipment)
-                                        <button
-                                            type="button"
-                                            class="shipment-option"
-                                            data-shipment-forwarder
-                                            data-shipment-id="{{ (int) ($shipment['id'] ?? 0) }}"
-                                            data-shipment-name="{{ (string) ($shipment['name'] ?? '') }}"
-                                            data-shipment-forwarder-type="regular"
-                                            onclick="return window.W68ChooseShipment ? window.W68ChooseShipment(event, this) : false;"
-                                        >
-                                            <span>{{ (string) ($shipment['name'] ?? 'Shipment') }}</span>
-                                        </button>
-                                    @endforeach
-                                </div>
-                            </section>
-                        @endif
-                    </div>
-                    <div class="shipment-empty" data-shipment-empty>
-                        No Rush or Regular Shipments are available in W68 Masterlist.
-                    </div>
-                </div>
-
-                <div class="shipment-actions">
-                    <button type="button" class="shipment-cancel" data-shipment-cancel onclick="return window.W68CloseShipmentModal ? window.W68CloseShipmentModal(event) : false;">CANCEL</button>
-                    <button type="button" class="shipment-save" data-shipment-save disabled onclick="return window.W68SaveShipment ? window.W68SaveShipment(event) : false;">SET SHIPMENT</button>
-                </div>
-            </section>
-        </dialog>
-
         {{-- Same W68 tracing loader used on Home, shown while the Sales Note/order is being created. --}}
         <div class="process-loading" data-process-loading hidden aria-hidden="true">
             <svg class="w68-process-loader-svg" viewBox="0 0 750 260" fill="none" xmlns="http://www.w3.org/2000/svg" aria-label="W68 loading">
@@ -705,213 +558,6 @@
             </div>
         </div>
     @endif
-
-    <script>
-        // W68_PROCESS_DELIVERY_MODAL_RESTORE_V135_20261001
-        // This controller lives in the Blade page so SET DELIVERY OPTION can
-        // still open/save on Safari/iPad even if the external JS handler fails.
-        (function () {
-            var draft = { id: 0, type: '', name: '' };
-
-            function stop(event) {
-                if (!event) return;
-                if (event.preventDefault) event.preventDefault();
-                if (event.stopPropagation) event.stopPropagation();
-            }
-
-            function modal() {
-                return document.querySelector('[data-shipment-modal]');
-            }
-
-            function saveButton() {
-                return document.querySelector('[data-shipment-save]');
-            }
-
-            function selectedField(name) {
-                return document.querySelector('[data-delivery-selected-' + name + ']');
-            }
-
-            function readCommitted() {
-                var idNode = selectedField('id');
-                var typeNode = selectedField('type');
-                var nameNode = selectedField('name');
-
-                return {
-                    id: parseInt(idNode ? idNode.value : '0', 10) || 0,
-                    type: typeNode ? String(typeNode.value || '').toLowerCase() : '',
-                    name: nameNode ? String(nameNode.value || '').trim() : ''
-                };
-            }
-
-            function paintDraft() {
-                var options = document.querySelectorAll('[data-shipment-forwarder]');
-
-                for (var i = 0; i < options.length; i++) {
-                    var optionId = parseInt(options[i].getAttribute('data-shipment-id') || '0', 10) || 0;
-                    options[i].classList.toggle('is-selected', draft.id > 0 && optionId === draft.id);
-                }
-
-                var save = saveButton();
-                if (save) {
-                    save.disabled = !(
-                        draft.id > 0 &&
-                        (draft.type === 'rush' || draft.type === 'regular') &&
-                        draft.name !== ''
-                    );
-                }
-            }
-
-            window.W68OpenShipmentModal = function (event) {
-                stop(event);
-
-                var box = modal();
-                if (!box) return false;
-
-                box.hidden = false;
-                draft = readCommitted();
-                box.setAttribute('aria-hidden', 'false');
-
-                // W68_PROCESS_DELIVERY_DIALOG_V136_20261001
-                // Safari/iPad places showModal() dialogs in the browser top layer,
-                // above the existing Process Order confirmation modal.
-                try {
-                    if (typeof box.showModal === 'function') {
-                        if (!box.open) box.showModal();
-                    } else {
-                        box.setAttribute('open', '');
-                    }
-                } catch (error) {
-                    box.setAttribute('open', '');
-                }
-
-                // Older Safari fallback.
-                box.style.setProperty('display', 'flex', 'important');
-                box.style.setProperty('visibility', 'visible', 'important');
-                box.style.setProperty('opacity', '1', 'important');
-                box.style.setProperty('pointer-events', 'auto', 'important');
-
-                if (document.body && document.body.classList) {
-                    document.body.classList.add('shipment-modal-open');
-                }
-
-                paintDraft();
-
-                window.setTimeout(function () {
-                    var target =
-                        box.querySelector('.shipment-option.is-selected') ||
-                        box.querySelector('.shipment-option:not([hidden])') ||
-                        box.querySelector('.shipment-x');
-
-                    if (target && target.focus) target.focus();
-                }, 0);
-
-                return false;
-            };
-
-            window.W68CloseShipmentModal = function (event) {
-                stop(event);
-
-                var box = modal();
-                if (!box) return false;
-
-                try {
-                    if (typeof box.close === 'function' && box.open) {
-                        box.close();
-                    } else {
-                        box.removeAttribute('open');
-                    }
-                } catch (error) {
-                    box.removeAttribute('open');
-                }
-
-                box.setAttribute('aria-hidden', 'true');
-                box.style.removeProperty('display');
-                box.style.removeProperty('visibility');
-                box.style.removeProperty('opacity');
-                box.style.removeProperty('pointer-events');
-                box.hidden = true;
-
-                if (document.body && document.body.classList) {
-                    document.body.classList.remove('shipment-modal-open');
-                }
-
-                return false;
-            };
-
-            window.W68ChooseShipment = function (event, option) {
-                stop(event);
-                if (!option) return false;
-
-                var type = String(option.getAttribute('data-shipment-forwarder-type') || '').toLowerCase();
-                var id = parseInt(option.getAttribute('data-shipment-id') || '0', 10) || 0;
-                var name = String(option.getAttribute('data-shipment-name') || '').trim();
-
-                if (id < 1 || (type !== 'rush' && type !== 'regular') || !name) {
-                    return false;
-                }
-
-                draft = { id: id, type: type, name: name };
-                paintDraft();
-                return false;
-            };
-
-            var shipmentDialog = modal();
-            if (shipmentDialog) {
-                shipmentDialog.addEventListener('cancel', function (event) {
-                    event.preventDefault();
-                    window.W68CloseShipmentModal(event);
-                }, false);
-            }
-
-            window.W68SaveShipment = function (event) {
-                stop(event);
-
-                if (
-                    draft.id < 1 ||
-                    (draft.type !== 'rush' && draft.type !== 'regular') ||
-                    !draft.name
-                ) {
-                    return false;
-                }
-
-                var idNode = selectedField('id');
-                var typeNode = selectedField('type');
-                var nameNode = selectedField('name');
-
-                if (idNode) idNode.value = String(draft.id);
-                if (typeNode) typeNode.value = draft.type;
-                if (nameNode) nameNode.value = draft.name;
-
-                var zone = document.querySelector('[data-delivery-zone]');
-                var summary = document.querySelector('[data-delivery-summary]');
-                var detail = document.querySelector('[data-delivery-detail]');
-
-                if (zone && zone.classList) zone.classList.add('is-set');
-                if (summary) {
-                    summary.textContent =
-                        (draft.type === 'rush' ? 'RUSH' : 'REGULAR') +
-                        ' - ' + draft.name;
-                }
-                if (detail) {
-                    detail.textContent =
-                        'Shipment selected. Tap SET DELIVERY OPTION to change it.';
-                }
-
-                try {
-                    document.dispatchEvent(new CustomEvent('w68:delivery-selected', {
-                        detail: {
-                            id: draft.id,
-                            type: draft.type,
-                            name: draft.name
-                        }
-                    }));
-                } catch (error) {}
-
-                window.W68CloseShipmentModal(event);
-                return false;
-            };
-        })();
-    </script>
 
 </body>
 </html>

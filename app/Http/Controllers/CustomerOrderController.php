@@ -131,8 +131,6 @@ class CustomerOrderController extends Controller
             'items' => $items,
             'totalItems' => $totalItems,
             'totalPrice' => $totalPrice,
-            // W68 v106: only Rush/Regular shipment choices from Masterlist.
-            'shipments' => $this->shipmentForwarders(),
         ]);
     }
 
@@ -597,54 +595,28 @@ class CustomerOrderController extends Controller
             'The W68 cart-to-order link is not installed yet. Run the v93 cart_id database patch first.'
         );
 
-        // W68_PROCESS_ORDER_SIGNOFF_20261021
-        // ORDERED BY (formerly PREPARED BY) / CHECKED BY belong ONLY to w68_portal_orders.
-        // Never copy these customer-entered sign-off values to sales_notes.
-        $delivery = $request->validate([
-            'forwarder_id' => ['required', 'integer', 'min:1'],
-            'ordered_by' => ['nullable', 'string', 'max:191'],
-            'prepared_by' => ['nullable', 'string', 'max:191'],
-            'checked_by' => ['nullable', 'string', 'max:191'],
-            'confirmed_by' => ['nullable', 'string', 'max:191'],
-        ], [
-            'forwarder_id.required' => 'Choose a Shipment before processing the order.',
-        ]);
+        $preparedBy = trim((string) ($request->input('ordered_by') ?? $request->input('prepared_by') ?? '')) ?: null;
+        $checkedBy = trim((string) ($request->input('confirmed_by') ?? $request->input('checked_by') ?? '')) ?: null;
 
-        $preparedBy = trim((string) ($delivery['ordered_by'] ?? ($delivery['prepared_by'] ?? '')));
-        $checkedBy = trim((string) ($delivery['confirmed_by'] ?? ($delivery['checked_by'] ?? '')));
+        $deliveryOption = 'regular';
+        $shipmentRemark = '';
 
-        abort_if($preparedBy === '', 422, 'Enter ORDERED BY before processing the order.');
-        abort_if($checkedBy === '', 422, 'Enter CONFIRMED BY before processing the order.');
+        $forwarderId = (int) $request->input('forwarder_id', 0);
+        if ($forwarderId > 0 && Schema::connection('masterlist')->hasTable('forwarders') && Schema::connection('masterlist')->hasColumn('forwarders', 'forwarder_type')) {
+            $shipment = DB::connection('masterlist')
+                ->table('forwarders')
+                ->where('id', $forwarderId)
+                ->whereNotNull('forwarder_type')
+                ->whereRaw('LOWER(TRIM(forwarder_type)) IN (?, ?)', ['rush', 'regular'])
+                ->first(['id', 'name', 'forwarder_type']);
 
-        abort_unless(
-            Schema::connection('masterlist')->hasTable('forwarders')
-            && Schema::connection('masterlist')->hasColumn('forwarders', 'forwarder_type'),
-            503,
-            'Shipment setup is not available in W68 Masterlist yet.'
-        );
-
-        // W68 v107: the customer chooses the forwarder directly. Rush/Regular
-        // is derived from forwarders.forwarder_type instead of being submitted
-        // separately by the browser. This prevents mismatched delivery types.
-        $shipment = DB::connection('masterlist')
-            ->table('forwarders')
-            ->where('id', (int) $delivery['forwarder_id'])
-            ->whereNotNull('forwarder_type')
-            ->whereRaw('LOWER(TRIM(forwarder_type)) IN (?, ?)', ['rush', 'regular'])
-            ->first(['id', 'name', 'forwarder_type']);
-
-        abort_unless($shipment, 422, 'The selected Shipment is not available as Rush or Regular.');
-
-        $shipmentId = (int) $shipment->id;
-        $shipmentName = trim((string) ($shipment->name ?? ''));
-        $deliveryOption = mb_strtolower(trim((string) ($shipment->forwarder_type ?? '')));
-        abort_if($shipmentName === '', 422, 'The selected Shipment is no longer available.');
-        abort_unless(in_array($deliveryOption, ['rush', 'regular'], true), 422, 'The selected Shipment must be Rush or Regular.');
-
-        $deliveryLabel = $deliveryOption === 'rush' ? 'RUSH' : 'REGULAR';
-        // Keep the existing [Forwarder: ...] remark token for compatibility with
-        // W68 downstream Sales Order / Waybill logic while the customer UI says Shipment.
-        $shipmentRemark = 'DELIVERY: '.$deliveryLabel.' | [Forwarder: '.$shipmentName.']';
+            if ($shipment) {
+                $shipmentName = trim((string) ($shipment->name ?? ''));
+                $deliveryOption = mb_strtolower(trim((string) ($shipment->forwarder_type ?? 'regular')));
+                $deliveryLabel = $deliveryOption === 'rush' ? 'RUSH' : 'REGULAR';
+                $shipmentRemark = 'DELIVERY: '.$deliveryLabel.' | [Forwarder: '.$shipmentName.']';
+            }
+        }
 
         $processedCartIds = $this->processedCartIds($loginId, $customerId);
 
@@ -755,6 +727,11 @@ class CustomerOrderController extends Controller
             $salesNumber = $this->nextSalesNumber();
             $now = now();
 
+            $initialRemarks = 'W68 PRICELIST PORTAL ORDER';
+            if ($shipmentRemark !== '') {
+                $initialRemarks .= ' | '.$shipmentRemark;
+            }
+
             $salesNoteId = DB::connection('sales_order')->table('sales_notes')->insertGetId([
                 'sales_number' => $salesNumber,
                 'so_type' => 'Sales Order',
@@ -773,7 +750,7 @@ class CustomerOrderController extends Controller
                 'total_discount' => $totalDiscount,
                 'net_total' => $netTotal,
                 'status' => 'Open',
-                'remarks' => 'W68 PRICELIST PORTAL ORDER | '.$shipmentRemark,
+                'remarks' => $initialRemarks,
                 'created_at' => $now,
                 'updated_at' => $now,
             ]);
@@ -800,10 +777,15 @@ class CustomerOrderController extends Controller
                 ->where('id', $portalOrderId)
                 ->update(['order_code' => $orderCode, 'updated_at' => $now]);
 
+            $finalRemarks = 'W68 PRICELIST PORTAL ORDER | '.$orderCode;
+            if ($shipmentRemark !== '') {
+                $finalRemarks .= ' | '.$shipmentRemark;
+            }
+
             DB::connection('sales_order')->table('sales_notes')
                 ->where('id', $salesNoteId)
                 ->update([
-                    'remarks' => 'W68 PRICELIST PORTAL ORDER | '.$orderCode.' | '.$shipmentRemark,
+                    'remarks' => $finalRemarks,
                     'updated_at' => $now,
                 ]);
 
@@ -901,9 +883,6 @@ class CustomerOrderController extends Controller
             'ok' => true,
             'message' => 'Order processed and registered as an Open Sales Note.',
             'redirect_url' => $redirectUrl,
-            'delivery_option' => $deliveryLabel,
-            'shipment_id' => $shipmentId,
-            'shipment_name' => $shipmentName,
             ...$created,
         ]);
     }

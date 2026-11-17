@@ -906,13 +906,15 @@ main {
     position: relative;
     height: 220px;
     padding: 13px;
-    background: #fff;
+    background: #f8faf9;
+    contain: layout paint;
 }
 
 .product-image-wrap img {
     width: 100%;
     height: 100%;
     object-fit: contain;
+    content-visibility: auto;
 }
 
 .product-badge,

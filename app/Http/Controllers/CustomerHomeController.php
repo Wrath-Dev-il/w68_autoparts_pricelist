@@ -7,6 +7,7 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\View\View;
@@ -1034,12 +1035,17 @@ class CustomerHomeController extends Controller
     {
         $this->ensureAccountTypeFive();
 
+        $version = (string) request()->query('v', '0');
+        $cacheKey = "w68_img_prod_v2_{$product}_{$version}";
+
         try {
-            $picture = DB::connection('masterlist')
-                ->table('products')
-                ->where('id', $product)
-                ->where('is_selected_for_report', 1)
-                ->value('Product_Picture');
+            $picture = Cache::remember($cacheKey, 86400, function () use ($product) {
+                return DB::connection('masterlist')
+                    ->table('products')
+                    ->where('id', $product)
+                    ->where('is_selected_for_report', 1)
+                    ->value('Product_Picture');
+            });
 
             return $this->imageResponse($picture);
         } catch (Throwable $exception) {
@@ -1773,6 +1779,27 @@ class CustomerHomeController extends Controller
         );
     }
 
+    private function serveBinaryImage(string $binary, string $mime, int $maxAge = 86400)
+    {
+        $etag = '"'.md5($binary).'"';
+
+        $clientEtag = request()->header('If-None-Match');
+        if ($clientEtag && trim($clientEtag, '" ') === trim($etag, '" ')) {
+            return response('', 304, [
+                'ETag' => $etag,
+                'Cache-Control' => "public, max-age={$maxAge}, stale-while-revalidate=604800",
+            ]);
+        }
+
+        return response($binary, 200, [
+            'Content-Type' => $mime,
+            'Content-Length' => strlen($binary),
+            'ETag' => $etag,
+            'Cache-Control' => "public, max-age={$maxAge}, stale-while-revalidate=604800",
+            'X-Content-Type-Options' => 'nosniff',
+        ]);
+    }
+
     private function imageResponse($value)
     {
         try {
@@ -1809,13 +1836,7 @@ class CustomerHomeController extends Controller
              * Raw image binary stored directly in BLOB.
              */
             if ($this->looksLikeBinaryImage($value)) {
-                return response($value, 200, [
-                    'Content-Type' => $this->detectImageMime($value),
-                    'Cache-Control' => 'private, no-store, no-cache, must-revalidate, max-age=0',
-                    'Pragma' => 'no-cache',
-                    'Expires' => '0',
-                    'X-Content-Type-Options' => 'nosniff',
-                ]);
+                return $this->serveBinaryImage($value, $this->detectImageMime($value));
             }
 
             $trimmed = trim($value);
@@ -1885,13 +1906,7 @@ class CustomerHomeController extends Controller
                     && $binary !== ''
                     && $this->looksLikeBinaryImage($binary)
                 ) {
-                    return response($binary, 200, [
-                        'Content-Type' => strtolower($matches[1]),
-                        'Cache-Control' => 'private, no-store, no-cache, must-revalidate, max-age=0',
-                        'Pragma' => 'no-cache',
-                        'Expires' => '0',
-                        'X-Content-Type-Options' => 'nosniff',
-                    ]);
+                    return $this->serveBinaryImage($binary, strtolower($matches[1]));
                 }
 
                 return $this->fallbackLogoResponse();
@@ -1931,9 +1946,7 @@ class CustomerHomeController extends Controller
                 }
 
                 return redirect()->away($url)
-                    ->header('Cache-Control', 'private, no-store, no-cache, must-revalidate, max-age=0')
-                    ->header('Pragma', 'no-cache')
-                    ->header('Expires', '0');
+                    ->header('Cache-Control', 'public, max-age=86400, stale-while-revalidate=604800');
             }
 
             /*
@@ -1952,12 +1965,10 @@ class CustomerHomeController extends Controller
                 $localPath = public_path($relative);
 
                 if (is_file($localPath)) {
-                    return response()->file($localPath, [
-                        'Cache-Control' => 'private, no-store, no-cache, must-revalidate, max-age=0',
-                        'Pragma' => 'no-cache',
-                        'Expires' => '0',
-                        'X-Content-Type-Options' => 'nosniff',
-                    ]);
+                    $binary = file_get_contents($localPath);
+                    $mime = $this->detectImageMime($binary);
+
+                    return $this->serveBinaryImage($binary, $mime);
                 }
             }
 
@@ -1977,13 +1988,7 @@ class CustomerHomeController extends Controller
                     $binary !== false
                     && $this->looksLikeBinaryImage($binary)
                 ) {
-                    return response($binary, 200, [
-                        'Content-Type' => $this->detectImageMime($binary),
-                        'Cache-Control' => 'private, no-store, no-cache, must-revalidate, max-age=0',
-                        'Pragma' => 'no-cache',
-                        'Expires' => '0',
-                        'X-Content-Type-Options' => 'nosniff',
-                    ]);
+                    return $this->serveBinaryImage($binary, $this->detectImageMime($binary));
                 }
             }
         } catch (Throwable $exception) {
@@ -2129,14 +2134,13 @@ class CustomerHomeController extends Controller
             public_path('build/assets/images/sidebar_logo.png'),
             public_path('images/login/logo.png'),
             public_path('images/logo.png'),
+            public_path('images/sidebar_logo.png'),
         ];
 
         foreach ($candidates as $path) {
             if (is_file($path)) {
                 return response()->file($path, [
-                    'Cache-Control' => 'private, no-store, no-cache, must-revalidate, max-age=0',
-                    'Pragma' => 'no-cache',
-                    'Expires' => '0',
+                    'Cache-Control' => 'public, max-age=86400, stale-while-revalidate=604800',
                     'X-Content-Type-Options' => 'nosniff',
                 ]);
             }
@@ -2158,9 +2162,7 @@ SVG;
 
         return response($svg, 200, [
             'Content-Type' => 'image/svg+xml; charset=UTF-8',
-            'Cache-Control' => 'private, no-store, no-cache, must-revalidate, max-age=0',
-            'Pragma' => 'no-cache',
-            'Expires' => '0',
+            'Cache-Control' => 'public, max-age=86400, stale-while-revalidate=604800',
             'X-Content-Type-Options' => 'nosniff',
         ]);
     }

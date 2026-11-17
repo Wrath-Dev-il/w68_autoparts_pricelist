@@ -483,7 +483,18 @@
                             data-product-discounted-price="{{ $data['discountedPrice'] }}"
                         >
                             <div class="product-image-wrap">
-                                <img src="{{ $data['image'] }}" alt="{{ $data['description'] ?: $data['productCode'] }}" loading="lazy" decoding="async" onerror="this.onerror=null;this.src='{{ $logo }}'">
+                                <img
+                                    src="{{ $data['image'] }}"
+                                    alt="{{ $data['description'] ?: $data['productCode'] }}"
+                                    @if ($loop->index < 24)
+                                        loading="eager"
+                                        @if ($loop->index < 8) fetchpriority="high" @endif
+                                    @else
+                                        loading="lazy"
+                                    @endif
+                                    decoding="async"
+                                    onerror="this.onerror=null;this.src='{{ $logo }}'"
+                                >
                                 <span class="product-badge">W68</span>
                                 <span class="in-cart-badge">IN CART</span>
                             </div>

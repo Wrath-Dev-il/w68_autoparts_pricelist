@@ -3022,9 +3022,44 @@
         });
     };
 
+    /* =========================================================
+       W68 Product Image Preloader
+       Preloads images 1600px ahead of scroll so cards display
+       pictures instantly when entering the viewport.
+       ========================================================= */
+    const initProductImagePreloader = () => {
+        if (!('IntersectionObserver' in window)) return;
+
+        const preloaded = new Set();
+        const imgObserver = new IntersectionObserver((entries, observer) => {
+            entries.forEach((entry) => {
+                if (entry.isIntersecting) {
+                    const card = entry.target;
+                    const img = card.querySelector('.product-image-wrap img');
+                    if (img && img.src && !preloaded.has(img.src)) {
+                        preloaded.add(img.src);
+                        const prefetch = new Image();
+                        prefetch.decoding = 'async';
+                        prefetch.src = img.src;
+                    }
+                    observer.unobserve(card);
+                }
+            });
+        }, {
+            root: null,
+            rootMargin: '1600px 0px',
+            threshold: 0,
+        });
+
+        document.querySelectorAll('.product-grid [data-product-card]').forEach((card) => {
+            imgObserver.observe(card);
+        });
+    };
+
     initNewItemsCarousel();
     initAvailableItemsModal();
     initAntiScreenshot();
+    initProductImagePreloader();
 
     renderCart();
     syncProductCardStates();

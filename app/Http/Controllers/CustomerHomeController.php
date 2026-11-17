@@ -54,38 +54,16 @@ class CustomerHomeController extends Controller
             $catalog = $this->catalogQuery();
             $this->applyFilters($catalog, $filters);
 
-            // The customer catalog loads 200 products per batch with infinite scroll.
+            // The customer catalog intentionally shows at least 100 products per page.
             $products = $catalog
                 ->orderByDesc('p.date_added')
                 ->orderByDesc('p.id')
-                ->paginate(200)
+                ->paginate(100)
                 ->withQueryString();
 
             $products->getCollection()->transform(
                 fn ($product) => $this->applyDiscount($product, $discounts)
             );
-
-            // Fast infinite-scroll AJAX response: returns only the next product batch
-            // without re-querying New Arrivals or rebuilding page chrome.
-            if ($request->ajax() || $request->wantsJson() || $request->boolean('load_more')) {
-                $imageBase = $this->currentProductImageBase();
-                $logo = asset('images/sidebar_logo.png');
-
-                $html = view('partials.home-product-cards', [
-                    'products' => $products,
-                    'currentProductImageBase' => $imageBase,
-                    'logo' => $logo,
-                ])->render();
-
-                return response()->json([
-                    'html' => $html,
-                    'has_more' => $products->hasMorePages(),
-                    'current_page' => $products->currentPage(),
-                    'last_page' => $products->lastPage(),
-                    'total' => $products->total(),
-                    'count' => $products->count(),
-                ]);
-            }
 
             // W68_NEW_ARRIVAL_FROM_PURCHASE_20261024
             // NEW ARRIVAL is no longer based on products.status/date_added.
@@ -1045,21 +1023,6 @@ class CustomerHomeController extends Controller
             .'/home/product-image/'
             .$productId
             .'?v=w68-20261024-nocache';
-    }
-
-    private function currentProductImageBase(): string
-    {
-        $baseUrl = str_replace('\\', '/', (string) request()->getBaseUrl());
-
-        $baseUrl = preg_replace(
-            '#/index\.php$#i',
-            '',
-            rtrim($baseUrl, '/')
-        ) ?: '';
-
-        return rtrim(request()->getSchemeAndHttpHost(), '/')
-            .$baseUrl
-            .'/home/product-image/';
     }
 
     /**

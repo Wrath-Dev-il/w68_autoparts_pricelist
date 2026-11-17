@@ -7,9 +7,9 @@
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>W68 Autoparts & Service Center | Home</title>
     <link rel="icon" href="{{ asset('images/sidebar_logo.png') }}">
-    <link rel="stylesheet" href="{{ asset('css/w68-home.css') }}?v=20261117-v210-infinite-scroll">
+    <link rel="stylesheet" href="{{ asset('css/w68-home.css') }}?v=20261117-v208-home-tutorial-removed">
     <link rel="stylesheet" href="{{ asset('css/w68-notifications.css') }}?v=20261028-v148">
-    <script src="{{ asset('js/w68-home.js') }}?v=20261117-v210-infinite-scroll" defer></script>
+    <script src="{{ asset('js/w68-home.js') }}?v=20261117-v209-fix-gotit-product-modal" defer></script>
     <script src="{{ asset('js/w68-notifications.js') }}?v=20261028-v148" defer></script>
 </head>
 <body
@@ -453,33 +453,113 @@
                 </div>
 
                 @if (method_exists($products, 'total'))
-                    <p data-product-count-summary>{{ number_format($products->total()) }} matching products &bull; <span data-products-loaded-count>{{ count($products) }}</span> loaded</p>
+                    <p>{{ number_format($products->total()) }} matching products &bull; 100 per page</p>
                 @endif
             </div>
 
             @if (count($products))
-                <div
-                    class="product-grid"
-                    data-product-grid
-                    data-current-page="{{ $products->currentPage() }}"
-                    data-last-page="{{ $products->lastPage() }}"
-                    data-has-more="{{ $products->hasMorePages() ? '1' : '0' }}"
-                    data-total-products="{{ $products->total() }}"
-                >
-                    @include('partials.home-product-cards', ['products' => $products])
+                <div class="product-grid">
+                    @foreach ($products as $product)
+                        @php $data = $productData($product); @endphp
+
+                        <article
+                            class="product-card"
+                            id="product-{{ $product->id }}"
+                            tabindex="0"
+                            role="button"
+                            aria-label="View {{ $data['description'] ?: $data['productCode'] }}"
+                            data-product-card
+                            data-product-id="{{ $data['id'] }}"
+                            data-product-image="{{ $data['image'] }}"
+                            data-product-product-code="{{ $data['productCode'] }}"
+                            data-product-part-number="{{ $data['partNumber'] }}"
+                            data-product-description="{{ $data['description'] }}"
+                            data-product-application="{{ $data['application'] }}"
+                            data-product-specification="{{ $data['specification'] }}"
+                            data-product-position="{{ $data['position'] }}"
+                            data-product-brand="{{ $data['brand'] }}"
+                            data-product-price="{{ $data['price'] }}"
+                            data-product-discount-percent="{{ $data['discountPercent'] }}"
+                            data-product-discounted-price="{{ $data['discountedPrice'] }}"
+                        >
+                            <div class="product-image-wrap">
+                                <img src="{{ $data['image'] }}" alt="{{ $data['description'] ?: $data['productCode'] }}" loading="lazy" onerror="this.onerror=null;this.src='{{ $logo }}'">
+                                <span class="product-badge">W68</span>
+                                <span class="in-cart-badge">IN CART</span>
+                            </div>
+
+                            <div class="product-card-body">
+                                <div class="product-code">{{ $data['productCode'] ?: 'NO PRODUCT CODE' }}</div>
+                                <h3>{{ $data['description'] ?: 'W68 Product' }}</h3>
+
+                                <div class="product-card-meta">
+                                    <span><b>Part No.</b> {{ $data['partNumber'] ?: '&mdash;' }}</span>
+                                    <span><b>Brand</b> {{ $data['brand'] ?: '&mdash;' }}</span>
+                                    <span><b>Application</b> {{ $data['application'] ?: '&mdash;' }}</span>
+                                </div>
+
+                                <div class="product-card-footer">
+                                    <div class="product-price">
+                                        <small>PRICE</small>
+                                        <strong class="original-price{{ $data['hasDiscount'] ? ' is-discounted' : '' }}">{{ number_format((float) $data['price'], 2) }}</strong>
+                                        @if ($data['hasDiscount'])
+                                            <small class="discount-price-label">DISCOUNTED PRICE ({{ number_format((float) $data['discountPercent'], 2) }}%)</small>
+                                            <strong class="discount-price">{{ number_format((float) $data['discountedPrice'], 2) }}</strong>
+                                        @endif
+                                    </div>
+
+                                    <div class="product-card-actions">
+                                        @if ($data['canAddToCart'])
+                                            <button type="button" class="product-add-cart" data-add-cart>ADD TO CART</button>
+                                        @endif
+                                        <button type="button" class="product-view-cart" data-view-cart hidden>VIEW CART</button>
+                                    </div>
+                                </div>
+                            </div>
+                        </article>
+                    @endforeach
                 </div>
 
-                <div class="home-scroll-sentinel" data-home-scroll-sentinel>
-                    <div class="home-infinite-loader" data-home-infinite-loader hidden>
-                        <span class="home-infinite-spinner" aria-hidden="true"></span>
-                        <span>Loading more products...</span>
-                    </div>
-                    <div class="home-infinite-end" data-home-infinite-end {{ $products->hasMorePages() ? 'hidden' : '' }}>
-                        @if ($products->total() > 0)
-                            <span>All {{ number_format($products->total()) }} products loaded</span>
+                @if (method_exists($products, 'hasPages') && $products->hasPages())
+                    @php
+                        $currentPage = $products->currentPage();
+                        $lastPage = $products->lastPage();
+                        $pageStart = max(1, $currentPage - 2);
+                        $pageEnd = min($lastPage, $currentPage + 2);
+                    @endphp
+
+                    <nav class="home-pagination" aria-label="Product pages">
+                        @if ($products->onFirstPage())
+                            <span class="page-link disabled">PREVIOUS</span>
+                        @else
+                            <a class="page-link" href="{{ $products->previousPageUrl() }}#products" data-loading-link>PREVIOUS</a>
                         @endif
-                    </div>
-                </div>
+
+                        @if ($pageStart > 1)
+                            <a class="page-link" href="{{ $products->url(1) }}#products" data-loading-link>1</a>
+                            @if ($pageStart > 2)<span class="page-gap">&hellip;</span>@endif
+                        @endif
+
+                        @for ($page = $pageStart; $page <= $pageEnd; $page++)
+                            @if ($page === $currentPage)
+                                <span class="page-link current">{{ $page }}</span>
+                            @else
+                                <a class="page-link" href="{{ $products->url($page) }}#products" data-loading-link>{{ $page }}</a>
+                            @endif
+                        @endfor
+
+                        @if ($pageEnd < $lastPage)
+                            @if ($pageEnd < $lastPage - 1)<span class="page-gap">&hellip;</span>@endif
+                            <a class="page-link" href="{{ $products->url($lastPage) }}#products" data-loading-link>{{ $lastPage }}</a>
+                        @endif
+
+                        @if ($products->hasMorePages())
+                            <a class="page-link" href="{{ $products->nextPageUrl() }}#products" data-loading-link>NEXT</a>
+                        @else
+                            <span class="page-link disabled">NEXT</span>
+                        @endif
+                    </nav>
+                @endif
             @else
                 <div class="empty-state">No selected W68 products matched your filters.</div>
             @endif

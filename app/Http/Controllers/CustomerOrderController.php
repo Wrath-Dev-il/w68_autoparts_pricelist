@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -10,6 +11,7 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\View\View;
+use Symfony\Component\HttpKernel\Exception\HttpExceptionInterface;
 use Throwable;
 
 class CustomerOrderController extends Controller
@@ -18,7 +20,7 @@ class CustomerOrderController extends Controller
     {
         $account = Auth::user();
 
-        if (!$account || (int) ($account->account_type ?? 0) !== 5) {
+        if (! $account || (int) ($account->account_type ?? 0) !== 5) {
             Auth::logout();
             $request->session()->invalidate();
             $request->session()->regenerateToken();
@@ -30,7 +32,7 @@ class CustomerOrderController extends Controller
         $this->ensureOrderTables();
 
         $profileName = trim(
-            (string) ($account->User_First_Name ?? '') . ' ' . (string) ($account->User_Last_Name ?? '')
+            (string) ($account->User_First_Name ?? '').' '.(string) ($account->User_Last_Name ?? '')
         );
         if ($profileName === '') {
             $profileName = (string) ($account->User_ID ?? 'W68 Customer');
@@ -92,7 +94,7 @@ class CustomerOrderController extends Controller
     {
         $account = Auth::user();
 
-        if (!$account || (int) ($account->account_type ?? 0) !== 5) {
+        if (! $account || (int) ($account->account_type ?? 0) !== 5) {
             Auth::logout();
             $request->session()->invalidate();
             $request->session()->regenerateToken();
@@ -104,7 +106,7 @@ class CustomerOrderController extends Controller
         $this->ensureCartTable();
 
         $items = collect($this->portalCartItems($loginId, $customerId))
-            ->filter(fn (array $item): bool => !empty($item['selected']))
+            ->filter(fn (array $item): bool => ! empty($item['selected']))
             ->map(function (array $item): array {
                 $qty = max(1, min(9999, (int) ($item['qty'] ?? 1)));
                 $originalPrice = round((float) ($item['price'] ?? 0), 2);
@@ -125,79 +127,12 @@ class CustomerOrderController extends Controller
         $totalItems = (int) $items->sum(fn (array $item): int => (int) $item['qty']);
         $totalPrice = round((float) $items->sum(fn (array $item): float => (float) $item['lineTotal']), 2);
 
-        // W68_PROCESS_ORDER_TUTORIAL_20261027
-        // Onboarding walkthrough on the order review page.
-        // Triggers on: (1) ?tutorial=preview or ?tutorial=1, (2) session flag
-        // from login 1-3, or (3) first-ever visit — the DB column
-        // process_order_tutorial_seen is 0/NULL for accounts that have never
-        // completed this walkthrough. This covers users who logged in before
-        // the tutorial code was deployed.
-        $tutorialPreview = $request->query('tutorial') === 'preview' || $request->query('tutorial') === '1';
-
-        if ($tutorialPreview) {
-            $showProcessOrderTutorial = true;
-            $tutorialLoginNumber = 1;
-        } else {
-            $showProcessOrderTutorial = (bool) $request->session()->pull(
-                'w68_show_process_order_tutorial',
-                false
-            );
-            $tutorialLoginNumber = (int) $request->session()->get(
-                'w68_tutorial_login_number',
-                1
-            );
-
-            if (!$showProcessOrderTutorial && $loginId) {
-                try {
-                    $portalAccount = DB::connection('system')
-                        ->table('customer_portal_accounts')
-                        ->where('login_id', $loginId)
-                        ->first();
-
-                    if ($portalAccount) {
-                        // Ensure the tracking column exists; add it if missing.
-                        if (
-                            !Schema::connection('system')->hasColumn(
-                                'customer_portal_accounts',
-                                'process_order_tutorial_seen'
-                            )
-                        ) {
-                            Schema::connection('system')->table('customer_portal_accounts', function ($table) {
-                                $table->boolean('process_order_tutorial_seen')->default(false)->after('tutorial_login_count');
-                            });
-                        }
-
-                        $seen = (bool) ($portalAccount->process_order_tutorial_seen ?? false);
-
-                        if (!$seen) {
-                            $showProcessOrderTutorial = true;
-                            $count = (int) ($portalAccount->tutorial_login_count ?? 0);
-                            $tutorialLoginNumber = $count >= 1 ? $count : 1;
-
-                            // Mark as seen so the tutorial only shows once.
-                            DB::connection('system')
-                                ->table('customer_portal_accounts')
-                                ->where('id', $portalAccount->id)
-                                ->update([
-                                    'process_order_tutorial_seen' => true,
-                                    'updated_at' => now(),
-                                ]);
-                        }
-                    }
-                } catch (Throwable) {
-                    // Ignore schema/db check issues during auth lookup.
-                }
-            }
-        }
-
         return view('process-order', [
             'items' => $items,
             'totalItems' => $totalItems,
             'totalPrice' => $totalPrice,
             // W68 v106: only Rush/Regular shipment choices from Masterlist.
             'shipments' => $this->shipmentForwarders(),
-            'showProcessOrderTutorial' => $showProcessOrderTutorial,
-            'tutorialLoginNumber' => $tutorialLoginNumber,
         ]);
     }
 
@@ -205,7 +140,7 @@ class CustomerOrderController extends Controller
     {
         $account = Auth::user();
 
-        if (!$account || (int) ($account->account_type ?? 0) !== 5) {
+        if (! $account || (int) ($account->account_type ?? 0) !== 5) {
             Auth::logout();
             $request->session()->invalidate();
             $request->session()->regenerateToken();
@@ -292,7 +227,7 @@ class CustomerOrderController extends Controller
                 'date' => $invoiceDate,
                 'terms' => trim((string) ($invoice->terms ?? $printCustomer->terms ?? '')),
                 'salesman' => trim((string) ($salesNote->salesman ?? '')),
-                'rush_text' => !empty($salesNote->is_rush) ? 'RUSH' : '',
+                'rush_text' => ! empty($salesNote->is_rush) ? 'RUSH' : '',
                 'prepared_by' => trim((string) ($salesNote->prepared_by ?? '')),
                 'packed_by' => trim((string) ($salesNote->packed_by ?? '')),
                 'checked_by' => trim((string) ($salesNote->checked_by ?? '')),
@@ -365,7 +300,7 @@ class CustomerOrderController extends Controller
     {
         $account = Auth::user();
 
-        if (!$account || (int) ($account->account_type ?? 0) !== 5) {
+        if (! $account || (int) ($account->account_type ?? 0) !== 5) {
             Auth::logout();
             $request->session()->invalidate();
             $request->session()->regenerateToken();
@@ -421,7 +356,7 @@ class CustomerOrderController extends Controller
             ]);
 
         $jobUrl = route('printer-bridge.job', ['token' => $rawToken]);
-        $deepLink = 'w68print://job?url=' . rawurlencode($jobUrl);
+        $deepLink = 'w68print://job?url='.rawurlencode($jobUrl);
 
         return view('printer-bridge-launch', [
             'deepLink' => $deepLink,
@@ -483,7 +418,7 @@ class CustomerOrderController extends Controller
     {
         $account = Auth::user();
 
-        if (!$account || (int) ($account->account_type ?? 0) !== 5) {
+        if (! $account || (int) ($account->account_type ?? 0) !== 5) {
             Auth::logout();
             $request->session()->invalidate();
             $request->session()->regenerateToken();
@@ -564,7 +499,7 @@ class CustomerOrderController extends Controller
             'date' => $invoiceDate,
             'terms' => trim((string) ($invoice->terms ?? $printCustomer->terms ?? '')),
             'salesman' => trim((string) ($salesNote->salesman ?? '')),
-            'rush_text' => !empty($salesNote->is_rush) ? 'RUSH' : '',
+            'rush_text' => ! empty($salesNote->is_rush) ? 'RUSH' : '',
             'prepared_by' => trim((string) ($salesNote->prepared_by ?? '')),
             'packed_by' => trim((string) ($salesNote->packed_by ?? '')),
             'checked_by' => trim((string) ($salesNote->checked_by ?? '')),
@@ -577,7 +512,7 @@ class CustomerOrderController extends Controller
             'items' => $items,
             'totalItems' => $totalItems,
             'invoiceReceipt' => $invoiceReceipt,
-            'ordersUrl' => route('orders') . '#invoiced',
+            'ordersUrl' => route('orders').'#invoiced',
         ]);
     }
 
@@ -585,7 +520,7 @@ class CustomerOrderController extends Controller
     {
         $account = Auth::user();
 
-        if (!$account || (int) ($account->account_type ?? 0) !== 5) {
+        if (! $account || (int) ($account->account_type ?? 0) !== 5) {
             Auth::logout();
             $request->session()->invalidate();
             $request->session()->regenerateToken();
@@ -641,7 +576,7 @@ class CustomerOrderController extends Controller
             'viewMode' => true,
             'returnViewMode' => true,
             'viewOrder' => [
-                'order_code' => (string) ($returnData['return_number'] ?: ('RETURN-' . $returnData['return_id'])),
+                'order_code' => (string) ($returnData['return_number'] ?: ('RETURN-'.$returnData['return_id'])),
                 'sales_number' => (string) ($orderData['sales_number'] ?? ''),
                 'date' => (string) ($returnData['date'] ?? ''),
                 'status_label' => 'RETURNED',
@@ -709,7 +644,7 @@ class CustomerOrderController extends Controller
         $deliveryLabel = $deliveryOption === 'rush' ? 'RUSH' : 'REGULAR';
         // Keep the existing [Forwarder: ...] remark token for compatibility with
         // W68 downstream Sales Order / Waybill logic while the customer UI says Shipment.
-        $shipmentRemark = 'DELIVERY: ' . $deliveryLabel . ' | [Forwarder: ' . $shipmentName . ']';
+        $shipmentRemark = 'DELIVERY: '.$deliveryLabel.' | [Forwarder: '.$shipmentName.']';
 
         $processedCartIds = $this->processedCartIds($loginId, $customerId);
 
@@ -761,7 +696,7 @@ class CustomerOrderController extends Controller
 
         foreach ($cartRows as $cartRow) {
             $product = $products->get((int) $cartRow->product_id);
-            if (!$product) {
+            if (! $product) {
                 abort(422, 'One or more selected cart products are no longer available.');
             }
 
@@ -838,7 +773,7 @@ class CustomerOrderController extends Controller
                 'total_discount' => $totalDiscount,
                 'net_total' => $netTotal,
                 'status' => 'Open',
-                'remarks' => 'W68 PRICELIST PORTAL ORDER | ' . $shipmentRemark,
+                'remarks' => 'W68 PRICELIST PORTAL ORDER | '.$shipmentRemark,
                 'created_at' => $now,
                 'updated_at' => $now,
             ]);
@@ -859,7 +794,7 @@ class CustomerOrderController extends Controller
                 'updated_at' => $now,
             ]);
 
-            $orderCode = 'W68-' . str_pad((string) $portalOrderId, 8, '0', STR_PAD_LEFT);
+            $orderCode = 'W68-'.str_pad((string) $portalOrderId, 8, '0', STR_PAD_LEFT);
 
             DB::connection('sales_order')->table('w68_portal_orders')
                 ->where('id', $portalOrderId)
@@ -868,7 +803,7 @@ class CustomerOrderController extends Controller
             DB::connection('sales_order')->table('sales_notes')
                 ->where('id', $salesNoteId)
                 ->update([
-                    'remarks' => 'W68 PRICELIST PORTAL ORDER | ' . $orderCode . ' | ' . $shipmentRemark,
+                    'remarks' => 'W68 PRICELIST PORTAL ORDER | '.$orderCode.' | '.$shipmentRemark,
                     'updated_at' => $now,
                 ]);
 
@@ -942,9 +877,9 @@ class CustomerOrderController extends Controller
         // If customer has never completed the orders tutorial, flag session and append ?tutorial=1
         try {
             if ($loginId && Schema::connection('system')->hasTable('customer_portal_accounts')) {
-                if (!Schema::connection('system')->hasColumn('customer_portal_accounts', 'orders_tutorial_seen')) {
+                if (! Schema::connection('system')->hasColumn('customer_portal_accounts', 'orders_tutorial_seen')) {
                     Schema::connection('system')->table('customer_portal_accounts', function ($table): void {
-                        $table->boolean('orders_tutorial_seen')->default(false)->after('process_order_tutorial_seen');
+                        $table->boolean('orders_tutorial_seen')->default(false)->after('tutorial_login_count');
                     });
                 }
 
@@ -1095,6 +1030,7 @@ class CustomerOrderController extends Controller
             }
 
             $this->recalculateOrderTotals((int) $portalOrder->id, (int) $portalOrder->sales_note_id, now());
+
             return false;
         });
 
@@ -1188,11 +1124,11 @@ class CustomerOrderController extends Controller
             $cancelled = $portalStatus === 'CANCELLED';
             $noteStatus = mb_strtolower(trim((string) ($row->sales_note_status ?? '')));
             $closed = $noteStatus === 'closed';
-            $partial = !$cancelled && $noteStatus === 'partial';
+            $partial = ! $cancelled && $noteStatus === 'partial';
             // A W68 order moves to INVOICED as soon as its linked Sales Note is Closed.
             // A waybill is informational only and is no longer required for the tab movement.
-            $received = !$cancelled && $closed;
-            $editable = !$cancelled
+            $received = ! $cancelled && $closed;
+            $editable = ! $cancelled
                 && $noteStatus === 'open'
                 && $salesOrders->isEmpty();
 
@@ -1200,11 +1136,11 @@ class CustomerOrderController extends Controller
             // DELETE is available only while the linked Sales Note is OPEN and
             // Sales Order processing has not started. PARTIAL/CLOSED notes can
             // never expose the delete action.
-            $canDelete = !$cancelled
+            $canDelete = ! $cancelled
                 && $noteStatus === 'open'
                 && $salesOrders->isEmpty();
             $waybillRow = $salesOrders->first(function ($salesOrder) {
-                return !empty($salesOrder->waybill_id)
+                return ! empty($salesOrder->waybill_id)
                     || trim((string) ($salesOrder->waybill_no ?? '')) !== '';
             });
 
@@ -1226,7 +1162,7 @@ class CustomerOrderController extends Controller
 
             return [
                 'id' => (int) $row->id,
-                'order_code' => (string) ($row->order_code ?: ('W68-' . str_pad((string) $row->id, 8, '0', STR_PAD_LEFT))),
+                'order_code' => (string) ($row->order_code ?: ('W68-'.str_pad((string) $row->id, 8, '0', STR_PAD_LEFT))),
                 'sales_note_id' => (int) ($row->sales_note_id ?? 0),
                 'sales_number' => (string) ($row->sales_number ?? ''),
                 'date' => (string) ($row->order_date ?: substr((string) $row->created_at, 0, 10)),
@@ -1256,7 +1192,7 @@ class CustomerOrderController extends Controller
     private function portalInvoices(Collection $orders): Collection
     {
         $ordersByNote = $orders
-            ->filter(fn (array $order): bool => !empty($order['sales_note_id']))
+            ->filter(fn (array $order): bool => ! empty($order['sales_note_id']))
             ->keyBy(fn (array $order): int => (int) $order['sales_note_id']);
 
         $noteIds = $ordersByNote->keys()->map(fn ($id) => (int) $id)->all();
@@ -1294,7 +1230,7 @@ class CustomerOrderController extends Controller
             ->groupBy('sales_order_id')
             ->map(fn (Collection $items): string => $items
                 ->map(fn ($item): string => trim(
-                    (string) ($item->product_code ?? '') . ' ' . (string) ($item->description ?? '')
+                    (string) ($item->product_code ?? '').' '.(string) ($item->description ?? '')
                 ))
                 ->filter()
                 ->implode(' '));
@@ -1302,7 +1238,7 @@ class CustomerOrderController extends Controller
         return $rows
             ->map(function ($row) use ($ordersByNote, $itemSearchBySalesOrder): ?array {
                 $portalOrder = $ordersByNote->get((int) $row->sales_note_id);
-                if (!$portalOrder) {
+                if (! $portalOrder) {
                     return null;
                 }
 
@@ -1347,7 +1283,7 @@ class CustomerOrderController extends Controller
 
                 try {
                     $invoiceDate = $invoiceDateRaw !== ''
-                        ? \Carbon\Carbon::parse($invoiceDateRaw)->startOfDay()
+                        ? Carbon::parse($invoiceDateRaw)->startOfDay()
                         : now()->startOfDay();
                 } catch (Throwable) {
                     $invoiceDate = now()->startOfDay();
@@ -1377,7 +1313,7 @@ class CustomerOrderController extends Controller
         $currentBills = $bills
             ->filter(function (array $invoice) use ($currentMonthStart, $currentMonthEnd): bool {
                 try {
-                    $dueDate = \Carbon\Carbon::parse((string) ($invoice['due_date'] ?? ''))->startOfDay();
+                    $dueDate = Carbon::parse((string) ($invoice['due_date'] ?? ''))->startOfDay();
                 } catch (Throwable) {
                     return false;
                 }
@@ -1390,7 +1326,7 @@ class CustomerOrderController extends Controller
         $upcomingBills = $bills
             ->filter(function (array $invoice) use ($nextMonthStart, $nextMonthEnd): bool {
                 try {
-                    $dueDate = \Carbon\Carbon::parse((string) ($invoice['due_date'] ?? ''))->startOfDay();
+                    $dueDate = Carbon::parse((string) ($invoice['due_date'] ?? ''))->startOfDay();
                 } catch (Throwable) {
                     return false;
                 }
@@ -1491,7 +1427,7 @@ class CustomerOrderController extends Controller
                 'date' => $invoiceDate,
                 'terms' => trim((string) ($invoice->terms ?? $printCustomer->terms ?? '')),
                 'salesman' => trim((string) ($salesNote->salesman ?? '')),
-                'rush_text' => !empty($salesNote->is_rush) ? 'RUSH' : '',
+                'rush_text' => ! empty($salesNote->is_rush) ? 'RUSH' : '',
                 'prepared_by' => trim((string) ($salesNote->prepared_by ?? '')),
                 'packed_by' => trim((string) ($salesNote->packed_by ?? '')),
                 'checked_by' => trim((string) ($salesNote->checked_by ?? '')),
@@ -1669,7 +1605,7 @@ class CustomerOrderController extends Controller
             ->filter(function (array $order): bool {
                 $status = mb_strtolower(trim((string) ($order['sales_note_status'] ?? '')));
 
-                return !empty($order['sales_note_id'])
+                return ! empty($order['sales_note_id'])
                     && $status === 'partial';
             })
             ->values();
@@ -1728,7 +1664,7 @@ class CustomerOrderController extends Controller
                 $effectivePrice = $subtotal / $orderedQty;
             }
 
-            if (!isset($requestedMap[$noteId][$productId])) {
+            if (! isset($requestedMap[$noteId][$productId])) {
                 $requestedMap[$noteId][$productId] = [
                     'ordered_qty' => 0.0,
                     'net_value' => 0.0,
@@ -1739,7 +1675,7 @@ class CustomerOrderController extends Controller
             $requestedMap[$noteId][$productId]['ordered_qty'] += $orderedQty;
             $requestedMap[$noteId][$productId]['net_value'] += $effectivePrice * $orderedQty;
 
-            if ($requestedMap[$noteId][$productId]['description'] === '' && !empty($item->description)) {
+            if ($requestedMap[$noteId][$productId]['description'] === '' && ! empty($item->description)) {
                 $requestedMap[$noteId][$productId]['description'] = trim((string) $item->description);
             }
         }
@@ -1855,7 +1791,7 @@ class CustomerOrderController extends Controller
     private function portalReturns(Collection $orders, int $customerId): Collection
     {
         $ordersByNote = $orders
-            ->filter(fn (array $order): bool => !empty($order['sales_note_id']))
+            ->filter(fn (array $order): bool => ! empty($order['sales_note_id']))
             ->keyBy(fn (array $order): int => (int) $order['sales_note_id']);
 
         $noteIds = $ordersByNote->keys()->map(fn ($id) => (int) $id)->all();
@@ -1871,7 +1807,7 @@ class CustomerOrderController extends Controller
         $invoiceToOrder = collect();
         foreach ($salesOrders as $salesOrder) {
             $portalOrder = $ordersByNote->get((int) $salesOrder->sales_note_id);
-            if (!$portalOrder) {
+            if (! $portalOrder) {
                 continue;
             }
 
@@ -1930,7 +1866,7 @@ class CustomerOrderController extends Controller
         return $returns->map(function ($return) use ($invoiceToOrder, $itemsByReturn, $brands) {
             $invoiceKey = mb_strtoupper(trim((string) ($return->invoice_no ?? '')));
             $portalOrder = $invoiceToOrder->get($invoiceKey);
-            if (!$portalOrder) {
+            if (! $portalOrder) {
                 return null;
             }
 
@@ -1993,6 +1929,7 @@ class CustomerOrderController extends Controller
             ->first();
 
         abort_unless($row, 404, 'Order not found for this account.');
+
         return $row;
     }
 
@@ -2061,7 +1998,7 @@ class CustomerOrderController extends Controller
 
         do {
             $next = ((int) $maxNum) + 1;
-            $salesNumber = 'SN-' . str_pad((string) $next, 7, '0', STR_PAD_LEFT);
+            $salesNumber = 'SN-'.str_pad((string) $next, 7, '0', STR_PAD_LEFT);
             $maxNum = $next;
         } while (DB::connection('sales_order')->table('sales_notes')->where('sales_number', $salesNumber)->exists());
 
@@ -2110,13 +2047,13 @@ class CustomerOrderController extends Controller
 
                 if ($available < $requested) {
                     $meta = $metaByProduct[$productId] ?? [];
-                    $issues[] = trim((string) ($meta['product_code'] ?? ('Product #' . $productId)))
-                        . ': requested ' . $requested . ', available ' . rtrim(rtrim(number_format($available, 2, '.', ''), '0'), '.');
+                    $issues[] = trim((string) ($meta['product_code'] ?? ('Product #'.$productId)))
+                        .': requested '.$requested.', available '.rtrim(rtrim(number_format($available, 2, '.', ''), '0'), '.');
                 }
             }
 
-            abort_if($issues !== [], 422, "Stock is not enough for:\n" . implode("\n", $issues));
-        } catch (\Symfony\Component\HttpKernel\Exception\HttpExceptionInterface $exception) {
+            abort_if($issues !== [], 422, "Stock is not enough for:\n".implode("\n", $issues));
+        } catch (HttpExceptionInterface $exception) {
             throw $exception;
         } catch (Throwable $exception) {
             report($exception);
@@ -2127,7 +2064,7 @@ class CustomerOrderController extends Controller
     private function portalCartItems(int $loginId, int $customerId): array
     {
         try {
-            if (!Schema::connection('sales_order')->hasTable('w68_customer_cart_items')) {
+            if (! Schema::connection('sales_order')->hasTable('w68_customer_cart_items')) {
                 return [];
             }
 
@@ -2172,7 +2109,7 @@ class CustomerOrderController extends Controller
             return $cartRows
                 ->map(function ($cartRow) use ($products, $discounts) {
                     $product = $products->get((int) $cartRow->product_id);
-                    if (!$product) {
+                    if (! $product) {
                         return null;
                     }
 
@@ -2213,9 +2150,9 @@ class CustomerOrderController extends Controller
     {
         try {
             if (
-                !Schema::connection('sales_order')->hasTable('w68_portal_orders')
-                || !Schema::connection('sales_order')->hasTable('w68_portal_order_items')
-                || !Schema::connection('sales_order')->hasColumn('w68_portal_order_items', 'cart_id')
+                ! Schema::connection('sales_order')->hasTable('w68_portal_orders')
+                || ! Schema::connection('sales_order')->hasTable('w68_portal_order_items')
+                || ! Schema::connection('sales_order')->hasColumn('w68_portal_order_items', 'cart_id')
             ) {
                 return collect();
             }
@@ -2244,9 +2181,9 @@ class CustomerOrderController extends Controller
         $baseUrl = preg_replace('#/index\\.php$#i', '', rtrim($baseUrl, '/')) ?: '';
 
         return rtrim(request()->getSchemeAndHttpHost(), '/')
-            . $baseUrl
-            . '/home/product-image/'
-            . $productId;
+            .$baseUrl
+            .'/home/product-image/'
+            .$productId;
     }
 
     /**
@@ -2260,8 +2197,8 @@ class CustomerOrderController extends Controller
     {
         try {
             if (
-                !Schema::connection('masterlist')->hasTable('forwarders')
-                || !Schema::connection('masterlist')->hasColumn('forwarders', 'forwarder_type')
+                ! Schema::connection('masterlist')->hasTable('forwarders')
+                || ! Schema::connection('masterlist')->hasColumn('forwarders', 'forwarder_type')
             ) {
                 return collect();
             }
@@ -2284,13 +2221,14 @@ class CustomerOrderController extends Controller
                 ->values();
         } catch (Throwable $exception) {
             report($exception);
+
             return collect();
         }
     }
 
     private function customerBrandDiscounts(int $customerId): array
     {
-        if (!Schema::connection('masterlist')->hasTable('customer_brand_discounts')) {
+        if (! Schema::connection('masterlist')->hasTable('customer_brand_discounts')) {
             return [];
         }
 
@@ -2307,6 +2245,7 @@ class CustomerOrderController extends Controller
                 }
                 $discount = max(0, min(100, (float) ($row->discount_percentage ?? 0)));
                 $result[$brand] = max($result[$brand] ?? 0, $discount);
+
                 return $result;
             }, []);
     }
@@ -2358,15 +2297,15 @@ class CustomerOrderController extends Controller
         $schema = Schema::connection('sales_order');
         $connection = DB::connection('sales_order');
 
-        if (!$schema->hasColumn('w68_portal_orders', 'prepared_by')) {
+        if (! $schema->hasColumn('w68_portal_orders', 'prepared_by')) {
             $connection->statement(
-                "ALTER TABLE `w68_portal_orders` ADD COLUMN `prepared_by` VARCHAR(191) NULL AFTER `portal_status`"
+                'ALTER TABLE `w68_portal_orders` ADD COLUMN `prepared_by` VARCHAR(191) NULL AFTER `portal_status`'
             );
         }
 
-        if (!$schema->hasColumn('w68_portal_orders', 'checked_by')) {
+        if (! $schema->hasColumn('w68_portal_orders', 'checked_by')) {
             $connection->statement(
-                "ALTER TABLE `w68_portal_orders` ADD COLUMN `checked_by` VARCHAR(191) NULL AFTER `prepared_by`"
+                'ALTER TABLE `w68_portal_orders` ADD COLUMN `checked_by` VARCHAR(191) NULL AFTER `prepared_by`'
             );
         }
     }
@@ -2401,7 +2340,7 @@ class CustomerOrderController extends Controller
                 $table->timestamps();
             });
         } catch (Throwable $exception) {
-            if (!Schema::connection('sales_order')->hasTable('w68_printer_bridge_jobs')) {
+            if (! Schema::connection('sales_order')->hasTable('w68_printer_bridge_jobs')) {
                 throw $exception;
             }
         }
@@ -2414,7 +2353,7 @@ class CustomerOrderController extends Controller
 
     private function accountDisplayName($account): string
     {
-        $name = trim((string) ($account->User_First_Name ?? '') . ' ' . (string) ($account->User_Last_Name ?? ''));
+        $name = trim((string) ($account->User_First_Name ?? '').' '.(string) ($account->User_Last_Name ?? ''));
         if ($name !== '') {
             return $name;
         }

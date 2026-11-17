@@ -388,7 +388,6 @@ class LoginController extends Controller
         Auth::login($account, false);
         $request->session()->regenerate();
         $request->session()->put([
-            'w68_show_process_order_tutorial' => true,
             'w68_show_available_items_modal' => true,
         ]);
         $request->session()->save();

@@ -8,11 +8,6 @@
     $orderCode = $viewMode ? (string) ($viewOrder['order_code'] ?? 'Order') : '';
     $backToOrdersUrl = route('orders') . ($returnViewMode ? '#returns' : ($invoiceViewMode ? '#invoiced' : ''));
     $shipments = collect($shipments ?? []);
-
-    // W68_PROCESS_ORDER_TUTORIAL_20261027
-    $tutorialRobotAsset = is_file(public_path('images/w68_robot_tutorial_mascot.gif'))
-        ? asset('images/w68_robot_tutorial_mascot.gif')
-        : asset('images/w68_robot_tutorial_fallback.svg');
 @endphp
 <!DOCTYPE html>
 <html lang="en">
@@ -22,8 +17,8 @@
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>W68 Autoparts | {{ $returnViewMode ? 'View Return' : ($viewMode ? 'View Order' : 'Process Order') }}</title>
     <link rel="icon" href="{{ asset('images/sidebar_logo.png') }}">
-    <link rel="stylesheet" href="{{ asset('css/w68-process-order.css') }}?v=20261031-v189">
-    <script src="{{ asset('js/w68-process-order.js') }}?v=20261031-v189" defer></script>
+    <link rel="stylesheet" href="{{ asset('css/w68-process-order.css') }}?v=20261117-v190">
+    <script src="{{ asset('js/w68-process-order.js') }}?v=20261117-v190" defer></script>
 </head>
 <body
     data-process-url="{{ $viewMode ? '' : route('home.orders.process') }}"
@@ -31,10 +26,6 @@
     data-view-mode="{{ $viewMode ? '1' : '0' }}"
     data-invoice-view-mode="{{ $invoiceViewMode ? '1' : '0' }}"
     data-auto-invoice-print-preview="{{ $autoInvoicePrintPreview ? '1' : '0' }}"
-    data-first-login-tutorial="{{ !empty($showProcessOrderTutorial) && !$viewMode ? '1' : '0' }}"
-    data-tutorial-login-number="{{ (int) ($tutorialLoginNumber ?? 1) }}"
-    data-tutorial-robot-gif="{{ $tutorialRobotAsset }}"
-    data-tutorial-robot-fallback="{{ asset('images/w68_robot_tutorial_fallback.svg') }}"
 >
     <main class="process-page-shell {{ $viewMode ? 'is-view-mode' : '' }}">
         <header class="process-page-header">
@@ -104,7 +95,7 @@
                                 data-update-url="{{ route('home.cart.update', ['product' => (int) $item['id']]) }}"
                             @endunless
                         >
-                            <div class="process-description-row" data-tutorial-description>
+                            <div class="process-description-row">
                                 <span>DESCRIPTION</span>
                                 <strong>{{ $item['description'] ?: 'W68 Product' }}</strong>
                             </div>
@@ -119,7 +110,7 @@
                                     >
                                 </div>
 
-                                <div class="process-item-details" data-tutorial-details>
+                                <div class="process-item-details">
                                     @unless($viewMode)
                                         <button
                                             type="button"
@@ -134,19 +125,19 @@
                                         </button>
                                     @endunless
 
-                                    <div class="process-meta-stack" data-tutorial-meta>
+                                    <div class="process-meta-stack">
                                         <div><span>PRODUCT CODE</span><strong>{{ $item['productCode'] ?: '—' }}</strong></div>
                                         <div><span>PART NUMBER</span><strong>{{ $item['partNumber'] ?: '—' }}</strong></div>
                                         <div><span>APPLICATION</span><strong>{{ $item['application'] ?: '—' }}</strong></div>
                                     </div>
 
                                     <div class="process-item-bottom-row">
-                                        <div class="process-brand-cell" data-tutorial-brand>
+                                        <div class="process-brand-cell">
                                             <span>BRAND</span>
                                             <strong>{{ $item['brand'] ?: '—' }}</strong>
                                         </div>
 
-                                        <div class="process-order-math" data-tutorial-math>
+                                        <div class="process-order-math">
                                             <div class="process-math-cell">
                                                 <span>PRICE</span>
                                                 <strong class="process-effective-price">
@@ -177,12 +168,12 @@
             @endif
 
             <footer class="process-order-footer">
-                <div class="process-grand-summary" data-tutorial-grand-summary>
-                    <div data-tutorial-total-items>
+                <div class="process-grand-summary">
+                    <div>
                         <span>TOTAL ITEMS</span>
                         <strong data-total-items>{{ number_format($totalItems) }}</strong>
                     </div>
-                    <div data-tutorial-total-price>
+                    <div>
                         <span>TOTAL PRICE</span>
                         <strong data-total-price>{{ number_format($totalPrice, 2) }}</strong>
                     </div>
@@ -446,7 +437,7 @@
                     </table>
                 </div>
             @else
-            <div class="order-print-preview" data-tutorial-print-preview>
+            <div class="order-print-preview">
                 <div class="order-print-head">
                     <strong>W68 Autoparts &amp; Service Center</strong>
                     <span>48 Timothy ST. Multinational Village Para&ntilde;aque City</span>
@@ -784,8 +775,7 @@
                 // Safari/iPad places showModal() dialogs in the browser top layer,
                 // above the existing Process Order confirmation modal.
                 try {
-                    var isTutorial = window.W68IsShipmentTutorialExpected && window.W68IsShipmentTutorialExpected();
-                    if (!isTutorial && typeof box.showModal === 'function') {
+                    if (typeof box.showModal === 'function') {
                         if (!box.open) box.showModal();
                     } else {
                         box.setAttribute('open', '');
@@ -805,10 +795,6 @@
                 }
 
                 paintDraft();
-
-                if (window.W68TriggerShipmentTutorial) {
-                    window.W68TriggerShipmentTutorial();
-                }
 
                 window.setTimeout(function () {
                     var target =
@@ -844,10 +830,6 @@
                 box.style.removeProperty('opacity');
                 box.style.removeProperty('pointer-events');
                 box.hidden = true;
-
-                if (window.W68CancelShipmentTutorial) {
-                    window.W68CancelShipmentTutorial();
-                }
 
                 if (document.body && document.body.classList) {
                     document.body.classList.remove('shipment-modal-open');
@@ -930,40 +912,6 @@
             };
         })();
     </script>
-
-    {{-- W68_PROCESS_ORDER_TUTORIAL_20261027 --}}
-    <div class="w68-tutorial-overlay" data-w68-tutorial hidden aria-hidden="true">
-        <div class="w68-tutorial-scrim" data-w68-tutorial-scrim></div>
-        <div class="w68-tutorial-spotlight" data-w68-tutorial-spotlight hidden></div>
-        <div class="w68-tutorial-arrow" data-w68-tutorial-arrow hidden><span></span></div>
-
-        <div class="w68-tutorial-robot" data-w68-tutorial-robot>
-            <img
-                src="{{ $tutorialRobotAsset }}"
-                data-w68-tutorial-robot-image
-                data-fallback="{{ asset('images/w68_robot_tutorial_fallback.svg') }}"
-                onerror="if(this.dataset.fallback && this.src !== this.dataset.fallback){this.src=this.dataset.fallback;}"
-                alt="W68 tutorial robot"
-            >
-        </div>
-
-        <section
-            class="w68-tutorial-card"
-            data-w68-tutorial-card
-            role="dialog"
-            aria-modal="true"
-            aria-labelledby="w68-tutorial-title"
-        >
-            <span class="w68-tutorial-kicker" data-w68-tutorial-kicker>W68 ORDER REVIEW GUIDE</span>
-            <h2 id="w68-tutorial-title" data-w68-tutorial-title>Order Review Guide</h2>
-            <p data-w68-tutorial-body>Review the items in your order.</p>
-            <div class="w68-tutorial-actions" style="display: none !important;">
-                <button type="button" class="w68-tutorial-skip" data-w68-tutorial-skip hidden style="display: none !important;">SKIP</button>
-                <button type="button" class="w68-tutorial-next" data-w68-tutorial-next hidden style="display: none !important;">NEXT</button>
-                <button type="button" class="w68-tutorial-done" data-w68-tutorial-done hidden style="display: none !important;">DONE</button>
-            </div>
-        </section>
-    </div>
 
 </body>
 </html>

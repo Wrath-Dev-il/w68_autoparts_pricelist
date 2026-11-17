@@ -3803,7 +3803,20 @@
         let lastAdvanceAt = 0;
         const blockAndAdvance = (event) => {
             if (!active) return;
-            if (event && event.isTrusted === false) return;
+
+            // W68_TUTORIAL_SYNTHETIC_TAP_GUARD_20261117
+            // Touch taps can produce a delayed synthetic click after the guide
+            // has already advanced. Swallow it instead of returning, otherwise
+            // it reaches the app handlers, hits the newly opened quantity
+            // modal backdrop, and immediately closes the dialog.
+            if (event && event.isTrusted === false) {
+                try {
+                    event.preventDefault();
+                    event.stopPropagation();
+                    event.stopImmediatePropagation();
+                } catch (_) {}
+                return;
+            }
 
             const now = Date.now();
             if (now - lastAdvanceAt < 380) {

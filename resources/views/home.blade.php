@@ -7,9 +7,9 @@
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>W68 Autoparts & Service Center | Home</title>
     <link rel="icon" href="{{ asset('images/sidebar_logo.png') }}">
-    <link rel="stylesheet" href="{{ asset('css/w68-home.css') }}?v=20261113-v206-tutorial-cart-cleanup">
+    <link rel="stylesheet" href="{{ asset('css/w68-home.css') }}?v=20261117-v207-tutorial-qty-modal-guard">
     <link rel="stylesheet" href="{{ asset('css/w68-notifications.css') }}?v=20261028-v148">
-    <script src="{{ asset('js/w68-home.js') }}?v=20261113-v206-tutorial-cart-cleanup" defer></script>
+    <script src="{{ asset('js/w68-home.js') }}?v=20261117-v207-tutorial-qty-modal-guard" defer></script>
     <script src="{{ asset('js/w68-notifications.js') }}?v=20261028-v148" defer></script>
 </head>
 @php

@@ -4,7 +4,7 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
     <meta name="csrf-token" content="{{ csrf_token() }}">
-    <title>W68 Autoparts | Orders</title>
+    <title>W68 Special Store | Orders</title>
     <link rel="icon" href="{{ asset('images/sidebar_logo.png') }}">
     <link rel="stylesheet" href="{{ asset('css/w68-orders.css') }}?v=20261103-v190">
     <link rel="stylesheet" href="{{ asset('css/w68-notifications.css') }}?v=20261028-v148">
@@ -40,8 +40,8 @@
 <header class="orders-header">
     <div class="orders-header-inner">
         <a href="{{ route('home') }}" class="orders-brand">
-            <img src="{{ $logo }}" alt="W68 Autoparts">
-            <span><strong>W68 AUTOPARTS</strong><small>MY ORDERS</small></span>
+            <img src="{{ $logo }}" alt="W68 Special Store">
+            <span><strong>W68 SPECIAL STORE</strong><small>MY ORDERS</small></span>
         </a>
 
         <div class="orders-header-actions">

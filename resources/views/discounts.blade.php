@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <meta name="description" content="W68 customer discounts by brand.">
-    <title>W68 Autoparts | Discounts</title>
+    <title>W68 Special Store | Discounts</title>
     <link rel="icon" href="{{ asset('images/sidebar_logo.png') }}">
     <link rel="stylesheet" href="{{ asset('css/w68-orders.css') }}?v=20260915-v69">
     <link rel="stylesheet" href="{{ asset('css/w68-discounts.css') }}?v=20260915-v72">
@@ -35,8 +35,8 @@
 <header class="orders-header discounts-header">
     <div class="orders-header-inner">
         <a href="{{ route('home') }}" class="orders-brand">
-            <img src="{{ $logo }}" alt="W68 Autoparts">
-            <span><strong>W68 AUTOPARTS</strong><small>MY DISCOUNTS</small></span>
+            <img src="{{ $logo }}" alt="W68 Special Store">
+            <span><strong>W68 SPECIAL STORE</strong><small>MY DISCOUNTS</small></span>
         </a>
 
         <div class="orders-header-actions discounts-header-actions">

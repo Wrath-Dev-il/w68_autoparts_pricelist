@@ -94,7 +94,7 @@ class CustomerNotificationController extends Controller
             ];
 
             return [
-                'id' => 'order:' . (int) $row->id,
+                'id' => 'order:'.(int) $row->id,
                 'source' => 'order',
                 'order_id' => $orderId,
                 'order_code' => (string) ($row->order_code ?? ''),
@@ -110,7 +110,7 @@ class CustomerNotificationController extends Controller
                 'waybill_no' => $state['waybill_no'],
                 'portal_status' => $state['portal_status'],
                 'sales_note_status' => $state['sales_note_status'],
-                'order_url' => $basePath . '/process-order/' . $orderId,
+                'order_url' => $basePath.'/process-order/'.$orderId,
             ];
         })->values();
 
@@ -138,7 +138,7 @@ class CustomerNotificationController extends Controller
                     };
 
                     return [
-                        'id' => 'soa:' . (int) $row->id,
+                        'id' => 'soa:'.(int) $row->id,
                         'source' => 'soa',
                         'order_id' => null,
                         'order_code' => '',
@@ -154,7 +154,7 @@ class CustomerNotificationController extends Controller
                         'waybill_no' => '',
                         'portal_status' => '',
                         'sales_note_status' => '',
-                        'order_url' => $isBilling ? ($basePath . '/orders#bills') : '',
+                        'order_url' => $isBilling ? ($basePath.'/orders#bills') : '',
                     ];
                 });
         }
@@ -169,64 +169,27 @@ class CustomerNotificationController extends Controller
 
         $unreadCount = $this->unreadCount($loginId, $customerId);
 
-        // W68_NOTIFICATION_TUTORIAL_20261028
-        // Show tutorial if:
-        // (1) Query parameter ?tutorial=notification or ?tutorial=preview or ?tutorial=1
-        // (2) User has unread notifications or any notification for the first time, and notification_tutorial_seen is false
-        $tutorialPreview = in_array(
-            (string) $request->query('tutorial', ''),
-            ['notification', 'preview', '1'],
-            true
-        );
-
-        $tutorialSeen = false;
+        // W68_NOTIFICATION_TUTORIAL_DISABLED_20261120
+        // Notification tutorial has been permanently removed per user request.
+        // Notifications must never trigger a walkthrough or mascot tutorial.
         try {
             if (Schema::connection('system')->hasTable('customer_portal_accounts')) {
-                $portalAccount = DB::connection('system')
+                DB::connection('system')
                     ->table('customer_portal_accounts')
                     ->where('login_id', $loginId)
-                    ->first();
-                $tutorialSeen = (bool) ($portalAccount->notification_tutorial_seen ?? false);
+                    ->where('notification_tutorial_seen', 0)
+                    ->update(['notification_tutorial_seen' => 1]);
             }
         } catch (Throwable $exception) {
             report($exception);
-        }
-
-        $showTutorial = false;
-        if ($tutorialPreview) {
-            $showTutorial = true;
-            if ($notifications->isEmpty()) {
-                $notifications = collect([[
-                    'id' => 'sample:1',
-                    'source' => 'order',
-                    'order_id' => 101,
-                    'order_code' => 'W68-DEMO',
-                    'sales_number' => 'SN-10293',
-                    'event_type' => 'SALES_NOTE_CREATED',
-                    'event_value' => 'SN-10293',
-                    'title' => 'Sales Note Created',
-                    'message' => 'Sales Note SN-10293 has been prepared for Order #W68-DEMO.',
-                    'event_at' => date('M d, Y h:i A'),
-                    'is_read' => false,
-                    'read_at' => null,
-                    'movement' => ['PROCESSED', 'SALES NOTE CREATED'],
-                    'waybill_no' => 'WB-88892',
-                    'portal_status' => 'PROCESSED',
-                    'sales_note_status' => 'IN_PROCESS',
-                    'order_url' => $basePath . '/orders',
-                ]]);
-                $unreadCount = max(1, $unreadCount);
-            }
-        } elseif (!$tutorialSeen && ($unreadCount > 0 || $notifications->isNotEmpty())) {
-            $showTutorial = true;
         }
 
         return response()->json([
             'ok' => true,
             'unread_count' => $unreadCount,
             'notifications' => $notifications,
-            'show_tutorial' => $showTutorial,
-            'tutorial_seen' => $tutorialSeen,
+            'show_tutorial' => false,
+            'tutorial_seen' => true,
         ]);
     }
 
@@ -381,11 +344,11 @@ class CustomerNotificationController extends Controller
         $salesSchema = Schema::connection('sales_order');
 
         if (
-            !$systemSchema->hasTable('customer_portal_notifications')
-            || !$salesSchema->hasTable('w68_portal_orders')
-            || !$salesSchema->hasTable('sales_orders')
-            || !$salesSchema->hasColumn('sales_orders', 'sales_note_id')
-            || !$salesSchema->hasColumn('sales_orders', 'invoice_numbers')
+            ! $systemSchema->hasTable('customer_portal_notifications')
+            || ! $salesSchema->hasTable('w68_portal_orders')
+            || ! $salesSchema->hasTable('sales_orders')
+            || ! $salesSchema->hasColumn('sales_orders', 'sales_note_id')
+            || ! $salesSchema->hasColumn('sales_orders', 'invoice_numbers')
         ) {
             return;
         }
@@ -447,7 +410,7 @@ class CustomerNotificationController extends Controller
             ? strtolower(trim((string) ($soaConfig->lead_unit ?? '')))
             : '';
 
-        if (!in_array($leadUnit, ['minutes', 'days', 'months'], true)) {
+        if (! in_array($leadUnit, ['minutes', 'days', 'months'], true)) {
             $leadValue = null;
             $leadUnit = '';
         }
@@ -499,7 +462,7 @@ class CustomerNotificationController extends Controller
             $orderCode = trim((string) ($invoice->order_code ?? ''));
 
             if ($dueAt->betweenIncluded($monthStart, $monthEnd)) {
-                $eventKey = 'BILL_CURRENT:' . $customerId . ':SO:' . $salesOrderId . ':' . $dueAt->format('Y-m');
+                $eventKey = 'BILL_CURRENT:'.$customerId.':SO:'.$salesOrderId.':'.$dueAt->format('Y-m');
 
                 $system->table('customer_portal_notifications')->insertOrIgnore([
                     'login_id' => $loginId,
@@ -507,10 +470,10 @@ class CustomerNotificationController extends Controller
                     'event_type' => 'BILL_CURRENT',
                     'event_key' => $eventKey,
                     'title' => 'Current Bill Available',
-                    'message' => 'You have a current bill for Invoice ' . $invoiceNo
-                        . ($orderCode !== '' ? ' (' . $orderCode . ')' : '')
-                        . '. Due date: ' . $dueDateLabel
-                        . '. Total amount: PHP ' . number_format($amount, 2) . '.',
+                    'message' => 'You have a current bill for Invoice '.$invoiceNo
+                        .($orderCode !== '' ? ' ('.$orderCode.')' : '')
+                        .'. Due date: '.$dueDateLabel
+                        .'. Total amount: PHP '.number_format($amount, 2).'.',
                     'event_at' => $now,
                     'is_read' => 0,
                     'read_at' => null,
@@ -533,7 +496,7 @@ class CustomerNotificationController extends Controller
                 default => null,
             };
 
-            if (!$sendAt || !$now->betweenIncluded($sendAt, $dueAt)) {
+            if (! $sendAt || ! $now->betweenIncluded($sendAt, $dueAt)) {
                 continue;
             }
 
@@ -541,7 +504,7 @@ class CustomerNotificationController extends Controller
                 ? rtrim($leadUnit, 's')
                 : $leadUnit;
 
-            $eventKey = 'BILL_DUE_SOON:' . $customerId . ':SO:' . $salesOrderId . ':' . $dueAt->format('Y-m-d');
+            $eventKey = 'BILL_DUE_SOON:'.$customerId.':SO:'.$salesOrderId.':'.$dueAt->format('Y-m-d');
 
             $system->table('customer_portal_notifications')->insertOrIgnore([
                 'login_id' => $loginId,
@@ -549,12 +512,12 @@ class CustomerNotificationController extends Controller
                 'event_type' => 'BILL_DUE_SOON',
                 'event_key' => $eventKey,
                 'title' => 'Payment Due Soon',
-                'message' => 'Invoice ' . $invoiceNo
-                    . ' is due on ' . $dueDateLabel
-                    . '. Your W68 SOA(AUTO) reminder is set to '
-                    . $leadValue . ' ' . $unitLabel
-                    . ' before the end of terms. Amount due: PHP '
-                    . number_format($amount, 2) . '.',
+                'message' => 'Invoice '.$invoiceNo
+                    .' is due on '.$dueDateLabel
+                    .'. Your W68 SOA(AUTO) reminder is set to '
+                    .$leadValue.' '.$unitLabel
+                    .' before the end of terms. Amount due: PHP '
+                    .number_format($amount, 2).'.',
                 'event_at' => $sendAt,
                 'is_read' => 0,
                 'read_at' => null,
@@ -616,7 +579,7 @@ class CustomerNotificationController extends Controller
             $portalOrderId = (int) $order->id;
             $orderCode = trim((string) ($order->order_code ?? ''));
             if ($orderCode === '') {
-                $orderCode = 'W68-' . str_pad((string) $portalOrderId, 8, '0', STR_PAD_LEFT);
+                $orderCode = 'W68-'.str_pad((string) $portalOrderId, 8, '0', STR_PAD_LEFT);
             }
             $order->order_code = $orderCode;
 
@@ -632,20 +595,20 @@ class CustomerNotificationController extends Controller
                     'SALES_NOTE_CLOSED',
                     'CLOSED',
                     'Sales Note Closed',
-                    ($salesNumber !== '' ? $salesNumber : 'The linked Sales Note') . ' is now Closed for ' . $orderCode . '.',
+                    ($salesNumber !== '' ? $salesNumber : 'The linked Sales Note').' is now Closed for '.$orderCode.'.',
                     $order->sales_note_updated_at ?? $order->portal_updated_at ?? now()
                 );
             }
 
             $waybill = $salesOrders->first(function ($salesOrder): bool {
-                return !empty($salesOrder->waybill_id)
+                return ! empty($salesOrder->waybill_id)
                     || trim((string) ($salesOrder->waybill_no ?? '')) !== '';
             });
 
             if ($waybill) {
                 $waybillNo = trim((string) ($waybill->waybill_no ?? ''));
                 if ($waybillNo === '') {
-                    $waybillNo = 'Waybill #' . (string) ($waybill->waybill_id ?? '');
+                    $waybillNo = 'Waybill #'.(string) ($waybill->waybill_id ?? '');
                 }
 
                 $this->upsertNotification(
@@ -653,7 +616,7 @@ class CustomerNotificationController extends Controller
                     'WAYBILL_CREATED',
                     $waybillNo,
                     'Waybill Available',
-                    $waybillNo . ' is now attached to ' . $orderCode . '.',
+                    $waybillNo.' is now attached to '.$orderCode.'.',
                     $waybill->waybill_date ?? $waybill->updated_at ?? $order->portal_updated_at ?? now()
                 );
             }
@@ -664,7 +627,7 @@ class CustomerNotificationController extends Controller
                     'ORDER_CANCELLED',
                     'CANCELLED',
                     'Order Cancelled',
-                    $orderCode . ' has been cancelled.',
+                    $orderCode.' has been cancelled.',
                     $order->portal_updated_at ?? now()
                 );
             }
@@ -762,7 +725,7 @@ class CustomerNotificationController extends Controller
             $salesNoteStatus = mb_strtoupper(trim((string) ($order->sales_note_status ?? '')));
             $salesOrders = $salesOrdersByNote->get((int) $order->sales_note_id, collect());
             $waybill = $salesOrders->first(function ($salesOrder): bool {
-                return !empty($salesOrder->waybill_id)
+                return ! empty($salesOrder->waybill_id)
                     || trim((string) ($salesOrder->waybill_no ?? '')) !== '';
             });
 
@@ -775,9 +738,9 @@ class CustomerNotificationController extends Controller
             if ($waybill) {
                 $waybillNo = trim((string) ($waybill->waybill_no ?? ''));
                 if ($waybillNo === '') {
-                    $waybillNo = 'WAYBILL #' . (string) ($waybill->waybill_id ?? '');
+                    $waybillNo = 'WAYBILL #'.(string) ($waybill->waybill_id ?? '');
                 }
-                $movement[] = 'WAYBILL ' . $waybillNo;
+                $movement[] = 'WAYBILL '.$waybillNo;
             }
 
             if ($portalStatus === 'CANCELLED') {
@@ -816,8 +779,8 @@ class CustomerNotificationController extends Controller
 
         $schema = Schema::connection('sales_order');
         if (
-            !$schema->hasTable('sales_orders')
-            || !$schema->hasColumn('sales_orders', 'sales_note_id')
+            ! $schema->hasTable('sales_orders')
+            || ! $schema->hasColumn('sales_orders', 'sales_note_id')
         ) {
             return collect();
         }
@@ -840,8 +803,8 @@ class CustomerNotificationController extends Controller
     private function syncOrderReadFlag(int $orderId): void
     {
         if (
-            !Schema::connection('sales_order')->hasColumn('w68_portal_orders', 'notification_is_read')
-            || !Schema::connection('sales_order')->hasColumn('w68_portal_orders', 'notification_read_at')
+            ! Schema::connection('sales_order')->hasColumn('w68_portal_orders', 'notification_is_read')
+            || ! Schema::connection('sales_order')->hasColumn('w68_portal_orders', 'notification_read_at')
         ) {
             return;
         }
@@ -905,7 +868,7 @@ class CustomerNotificationController extends Controller
         }
 
         try {
-            return \Carbon\Carbon::parse($value)->format('M d, Y h:i A');
+            return Carbon::parse($value)->format('M d, Y h:i A');
         } catch (Throwable $exception) {
             return (string) $value;
         }
@@ -916,7 +879,7 @@ class CustomerNotificationController extends Controller
         $systemSchema = Schema::connection('system');
         $systemConnection = DB::connection('system');
 
-        if (!$systemSchema->hasTable('customer_portal_notifications')) {
+        if (! $systemSchema->hasTable('customer_portal_notifications')) {
             $systemConnection->statement(<<<'SQL'
 CREATE TABLE IF NOT EXISTS `customer_portal_notifications` (
     `id` BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
@@ -942,7 +905,7 @@ SQL);
         $schema = Schema::connection('sales_order');
         $connection = DB::connection('sales_order');
 
-        if (!$schema->hasTable('w68_portal_order_notifications')) {
+        if (! $schema->hasTable('w68_portal_order_notifications')) {
             $connection->statement(<<<'SQL'
 CREATE TABLE IF NOT EXISTS `w68_portal_order_notifications` (
     `id` BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
@@ -974,26 +937,26 @@ SQL);
         // These two order-level fields are only a quick phpMyAdmin indicator.
         // The event-by-event read state remains in the notification table.
         if ($schema->hasTable('w68_portal_orders')) {
-            if (!$schema->hasColumn('w68_portal_orders', 'notification_is_read')) {
+            if (! $schema->hasColumn('w68_portal_orders', 'notification_is_read')) {
                 try {
                     $connection->statement(
-                        "ALTER TABLE `w68_portal_orders` ADD COLUMN `notification_is_read` TINYINT(1) NOT NULL DEFAULT 1 AFTER `portal_status`"
+                        'ALTER TABLE `w68_portal_orders` ADD COLUMN `notification_is_read` TINYINT(1) NOT NULL DEFAULT 1 AFTER `portal_status`'
                     );
                 } catch (Throwable $exception) {
                     // Another simultaneous request may have added it first.
-                    if (!$schema->hasColumn('w68_portal_orders', 'notification_is_read')) {
+                    if (! $schema->hasColumn('w68_portal_orders', 'notification_is_read')) {
                         throw $exception;
                     }
                 }
             }
 
-            if (!$schema->hasColumn('w68_portal_orders', 'notification_read_at')) {
+            if (! $schema->hasColumn('w68_portal_orders', 'notification_read_at')) {
                 try {
                     $connection->statement(
-                        "ALTER TABLE `w68_portal_orders` ADD COLUMN `notification_read_at` TIMESTAMP NULL DEFAULT NULL AFTER `notification_is_read`"
+                        'ALTER TABLE `w68_portal_orders` ADD COLUMN `notification_read_at` TIMESTAMP NULL DEFAULT NULL AFTER `notification_is_read`'
                     );
                 } catch (Throwable $exception) {
-                    if (!$schema->hasColumn('w68_portal_orders', 'notification_read_at')) {
+                    if (! $schema->hasColumn('w68_portal_orders', 'notification_read_at')) {
                         throw $exception;
                     }
                 }
@@ -1004,13 +967,13 @@ SQL);
         // Lazy-ensure the tutorial seen flag on customer_portal_accounts
         $systemSchema = Schema::connection('system');
         if ($systemSchema->hasTable('customer_portal_accounts')) {
-            if (!$systemSchema->hasColumn('customer_portal_accounts', 'notification_tutorial_seen')) {
+            if (! $systemSchema->hasColumn('customer_portal_accounts', 'notification_tutorial_seen')) {
                 try {
                     DB::connection('system')->statement(
-                        "ALTER TABLE `customer_portal_accounts` ADD COLUMN `notification_tutorial_seen` TINYINT(1) NOT NULL DEFAULT 0 AFTER `orders_tutorial_seen`"
+                        'ALTER TABLE `customer_portal_accounts` ADD COLUMN `notification_tutorial_seen` TINYINT(1) NOT NULL DEFAULT 0 AFTER `orders_tutorial_seen`'
                     );
                 } catch (Throwable $exception) {
-                    if (!$systemSchema->hasColumn('customer_portal_accounts', 'notification_tutorial_seen')) {
+                    if (! $systemSchema->hasColumn('customer_portal_accounts', 'notification_tutorial_seen')) {
                         report($exception);
                     }
                 }
